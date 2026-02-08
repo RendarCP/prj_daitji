@@ -1,44 +1,50 @@
-import { Spinner } from '@/components/ui/Spinner'
+import { LocationCardSkeleton, ListItemSkeleton } from '@/components/ui/Skeleton'
 
 export default function ExplorerLoading() {
   return (
-    <div className="min-h-screen bg-secondary-50">
-      <div className="flex">
-        {/* Sidebar Skeleton */}
-        <aside className="w-80 h-screen bg-white border-r border-secondary-200 hidden lg:block">
-          <div className="p-4 border-b border-secondary-200">
-            <div className="h-7 bg-secondary-200 rounded animate-pulse w-24" />
+    <div className="min-h-screen bg-background pb-20">
+      {/* Page Title */}
+      <div className="pt-6 pb-2 text-center relative px-4">
+        <div className="h-7 w-48 bg-secondary/30 rounded animate-pulse mx-auto" />
+      </div>
+
+      {/* Breadcrumb Skeleton */}
+      <div className="px-4 py-2 flex items-center justify-center gap-2 mb-6">
+        <div className="h-8 w-20 bg-secondary/30 rounded-full animate-pulse" />
+      </div>
+
+      <div className="container mx-auto px-4 max-w-3xl space-y-6">
+        {/* Locations Section */}
+        <div>
+          <div className="flex items-center justify-between mb-3 px-1">
+            <div className="h-4 w-24 bg-secondary/30 rounded animate-pulse" />
+            <div className="h-4 w-28 bg-secondary/30 rounded animate-pulse" />
           </div>
-          <div className="p-4 space-y-3">
-            {[...Array(5)].map((_, i) => (
-              <div key={i} className="flex items-center gap-3">
-                <div className="w-5 h-5 bg-secondary-200 rounded animate-pulse" />
-                <div className="h-5 bg-secondary-200 rounded animate-pulse flex-1" />
-              </div>
+          <div className="grid grid-cols-2 gap-3">
+            {[...Array(4)].map((_, i) => (
+              <LocationCardSkeleton key={i} />
             ))}
           </div>
-        </aside>
+        </div>
 
-        {/* Main Content Skeleton */}
-        <main className="flex-1">
-          <div className="container mx-auto px-4 py-8">
-            {/* Header Skeleton */}
-            <div className="mb-6">
-              <div className="h-9 bg-secondary-200 rounded animate-pulse w-48 mb-2" />
-              <div className="h-5 bg-secondary-200 rounded animate-pulse w-64" />
-            </div>
+        {/* Search Bar Skeleton */}
+        <div className="flex items-center gap-2">
+          <div className="flex-1 h-10 bg-secondary/30 rounded-xl animate-pulse" />
+          <div className="w-10 h-10 bg-secondary/30 rounded-xl animate-pulse" />
+        </div>
 
-            {/* Filter Skeleton */}
-            <div className="mb-6">
-              <div className="h-12 bg-white border border-secondary-200 rounded-lg animate-pulse" />
-            </div>
-
-            {/* Content Skeleton */}
-            <div className="flex items-center justify-center py-12">
-              <Spinner size="lg" />
-            </div>
+        {/* Items Section Skeleton */}
+        <div className="pb-20">
+          <div className="flex items-center justify-between mb-3 px-1">
+            <div className="h-4 w-32 bg-secondary/30 rounded animate-pulse" />
+            <div className="h-4 w-24 bg-secondary/30 rounded animate-pulse" />
           </div>
-        </main>
+          <div className="space-y-2">
+            {[...Array(5)].map((_, i) => (
+              <ListItemSkeleton key={i} />
+            ))}
+          </div>
+        </div>
       </div>
     </div>
   )

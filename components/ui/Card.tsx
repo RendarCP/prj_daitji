@@ -10,9 +10,9 @@ export interface CardProps extends HTMLAttributes<HTMLDivElement> {
 export const Card = forwardRef<HTMLDivElement, CardProps>(
   ({ className, hover = false, noPadding = false, variant = 'default', children, ...props }, ref) => {
     const variants = {
-      default: 'bg-white border border-secondary-200 shadow-sm',
-      outlined: 'bg-white border-2 border-secondary-300',
-      elevated: 'bg-white shadow-md border-0',
+      default: 'bg-card border border-border shadow-soft',
+      outlined: 'bg-card border-2 border-border',
+      elevated: 'bg-card shadow-medium border-0',
     }
 
     return (
@@ -21,8 +21,8 @@ export const Card = forwardRef<HTMLDivElement, CardProps>(
         className={cn(
           'rounded-xl overflow-hidden',
           variants[variant],
-          !noPadding && 'p-6',
-          hover && 'transition-all duration-200 hover:shadow-lg hover:border-secondary-300 cursor-pointer',
+          !noPadding && 'p-4',
+          hover && 'transition-all duration-300 hover:shadow-soft hover:-translate-y-0.5 cursor-pointer',
           className
         )}
         {...props}
@@ -37,7 +37,7 @@ Card.displayName = 'Card'
 
 export const CardHeader = forwardRef<HTMLDivElement, HTMLAttributes<HTMLDivElement>>(
   ({ className, ...props }, ref) => (
-    <div ref={ref} className={cn('mb-4 pb-4 border-b border-secondary-200', className)} {...props} />
+    <div ref={ref} className={cn('mb-4 pb-4 border-b border-border', className)} {...props} />
   )
 )
 
@@ -45,7 +45,7 @@ CardHeader.displayName = 'CardHeader'
 
 export const CardTitle = forwardRef<HTMLHeadingElement, HTMLAttributes<HTMLHeadingElement>>(
   ({ className, ...props }, ref) => (
-    <h3 ref={ref} className={cn('text-xl font-bold text-secondary-900 leading-tight', className)} {...props} />
+    <h3 ref={ref} className={cn('text-xl font-bold text-card-foreground leading-tight', className)} {...props} />
   )
 )
 
@@ -53,7 +53,7 @@ CardTitle.displayName = 'CardTitle'
 
 export const CardDescription = forwardRef<HTMLParagraphElement, HTMLAttributes<HTMLParagraphElement>>(
   ({ className, ...props }, ref) => (
-    <p ref={ref} className={cn('text-sm text-secondary-600 mt-1', className)} {...props} />
+    <p ref={ref} className={cn('text-sm text-muted-foreground mt-1', className)} {...props} />
   )
 )
 
@@ -69,7 +69,7 @@ CardContent.displayName = 'CardContent'
 
 export const CardFooter = forwardRef<HTMLDivElement, HTMLAttributes<HTMLDivElement>>(
   ({ className, ...props }, ref) => (
-    <div ref={ref} className={cn('mt-6 pt-4 border-t border-secondary-200 flex items-center gap-2', className)} {...props} />
+    <div ref={ref} className={cn('mt-6 pt-4 border-t border-border flex items-center gap-2', className)} {...props} />
   )
 )
 

@@ -2,6 +2,7 @@ import { Metadata } from 'next'
 import { createClient } from '@/lib/supabase/server'
 import { notFound } from 'next/navigation'
 import { ItemDetailClient } from './ItemDetailClient'
+import { Header } from '@/components/layout/Header'
 
 type Props = {
   params: Promise<{ id: string }>
@@ -93,10 +94,13 @@ export default async function ItemDetailPage({ params }: Props) {
     .order('sort_order', { ascending: true })
 
   return (
-    <ItemDetailClient 
-      item={item} 
-      locationPath={locationPath}
-      allLocations={locations || []}
-    />
+    <>
+      <Header />
+      <ItemDetailClient 
+        item={item} 
+        locationPath={locationPath}
+        allLocations={locations || []}
+      />
+    </>
   )
 }

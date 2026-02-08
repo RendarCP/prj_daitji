@@ -1,21 +1,29 @@
-import { Metadata } from 'next'
-import { createClient } from '@/lib/supabase/server'
-import { ItemAddClient } from './ItemAddClient'
+import { Metadata } from "next";
+import { createClient } from "@/lib/supabase/server";
+import { ItemAddClient } from "./ItemAddClient";
+import { Header } from "@/components/layout/Header";
+import { redirect } from "next/navigation";
 
 export const metadata: Metadata = {
-  title: '물품 추가 - DAITJI',
-  description: '새로운 물품을 등록하세요',
-}
+  title: "물품 추가 - DAITJI",
+  description: "새로운 물품을 등록하세요",
+};
 
 export default async function ItemAddPage() {
-  const supabase = await createClient()
-  
-  // Fetch all locations for the dropdown
-  const { data: locations } = await supabase
-    .from('locations')
-    .select('id, name, level, parent_id, icon')
-    .order('level', { ascending: true })
-    .order('sort_order', { ascending: true })
+  const supabase = await createClient();
 
-  return <ItemAddClient locations={locations || []} />
+  // const {
+  //   data: { user },
+  // } = await supabase.auth.getUser()
+
+  // if (!user) {
+  //   redirect('/auth/login')
+  // }
+
+  return (
+    <>
+      <Header />
+      <ItemAddClient />
+    </>
+  );
 }

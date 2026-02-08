@@ -2,6 +2,7 @@ import { Metadata } from 'next'
 import { Suspense } from 'react'
 import ExplorerClient from './ExplorerClient'
 import { Spinner } from '@/components/ui/Spinner'
+import { Header } from '@/components/layout/Header'
 
 export const metadata: Metadata = {
   title: '물건 탐색',
@@ -18,8 +19,11 @@ function ExplorerFallback() {
 
 export default function ExplorerPage() {
   return (
-    <Suspense fallback={<ExplorerFallback />}>
-      <ExplorerClient />
-    </Suspense>
+    <>
+      <Header />
+      <Suspense fallback={<ExplorerFallback />}>
+        <ExplorerClient />
+      </Suspense>
+    </>
   )
 }

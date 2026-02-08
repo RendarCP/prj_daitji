@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import './globals.css'
+import { ReactQueryProvider } from '@/lib/providers/ReactQueryProvider'
 
 export const metadata: Metadata = {
   title: {
@@ -48,29 +49,10 @@ export default function RootLayout({
 }) {
   return (
     <html lang="ko" suppressHydrationWarning>
-      <body className="min-h-screen">
-        <div className="flex flex-col min-h-screen">
-          <header className="sticky top-0 z-50 w-full border-b border-secondary-200 bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/60">
-            <div className="container mx-auto flex h-16 items-center px-4">
-              <div className="flex items-center gap-2">
-                <span className="text-2xl font-bold text-primary-600">DAITJI</span>
-                <span className="text-sm text-secondary-500">다있지</span>
-              </div>
-            </div>
-          </header>
-
-          <main className="flex-1">
-            {children}
-          </main>
-
-          <footer className="border-t border-secondary-200 bg-white">
-            <div className="container mx-auto px-4 py-6">
-              <div className="text-center text-sm text-secondary-500">
-                © {new Date().getFullYear()} DAITJI. All rights reserved.
-              </div>
-            </div>
-          </footer>
-        </div>
+      <body className="min-h-screen bg-background text-foreground">
+        <ReactQueryProvider>
+          {children}
+        </ReactQueryProvider>
       </body>
     </html>
   )

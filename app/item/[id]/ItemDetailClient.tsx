@@ -19,7 +19,6 @@ import {
   AlertTriangle,
   Info
 } from 'lucide-react'
-import { Header } from '@/components/layout/Header'
 import { BottomNav } from '@/components/layout/BottomNav'
 import { PageHeader } from '@/components/layout/PageHeader'
 import { Card } from '@/components/ui/Card'
@@ -233,9 +232,7 @@ export function ItemDetailClient({ item: initialItem, locationPath, allLocations
 
   return (
     <div className="min-h-screen bg-secondary-50">
-      <Header />
-      
-      <main className="pb-24 pt-16">
+      <main className="pb-24">
         <div className="container mx-auto px-4 py-6 max-w-4xl">
           <PageHeader
             title={isEditing ? '물품 수정' : item.name}

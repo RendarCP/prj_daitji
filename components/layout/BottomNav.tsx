@@ -13,23 +13,23 @@ interface NavItem {
 
 const navItems: NavItem[] = [
   {
-    href: '/',
-    label: '홈',
+    href: '/dashboard',
+    label: 'Dashboard',
     icon: Home,
   },
   {
     href: '/explorer',
-    label: '탐색',
+    label: 'Browse',
     icon: Search,
   },
   {
     href: '/items',
-    label: '물품',
+    label: 'Items',
     icon: LayoutGrid,
   },
   {
-    href: '/dashboard',
-    label: '통계',
+    href: '/settings',
+    label: 'Settings',
     icon: BarChart3,
   },
 ]
@@ -39,7 +39,7 @@ export function BottomNav() {
 
   return (
     <nav 
-      className="fixed bottom-0 left-0 right-0 z-30 bg-white border-t border-secondary-200 shadow-lg md:hidden"
+      className="fixed bottom-0 left-0 right-0 z-30 bg-card/80 backdrop-blur-md border-t border-border shadow-soft md:hidden"
       role="navigation"
       aria-label="하단 네비게이션"
     >
@@ -53,10 +53,10 @@ export function BottomNav() {
               key={item.href}
               href={item.href}
               className={cn(
-                'flex flex-col items-center justify-center gap-1 transition-colors touch-manipulation',
+                'flex flex-col items-center justify-center gap-1 transition-all duration-200 touch-manipulation',
                 isActive
-                  ? 'text-primary-600 bg-primary-50'
-                  : 'text-secondary-600 hover:text-primary-600 hover:bg-secondary-50 active:bg-secondary-100'
+                  ? 'text-primary bg-primary/10'
+                  : 'text-muted-foreground hover:text-foreground hover:bg-secondary active:bg-secondary/80'
               )}
               aria-current={isActive ? 'page' : undefined}
             >
@@ -78,7 +78,7 @@ export function BottomNav() {
       </div>
 
       {/* Safe Area Spacing for iOS */}
-      <div className="h-safe-area-inset-bottom bg-white" />
+      <div className="h-safe-area-inset-bottom bg-card" />
     </nav>
   )
 }

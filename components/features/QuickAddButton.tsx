@@ -23,7 +23,7 @@ export function QuickAddButton({
   }
 
   return (
-    <div className={cn('fixed bottom-6 right-6 z-40', className)}>
+    <div className={cn('fixed bottom-20 right-4 z-40 md:bottom-6', className)}>
       {/* Action Menu */}
       {isOpen && (
         <>
@@ -35,17 +35,17 @@ export function QuickAddButton({
           />
           
           {/* Actions */}
-          <div className="absolute bottom-16 right-0 flex flex-col gap-2 animate-slide-up">
+          <div className="absolute bottom-16 right-0 flex flex-col gap-2 animate-fade-in">
             {onAddItem && (
               <button
                 onClick={() => handleAction(onAddItem)}
-                className="flex items-center gap-3 px-4 py-3 bg-white rounded-full shadow-lg hover:shadow-xl transition-all hover:scale-105 active:scale-95 group"
+                className="flex items-center gap-3 px-4 py-3 bg-card rounded-full shadow-soft hover:shadow-medium transition-all hover:scale-105 active:scale-95 group border border-border"
                 aria-label="물품 추가"
               >
-                <span className="text-sm font-medium text-secondary-900 whitespace-nowrap">
+                <span className="text-sm font-medium text-foreground whitespace-nowrap">
                   물품 추가
                 </span>
-                <div className="w-12 h-12 rounded-full bg-success-500 text-white flex items-center justify-center group-hover:bg-success-600 transition-colors">
+                <div className="w-12 h-12 rounded-full bg-success text-success-foreground flex items-center justify-center group-hover:opacity-90 transition-opacity">
                   <Package className="w-5 h-5" />
                 </div>
               </button>
@@ -54,13 +54,13 @@ export function QuickAddButton({
             {onAddLocation && (
               <button
                 onClick={() => handleAction(onAddLocation)}
-                className="flex items-center gap-3 px-4 py-3 bg-white rounded-full shadow-lg hover:shadow-xl transition-all hover:scale-105 active:scale-95 group"
+                className="flex items-center gap-3 px-4 py-3 bg-card rounded-full shadow-soft hover:shadow-medium transition-all hover:scale-105 active:scale-95 group border border-border"
                 aria-label="위치 추가"
               >
-                <span className="text-sm font-medium text-secondary-900 whitespace-nowrap">
+                <span className="text-sm font-medium text-foreground whitespace-nowrap">
                   위치 추가
                 </span>
-                <div className="w-12 h-12 rounded-full bg-primary-500 text-white flex items-center justify-center group-hover:bg-primary-600 transition-colors">
+                <div className="w-12 h-12 rounded-full bg-primary text-primary-foreground flex items-center justify-center group-hover:opacity-90 transition-opacity">
                   <MapPin className="w-5 h-5" />
                 </div>
               </button>
@@ -73,11 +73,11 @@ export function QuickAddButton({
       <button
         onClick={() => setIsOpen(!isOpen)}
         className={cn(
-          'w-14 h-14 rounded-full shadow-lg flex items-center justify-center transition-all',
-          'hover:shadow-xl active:scale-95',
+          'w-14 h-14 rounded-full shadow-glow flex items-center justify-center transition-all',
+          'hover:shadow-medium active:scale-[0.98]',
           isOpen 
-            ? 'bg-secondary-700 text-white rotate-45' 
-            : 'bg-primary-500 text-white hover:bg-primary-600'
+            ? 'bg-secondary text-secondary-foreground rotate-45' 
+            : 'bg-primary text-primary-foreground hover:bg-primary/90'
         )}
         aria-label={isOpen ? '닫기' : '빠른 추가'}
         aria-expanded={isOpen}

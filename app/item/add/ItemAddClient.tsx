@@ -17,7 +17,6 @@ import {
   AlertTriangle,
   Info
 } from 'lucide-react'
-import { Header } from '@/components/layout/Header'
 import { BottomNav } from '@/components/layout/BottomNav'
 import { PageHeader } from '@/components/layout/PageHeader'
 import { Card } from '@/components/ui/Card'
@@ -26,18 +25,9 @@ import { Input } from '@/components/ui/Input'
 import { Select, SelectOption } from '@/components/ui/Select'
 import { Badge } from '@/components/ui/Badge'
 import { Alert } from '@/components/ui/Alert'
-
-type Location = {
-  id: string
-  name: string
-  level: number
-  parent_id?: string | null
-  icon?: string | null
-}
-
-interface ItemAddClientProps {
-  locations: Location[]
-}
+import { Skeleton } from '@/components/ui/Skeleton'
+import { useLocations } from '@/lib/hooks/useLocations'
+import type { Location } from '@/lib/types'
 
 const ITEM_TYPE_OPTIONS: SelectOption[] = [
   { value: 'FOOD', label: '식품' },
@@ -46,10 +36,13 @@ const ITEM_TYPE_OPTIONS: SelectOption[] = [
   { value: 'GENERAL', label: '일반' },
 ]
 
-export function ItemAddClient({ locations }: ItemAddClientProps) {
+export function ItemAddClient() {
   const router = useRouter()
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
+
+  // React Query hook for locations
+  const { data: locations = [], isLoading: isLoadingLocations } = useLocations()
 
   // Form state
   const [formData, setFormData] = useState({
@@ -174,16 +167,19 @@ export function ItemAddClient({ locations }: ItemAddClientProps) {
     router.back()
   }
 
-  const locationOptions: SelectOption[] = locations.map(loc => ({
-    value: loc.id,
-    label: `${'  '.repeat(loc.level - 1)}${loc.icon ? loc.icon + ' ' : ''}${loc.name}`,
-  }))
+  const locationOptions: SelectOption[] = locations
+    .sort((a, b) => {
+      if (a.level !== b.level) return a.level - b.level
+      return a.name.localeCompare(b.name)
+    })
+    .map((loc: Location) => ({
+      value: loc.id,
+      label: `${'  '.repeat(loc.level - 1)}${loc.icon ? loc.icon + ' ' : ''}${loc.name}`,
+    }))
 
   return (
     <div className="min-h-screen bg-secondary-50">
-      <Header />
-      
-      <main className="pb-24 pt-16">
+      <main className="pb-24">
         <div className="container mx-auto px-4 py-6 max-w-4xl">
           <PageHeader
             title="물품 추가"
@@ -258,12 +254,13 @@ export function ItemAddClient({ locations }: ItemAddClientProps) {
                 <Select
                   label="위치"
                   options={locationOptions}
-                  placeholder="위치를 선택하세요"
+                  placeholder={isLoadingLocations ? "위치 불러오는 중..." : "위치를 선택하세요"}
                   value={formData.location_id}
                   onChange={(e) => setFormData({ ...formData, location_id: e.target.value })}
                   required
                   leftIcon={<MapPin className="w-4 h-4" />}
                   error={errors.location_id}
+                  disabled={isLoadingLocations}
                 />
 
                 <Input

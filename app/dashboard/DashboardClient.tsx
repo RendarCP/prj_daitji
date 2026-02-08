@@ -1,386 +1,319 @@
-'use client'
+"use client";
 
-import { useState } from 'react'
-import { useRouter } from 'next/navigation'
-import { 
-  Package, 
-  MapPin, 
-  Clock, 
-  AlertTriangle,
-  CheckCircle,
-  RefreshCw,
-  Plus,
-  TrendingUp,
-  ChevronRight,
-} from 'lucide-react'
-import { Header } from '@/components/layout/Header'
-import { BottomNav } from '@/components/layout/BottomNav'
-import { PageHeader } from '@/components/layout/PageHeader'
-import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card'
-import { ItemCard } from '@/components/features/ItemCard'
-import { Badge } from '@/components/ui/Badge'
-import { Button } from '@/components/ui/Button'
-import { Spinner } from '@/components/ui/Spinner'
-import { Alert } from '@/components/ui/Alert'
-import { EmptyState } from '@/components/ui/EmptyState'
-import { QuickAddButton } from '@/components/features/QuickAddButton'
-import { DashboardStats } from '@/lib/types'
-import { cn } from '@/lib/utils/cn'
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { Package, CheckCircle, Plus, ChevronRight } from "lucide-react";
+import { BottomNav } from "@/components/layout/BottomNav";
+import { Button } from "@/components/ui/Button";
+import { Alert } from "@/components/ui/Alert";
+import { QuickAddButton } from "@/components/features/QuickAddButton";
+import { BottomSheet } from "@/components/ui/BottomSheet";
+import { ItemDetailPanel } from "@/components/ui/ItemDetailPanel";
+import { LocationDetailPanel } from "@/components/ui/LocationDetailPanel";
+import { ExpiryItemSkeleton, ListItemSkeleton, LocationCardSkeleton } from "@/components/ui/Skeleton";
+import { useDashboardStats, useRecentItems, useLocationSummary } from "@/lib/hooks/useDashboard";
+import { useExpiringItems } from "@/lib/hooks/useItems";
+import { cn } from "@/lib/utils/cn";
+import type { ExpiringItem, Item, Location } from "@/lib/types";
 
-interface DashboardClientProps {
-  initialStats: DashboardStats | null
-  initialExpiringItems: any[]
-  initialRecentItems: any[]
-  initialLocationSummary: any[]
-  statsError: string | null
-  expiringError: string | null
-  recentError: string | null
-  locationError: string | null
-}
+export function DashboardClient() {
+  const router = useRouter();
+  const [sidePanelItem, setSidePanelItem] = useState<Item | ExpiringItem | null>(null);
+  const [selectedLocation, setSelectedLocation] = useState<Location | null>(null);
 
-export function DashboardClient({
-  initialStats,
-  initialExpiringItems,
-  initialRecentItems,
-  initialLocationSummary,
-  statsError: initialStatsError,
-  expiringError: initialExpiringError,
-  recentError: initialRecentError,
-  locationError: initialLocationError,
-}: DashboardClientProps) {
-  const router = useRouter()
-  const [isRefreshing, setIsRefreshing] = useState(false)
-
-  const handleRefresh = async () => {
-    setIsRefreshing(true)
-    router.refresh()
-    // Simulate minimum refresh time for UX
-    setTimeout(() => {
-      setIsRefreshing(false)
-    }, 500)
-  }
+  // React Query hooks
+  const { data: stats, isLoading: isStatsLoading, error: statsError } = useDashboardStats();
+  const { data: expiringItems = [], isLoading: isExpiringLoading, error: expiringError } = useExpiringItems();
+  const { data: recentItems = [], isLoading: isRecentLoading, error: recentError } = useRecentItems();
+  const { data: locationSummary = [], isLoading: isLocationLoading, error: locationError } = useLocationSummary();
 
   const handleAddItem = () => {
-    router.push('/item/add')
-  }
+    router.push('/item/add');
+  };
 
   const handleAddLocation = () => {
-    router.push('/explorer?action=add-location')
-  }
+    router.push('/explorer/add');
+  };
+
+  const handleItemClick = (item: Item | ExpiringItem) => {
+    setSidePanelItem(item);
+  };
 
   return (
-    <div className="min-h-screen bg-secondary-50 pb-20 md:pb-6">
-      <Header />
-      
+    <div className="min-h-screen bg-background pb-20 md:pb-6">
       <div className="container mx-auto px-4 py-6 max-w-7xl">
-        {/* Page Header */}
-        <PageHeader
-          title="대시보드"
-          description="물품 관리 현황을 한눈에 확인하세요"
-          actions={
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={handleRefresh}
-              disabled={isRefreshing}
-              aria-label="새로고침"
-            >
-              <RefreshCw className={cn('w-5 h-5', isRefreshing && 'animate-spin')} />
-            </Button>
-          }
-        />
+        {/* Quick Stats - Hidden, data used for sections below */}
+        <div className="hidden">
+          {stats && (
+            <>
+              <span data-total={stats.total_items} />
+              <span data-active={stats.active_items} />
+              <span data-expiring={stats.expiring_soon} />
+              <span data-expired={stats.expired} />
+              <span data-locations={stats.locations_count} />
+            </>
+          )}
+        </div>
 
-        {/* Stats Cards Section */}
-        <section className="mb-8 animate-fade-in">
-          {initialStatsError ? (
-            <Alert variant="danger" title="오류">
-              {initialStatsError}
-            </Alert>
-          ) : !initialStats ? (
-            <div className="flex justify-center py-12">
-              <Spinner size="lg" label="통계 로딩 중..." />
+        {/* Expiry Alerts Section */}
+        <section
+          className="mb-6 animate-fade-in"
+          style={{ animationDelay: "100ms" }}
+        >
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-xl font-bold text-foreground">만료 알림</h2>
+            {expiringItems.length > 0 && (
+              <button
+                className="text-sm text-primary hover:text-primary/80 font-medium"
+                onClick={() => router.push("/items?filter=expiring")}
+              >
+                전체보기
+              </button>
+            )}
+          </div>
+
+          {expiringError ? (
+            <Alert variant="danger">{expiringError instanceof Error ? expiringError.message : '데이터를 불러오지 못했습니다'}</Alert>
+          ) : isExpiringLoading ? (
+            <div className="grid grid-cols-2 gap-3">
+              {[...Array(4)].map((_, i) => (
+                <ExpiryItemSkeleton key={i} />
+              ))}
+            </div>
+          ) : expiringItems.length === 0 ? (
+            <div className="card text-center py-6">
+              <CheckCircle className="w-10 h-10 text-success mx-auto mb-2" />
+              <p className="text-sm text-muted-foreground">
+                만료 임박 물품이 없습니다
+              </p>
             </div>
           ) : (
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
-              {/* Total Items */}
-              <Card className="animate-slide-up" style={{ animationDelay: '0ms' }}>
-                <div className="flex flex-col gap-3">
-                  <div className="flex items-center justify-between">
-                    <div className="p-2 bg-primary-100 rounded-lg">
-                      <Package className="w-5 h-5 text-primary-600" />
-                    </div>
-                  </div>
-                  <div>
-                    <p className="text-sm text-secondary-600 mb-1">전체 물품</p>
-                    <p className="text-2xl font-bold text-secondary-900">
-                      {initialStats.total_items.toLocaleString()}
-                    </p>
-                  </div>
-                </div>
-              </Card>
+            <div className="grid grid-cols-2 gap-3 stagger-children">
+              {expiringItems.slice(0, 4).map((item) => {
+                const expiryDate = new Date(
+                  item.expiry_date || item.computed_expiry_date || Date.now()
+                );
+                const today = new Date();
+                const daysUntilExpiry = item.days_until_expiry !== undefined 
+                  ? item.days_until_expiry 
+                  : Math.ceil((expiryDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+                const isExpired = daysUntilExpiry < 0;
+                const daysTotal = 30;
+                const progress = isExpired
+                  ? 100
+                  : Math.max(
+                      0,
+                      Math.min(
+                        100,
+                        ((daysTotal - daysUntilExpiry) / daysTotal) * 100
+                      )
+                    );
 
-              {/* Active Items */}
-              <Card className="animate-slide-up" style={{ animationDelay: '50ms' }}>
-                <div className="flex flex-col gap-3">
-                  <div className="flex items-center justify-between">
-                    <div className="p-2 bg-success-100 rounded-lg">
-                      <CheckCircle className="w-5 h-5 text-success-600" />
+                return (
+                  <button
+                    key={item.item_id}
+                    onClick={() => handleItemClick(item)}
+                    className="card hover-lift group text-left"
+                  >
+                    <div className="flex items-center gap-3 mb-3">
+                      <div className="text-4xl">
+                        {item.item_type === "FOOD"
+                          ? "🍽️"
+                          : item.item_type === "COSMETIC"
+                          ? "💄"
+                          : item.item_type === "MEDICINE"
+                          ? "💊"
+                          : "📦"}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <span
+                          className={cn(
+                            "text-xs font-medium px-2 py-0.5 rounded inline-block mb-1",
+                            isExpired
+                              ? "bg-destructive/20 text-destructive"
+                              : daysUntilExpiry <= 3
+                              ? "bg-warning/20 text-warning"
+                              : "bg-success/20 text-success"
+                          )}
+                        >
+                          {isExpired
+                            ? `${Math.abs(daysUntilExpiry)}일 지남`
+                            : `${daysUntilExpiry}일 남음`}
+                        </span>
+                      </div>
                     </div>
-                  </div>
-                  <div>
-                    <p className="text-sm text-secondary-600 mb-1">활성 물품</p>
-                    <p className="text-2xl font-bold text-secondary-900">
-                      {initialStats.active_items.toLocaleString()}
+                    <h3 className="font-semibold text-foreground mb-1 truncate">
+                      {item.item_name}
+                    </h3>
+                    <p className="text-xs text-muted-foreground mb-2 truncate">
+                      {item.location_path || item.location_name || "위치 미지정"}
                     </p>
-                  </div>
-                </div>
-              </Card>
-
-              {/* Expiring Soon */}
-              <Card className="animate-slide-up" style={{ animationDelay: '100ms' }}>
-                <div className="flex flex-col gap-3">
-                  <div className="flex items-center justify-between">
-                    <div className="p-2 bg-warning-100 rounded-lg">
-                      <Clock className="w-5 h-5 text-warning-600" />
+                    <div className="w-full h-1 bg-secondary rounded-full overflow-hidden">
+                      <div
+                        className={cn(
+                          "h-full transition-all",
+                          isExpired
+                            ? "bg-destructive"
+                            : daysUntilExpiry <= 3
+                            ? "bg-warning"
+                            : "bg-success"
+                        )}
+                        style={{ width: `${progress}%` }}
+                      />
                     </div>
-                    {initialStats.expiring_soon > 0 && (
-                      <Badge variant="warning" size="sm" dot>
-                        주의
-                      </Badge>
-                    )}
-                  </div>
-                  <div>
-                    <p className="text-sm text-secondary-600 mb-1">만료 임박</p>
-                    <p className="text-2xl font-bold text-secondary-900">
-                      {initialStats.expiring_soon.toLocaleString()}
-                    </p>
-                  </div>
-                </div>
-              </Card>
-
-              {/* Expired Items */}
-              <Card className="animate-slide-up" style={{ animationDelay: '150ms' }}>
-                <div className="flex flex-col gap-3">
-                  <div className="flex items-center justify-between">
-                    <div className="p-2 bg-danger-100 rounded-lg">
-                      <AlertTriangle className="w-5 h-5 text-danger-600" />
-                    </div>
-                    {initialStats.expired > 0 && (
-                      <Badge variant="danger" size="sm" dot>
-                        만료
-                      </Badge>
-                    )}
-                  </div>
-                  <div>
-                    <p className="text-sm text-secondary-600 mb-1">만료됨</p>
-                    <p className="text-2xl font-bold text-secondary-900">
-                      {initialStats.expired.toLocaleString()}
-                    </p>
-                  </div>
-                </div>
-              </Card>
-
-              {/* Locations */}
-              <Card className="animate-slide-up" style={{ animationDelay: '200ms' }}>
-                <div className="flex flex-col gap-3">
-                  <div className="flex items-center justify-between">
-                    <div className="p-2 bg-primary-100 rounded-lg">
-                      <MapPin className="w-5 h-5 text-primary-600" />
-                    </div>
-                  </div>
-                  <div>
-                    <p className="text-sm text-secondary-600 mb-1">위치 개수</p>
-                    <p className="text-2xl font-bold text-secondary-900">
-                      {initialStats.locations_count.toLocaleString()}
-                    </p>
-                  </div>
-                </div>
-              </Card>
+                  </button>
+                );
+              })}
             </div>
           )}
         </section>
 
-        {/* Expiring Items Section */}
-        <section className="mb-8 animate-fade-in" style={{ animationDelay: '250ms' }}>
-          <Card>
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Clock className="w-5 h-5 text-warning-600" />
-                  <CardTitle>만료 임박 물품</CardTitle>
-                  {initialExpiringItems.length > 0 && (
-                    <Badge variant="warning" size="sm">
-                      {initialExpiringItems.length}개
-                    </Badge>
-                  )}
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent>
-              {initialExpiringError ? (
-                <Alert variant="danger">{initialExpiringError}</Alert>
-              ) : initialExpiringItems.length === 0 ? (
-                <EmptyState
-                  icon={<CheckCircle className="w-full h-full" />}
-                  title="만료 임박 물품 없음"
-                  description="7일 이내에 만료되는 물품이 없습니다."
-                  size="sm"
-                />
-              ) : (
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                  {initialExpiringItems.map((item) => (
-                    <ItemCard
-                      key={item.item_id}
-                      item={{
-                        id: item.item_id,
-                        name: item.item_name,
-                        type: item.item_type,
-                        image_url: item.image_url,
-                        tags: item.tags,
-                        location: {
-                          id: item.location_id,
-                          name: item.location_name,
-                        },
-                        metadata: {
-                          expiry_date: item.expiry_date,
-                        },
-                      }}
-                    />
-                  ))}
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </section>
-
         {/* Recent Items Section */}
-        <section className="mb-8 animate-fade-in" style={{ animationDelay: '300ms' }}>
-          <Card>
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <TrendingUp className="w-5 h-5 text-primary-600" />
-                  <CardTitle>최근 등록 물품</CardTitle>
-                </div>
-                {initialRecentItems.length > 0 && (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    rightIcon={<ChevronRight className="w-4 h-4" />}
-                    onClick={() => router.push('/items')}
-                  >
-                    전체보기
-                  </Button>
-                )}
-              </div>
-            </CardHeader>
-            <CardContent>
-              {initialRecentError ? (
-                <Alert variant="danger">{initialRecentError}</Alert>
-              ) : initialRecentItems.length === 0 ? (
-                <EmptyState
-                  icon={<Package className="w-full h-full" />}
-                  title="등록된 물품 없음"
-                  description="아직 등록된 물품이 없습니다. 첫 물품을 추가해보세요."
-                  size="sm"
-                  action={{
-                    label: '물품 추가',
-                    onClick: handleAddItem,
-                    icon: <Plus className="w-4 h-4" />,
-                  }}
-                />
-              ) : (
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                  {initialRecentItems.map((item) => (
-                    <ItemCard
-                      key={item.id}
-                      item={{
-                        id: item.id,
-                        name: item.name,
-                        type: item.type,
-                        quantity: item.quantity,
-                        image_url: item.image_url,
-                        tags: item.tags,
-                        location: item.location_id && item.location_name ? {
-                          id: item.location_id,
-                          name: item.location_name,
-                        } : undefined,
-                        metadata: {
-                          purchase_date: item.purchase_date,
-                          expiry_date: item.computed_expiry_date,
-                        },
-                      }}
-                    />
-                  ))}
-                </div>
-              )}
-            </CardContent>
-          </Card>
+        <section
+          className="mb-6 animate-fade-in"
+          style={{ animationDelay: "300ms" }}
+        >
+          <h2 className="text-xl font-bold text-foreground mb-3">
+            최근 등록 물품
+          </h2>
+
+          {recentError ? (
+            <Alert variant="danger">{recentError instanceof Error ? recentError.message : '데이터를 불러오지 못했습니다'}</Alert>
+          ) : isRecentLoading ? (
+            <div className="space-y-2">
+              {[...Array(5)].map((_, i) => (
+                <ListItemSkeleton key={i} />
+              ))}
+            </div>
+          ) : recentItems.length === 0 ? (
+            <div className="card text-center py-8">
+              <Package className="w-12 h-12 text-muted-foreground mx-auto mb-3" />
+              <h3 className="font-semibold text-foreground mb-1">
+                등록된 물품 없음
+              </h3>
+              <p className="text-sm text-muted-foreground mb-4">
+                첫 물품을 추가해보세요
+              </p>
+              <Button onClick={handleAddItem} className="btn-primary">
+                <Plus className="w-4 h-4 mr-2" />
+                물품 추가
+              </Button>
+            </div>
+          ) : (
+            <div className="space-y-2 stagger-children">
+              {recentItems.slice(0, 5).map((item) => (
+                <button
+                  key={item.id}
+                  onClick={() => handleItemClick(item)}
+                  className="w-full card hover-lift group"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="text-3xl flex-shrink-0">
+                      {item.type === "FOOD"
+                        ? "🍽️"
+                        : item.type === "COSMETIC"
+                        ? "💄"
+                        : item.type === "MEDICINE"
+                        ? "💊"
+                        : "📦"}
+                    </div>
+                    <div className="flex-1 text-left min-w-0">
+                      <h3 className="font-semibold text-foreground mb-0.5 truncate">
+                        {item.name}
+                      </h3>
+                      <p className="text-xs text-muted-foreground truncate">
+                        {item.location_path || "위치 미지정"}
+                      </p>
+                    </div>
+                    <ChevronRight className="w-5 h-5 text-muted-foreground flex-shrink-0" />
+                  </div>
+                </button>
+              ))}
+            </div>
+          )}
         </section>
 
-        {/* Location Summary Section (Optional) */}
-        {initialLocationSummary.length > 0 && (
-          <section className="mb-8 animate-fade-in" style={{ animationDelay: '350ms' }}>
-            <Card>
-              <CardHeader>
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <MapPin className="w-5 h-5 text-primary-600" />
-                    <CardTitle>위치별 물품 요약</CardTitle>
-                  </div>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    rightIcon={<ChevronRight className="w-4 h-4" />}
-                    onClick={() => router.push('/explorer')}
+        {/* Quick Zones Section */}
+        <section
+          className="mb-6 animate-fade-in"
+          style={{ animationDelay: "200ms" }}
+        >
+          <h2 className="text-xl font-bold text-foreground mb-4">
+            빠른 위치
+          </h2>
+
+          {locationError ? (
+            <Alert variant="danger">{locationError instanceof Error ? locationError.message : '데이터를 불러오지 못했습니다'}</Alert>
+          ) : isLocationLoading ? (
+            <div className="grid grid-cols-2 gap-3">
+              {[...Array(4)].map((_, i) => (
+                <LocationCardSkeleton key={i} />
+              ))}
+            </div>
+          ) : locationSummary.length === 0 ? null : (
+              <div className="grid grid-cols-2 gap-3">
+                {locationSummary.slice(0, 4).map((location: Location) => (
+                  <button
+                    key={location.id}
+                    onClick={() => setSelectedLocation(location)}
+                    className="card hover-lift p-6 transition-all duration-200"
                   >
-                    전체보기
-                  </Button>
-                </div>
-              </CardHeader>
-              <CardContent>
-                {initialLocationError ? (
-                  <Alert variant="danger">{initialLocationError}</Alert>
-                ) : (
-                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-                    {initialLocationSummary.map((location) => (
-                      <button
-                        key={location.id}
-                        onClick={() => router.push(`/explorer?location=${location.id}`)}
-                        className="flex flex-col items-center gap-2 p-4 rounded-lg border-2 border-secondary-200 hover:border-primary-300 hover:bg-primary-50 transition-all active:scale-95"
-                      >
-                        <div 
-                          className="w-12 h-12 rounded-full flex items-center justify-center text-2xl"
-                          style={{ backgroundColor: location.color || '#E5E7EB' }}
-                        >
-                          {location.icon || '📦'}
-                        </div>
-                        <div className="text-center">
-                          <p className="text-sm font-semibold text-secondary-900 mb-1">
-                            {location.name}
-                          </p>
-                          <Badge variant="default" size="sm">
-                            {location.item_count}개
-                          </Badge>
-                        </div>
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </section>
-        )}
+                    <div className="flex flex-col items-center text-center">
+                      <div className="w-16 h-16 rounded-2xl bg-secondary/50 flex items-center justify-center mb-3">
+                        <span className="text-4xl">
+                          {location.icon || "📦"}
+                        </span>
+                      </div>
+                      <h3 className="font-bold text-foreground mb-1">
+                        {location.name}
+                      </h3>
+                      <p className="text-sm text-muted-foreground">
+                        {location.item_count || location.itemCount || 0}개 물품
+                      </p>
+                    </div>
+                  </button>
+                ))}
+              </div>
+          )}
+        </section>
       </div>
 
       {/* Quick Add Button */}
-      <QuickAddButton
+      <QuickAddButton 
         onAddItem={handleAddItem}
         onAddLocation={handleAddLocation}
+      />
+
+      {/* Location Detail Panel */}
+      <LocationDetailPanel
+        isOpen={!!selectedLocation}
+        onClose={() => setSelectedLocation(null)}
+        location={selectedLocation}
+        onSubLocationClick={(subLoc: Location) => setSelectedLocation(subLoc)}
+        onItemClick={(item: Item) => {
+          setSelectedLocation(null)
+          setSidePanelItem(item)
+        }}
+      />
+
+      {/* Item Detail Panel */}
+      <ItemDetailPanel
+        isOpen={!!sidePanelItem}
+        onClose={() => setSidePanelItem(null)}
+        item={sidePanelItem}
+        onEdit={() => {
+          if (sidePanelItem) {
+            const itemId = 'item_id' in sidePanelItem ? sidePanelItem.item_id : sidePanelItem.id;
+            router.push(`/item/${itemId}/edit`);
+          }
+        }}
+        onFavorite={() => {
+          console.log('Favorite clicked');
+        }}
       />
 
       {/* Bottom Navigation */}
       <BottomNav />
     </div>
-  )
+  );
 }

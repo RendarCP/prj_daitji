@@ -62,8 +62,8 @@ export async function GET(_request: NextRequest) {
         .not("computed_expiry_date", "is", null)
         .lt("computed_expiry_date", new Date().toISOString().split("T")[0]),
 
-      // Total locations count
-      supabase.from("locations").select("*", { count: "exact", head: true }),
+      // Total locations count (using hierarchical stats view)
+      supabase.from("v_location_stats").select("*", { count: "exact", head: true }),
     ]);
 
     // Check for errors

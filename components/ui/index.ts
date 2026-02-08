@@ -25,3 +25,21 @@ export type { SpinnerProps } from './Spinner'
 
 export { EmptyState } from './EmptyState'
 export type { EmptyStateProps } from './EmptyState'
+
+export { SidePanel } from './SidePanel'
+export type { SidePanelProps } from './SidePanel'
+
+export { BottomSheet } from './BottomSheet'
+export type { BottomSheetProps } from './BottomSheet'
+
+export { FloatingActionButton } from './FloatingActionButton'
+export type { FloatingActionButtonProps } from './FloatingActionButton'
+
+export { 
+  Skeleton, 
+  CardSkeleton, 
+  ListItemSkeleton, 
+  StatCardSkeleton, 
+  LocationCardSkeleton, 
+  ExpiryItemSkeleton 
+} from './Skeleton'
