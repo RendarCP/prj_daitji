@@ -1,36 +1,12 @@
-import { Metadata } from "next";
 import { createClient } from "@/lib/supabase/server";
 import { notFound } from "next/navigation";
-import { ItemDetailPageClient } from "./ItemDetailPageClient";
+import { ItemDetailModalClient } from "./ItemDetailModalClient";
 
 type Props = {
   params: Promise<{ id: string }>;
 };
 
-export async function generateMetadata({ params }: Props): Promise<Metadata> {
-  const { id } = await params;
-
-  try {
-    const supabase = await createClient();
-    const { data: item } = await supabase
-      .from("items")
-      .select("name")
-      .eq("id", id)
-      .single();
-
-    return {
-      title: item ? `${item.name} - 물품 상세` : "물품 상세",
-      description: "물품의 상세 정보를 확인하고 수정할 수 있습니다",
-    };
-  } catch {
-    return {
-      title: "물품 상세",
-      description: "물품의 상세 정보를 확인하고 수정할 수 있습니다",
-    };
-  }
-}
-
-export default async function ItemDetailPage({ params }: Props) {
+export default async function ItemDetailModalPage({ params }: Props) {
   const { id } = await params;
 
   const uuidRegex =
@@ -81,7 +57,7 @@ export default async function ItemDetailPage({ params }: Props) {
   }
 
   return (
-    <ItemDetailPageClient
+    <ItemDetailModalClient
       item={{
         id: item.id,
         name: item.name,

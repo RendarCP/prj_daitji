@@ -7,41 +7,67 @@ import { BottomNav } from "@/components/layout/BottomNav";
 import { Button } from "@/components/ui/Button";
 import { Alert } from "@/components/ui/Alert";
 import { QuickAddButton } from "@/components/features/QuickAddButton";
-import { BottomSheet } from "@/components/ui/BottomSheet";
-import { ItemDetailPanel } from "@/components/ui/ItemDetailPanel";
 import { LocationDetailPanel } from "@/components/ui/LocationDetailPanel";
-import { ExpiryItemSkeleton, ListItemSkeleton, LocationCardSkeleton } from "@/components/ui/Skeleton";
-import { useDashboardStats, useRecentItems, useLocationSummary } from "@/lib/hooks/useDashboard";
+import {
+  ExpiryItemSkeleton,
+  ListItemSkeleton,
+  LocationCardSkeleton,
+} from "@/components/ui/Skeleton";
+import {
+  useDashboardStats,
+  useRecentItems,
+  useLocationSummary,
+} from "@/lib/hooks/useDashboard";
 import { useExpiringItems } from "@/lib/hooks/useItems";
 import { cn } from "@/lib/utils/cn";
 import type { ExpiringItem, Item, Location } from "@/lib/types";
 
 export function DashboardClient() {
   const router = useRouter();
-  const [sidePanelItem, setSidePanelItem] = useState<Item | ExpiringItem | null>(null);
-  const [selectedLocation, setSelectedLocation] = useState<Location | null>(null);
+  const [selectedLocation, setSelectedLocation] = useState<Location | null>(
+    null,
+  );
+  /** 장소 디테일 패널에서 하위로 들어갈 때마다 부모를 쌓음. 뒤로가기 시 pop */
+  const [locationStack, setLocationStack] = useState<Location[]>([]);
 
   // React Query hooks
-  const { data: stats, isLoading: isStatsLoading, error: statsError } = useDashboardStats();
-  const { data: expiringItems = [], isLoading: isExpiringLoading, error: expiringError } = useExpiringItems();
-  const { data: recentItems = [], isLoading: isRecentLoading, error: recentError } = useRecentItems();
-  const { data: locationSummary = [], isLoading: isLocationLoading, error: locationError } = useLocationSummary();
+  const {
+    data: stats,
+    isLoading: isStatsLoading,
+    error: statsError,
+  } = useDashboardStats();
+  const {
+    data: expiringItems = [],
+    isLoading: isExpiringLoading,
+    error: expiringError,
+  } = useExpiringItems();
+  const {
+    data: recentItems = [],
+    isLoading: isRecentLoading,
+    error: recentError,
+  } = useRecentItems();
+  const {
+    data: locationSummary = [],
+    isLoading: isLocationLoading,
+    error: locationError,
+  } = useLocationSummary();
 
   const handleAddItem = () => {
-    router.push('/item/add');
+    router.push("/item/add");
   };
 
   const handleAddLocation = () => {
-    router.push('/explorer/add');
+    router.push("/explorer/add");
   };
 
   const handleItemClick = (item: Item | ExpiringItem) => {
-    setSidePanelItem(item);
+    const id = "item_id" in item ? item.item_id : item.id;
+    router.push(`/item/${id}`);
   };
 
   return (
     <div className="min-h-screen bg-background pb-20 md:pb-6">
-      <div className="container mx-auto px-4 py-6 max-w-7xl">
+      <div className="container mx-auto px-4 py-6 max-w-3xl">
         {/* Quick Stats - Hidden, data used for sections below */}
         <div className="hidden">
           {stats && (
@@ -73,7 +99,11 @@ export function DashboardClient() {
           </div>
 
           {expiringError ? (
-            <Alert variant="danger">{expiringError instanceof Error ? expiringError.message : '데이터를 불러오지 못했습니다'}</Alert>
+            <Alert variant="danger">
+              {expiringError instanceof Error
+                ? expiringError.message
+                : "데이터를 불러오지 못했습니다"}
+            </Alert>
           ) : isExpiringLoading ? (
             <div className="grid grid-cols-2 gap-3">
               {[...Array(4)].map((_, i) => (
@@ -91,12 +121,16 @@ export function DashboardClient() {
             <div className="grid grid-cols-2 gap-3 stagger-children">
               {expiringItems.slice(0, 4).map((item) => {
                 const expiryDate = new Date(
-                  item.expiry_date || item.computed_expiry_date || Date.now()
+                  item.expiry_date || item.computed_expiry_date || Date.now(),
                 );
                 const today = new Date();
-                const daysUntilExpiry = item.days_until_expiry !== undefined 
-                  ? item.days_until_expiry 
-                  : Math.ceil((expiryDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+                const daysUntilExpiry =
+                  item.days_until_expiry !== undefined
+                    ? item.days_until_expiry
+                    : Math.ceil(
+                        (expiryDate.getTime() - today.getTime()) /
+                          (1000 * 60 * 60 * 24),
+                      );
                 const isExpired = daysUntilExpiry < 0;
                 const daysTotal = 30;
                 const progress = isExpired
@@ -105,8 +139,8 @@ export function DashboardClient() {
                       0,
                       Math.min(
                         100,
-                        ((daysTotal - daysUntilExpiry) / daysTotal) * 100
-                      )
+                        ((daysTotal - daysUntilExpiry) / daysTotal) * 100,
+                      ),
                     );
 
                 return (
@@ -120,10 +154,10 @@ export function DashboardClient() {
                         {item.item_type === "FOOD"
                           ? "🍽️"
                           : item.item_type === "COSMETIC"
-                          ? "💄"
-                          : item.item_type === "MEDICINE"
-                          ? "💊"
-                          : "📦"}
+                            ? "💄"
+                            : item.item_type === "MEDICINE"
+                              ? "💊"
+                              : "📦"}
                       </div>
                       <div className="flex-1 min-w-0">
                         <span
@@ -132,8 +166,8 @@ export function DashboardClient() {
                             isExpired
                               ? "bg-destructive/20 text-destructive"
                               : daysUntilExpiry <= 3
-                              ? "bg-warning/20 text-warning"
-                              : "bg-success/20 text-success"
+                                ? "bg-warning/20 text-warning"
+                                : "bg-success/20 text-success",
                           )}
                         >
                           {isExpired
@@ -146,7 +180,9 @@ export function DashboardClient() {
                       {item.item_name}
                     </h3>
                     <p className="text-xs text-muted-foreground mb-2 truncate">
-                      {item.location_path || item.location_name || "위치 미지정"}
+                      {item.location_path ||
+                        item.location_name ||
+                        "위치 미지정"}
                     </p>
                     <div className="w-full h-1 bg-secondary rounded-full overflow-hidden">
                       <div
@@ -155,8 +191,8 @@ export function DashboardClient() {
                           isExpired
                             ? "bg-destructive"
                             : daysUntilExpiry <= 3
-                            ? "bg-warning"
-                            : "bg-success"
+                              ? "bg-warning"
+                              : "bg-success",
                         )}
                         style={{ width: `${progress}%` }}
                       />
@@ -178,7 +214,11 @@ export function DashboardClient() {
           </h2>
 
           {recentError ? (
-            <Alert variant="danger">{recentError instanceof Error ? recentError.message : '데이터를 불러오지 못했습니다'}</Alert>
+            <Alert variant="danger">
+              {recentError instanceof Error
+                ? recentError.message
+                : "데이터를 불러오지 못했습니다"}
+            </Alert>
           ) : isRecentLoading ? (
             <div className="space-y-2">
               {[...Array(5)].map((_, i) => (
@@ -212,14 +252,14 @@ export function DashboardClient() {
                       {item.type === "FOOD"
                         ? "🍽️"
                         : item.type === "COSMETIC"
-                        ? "💄"
-                        : item.type === "MEDICINE"
-                        ? "💊"
-                        : "📦"}
+                          ? "💄"
+                          : item.type === "MEDICINE"
+                            ? "💊"
+                            : "📦"}
                     </div>
                     <div className="flex-1 text-left min-w-0">
                       <h3 className="font-semibold text-foreground mb-0.5 truncate">
-                        {item.name}
+                        {item.item_name}
                       </h3>
                       <p className="text-xs text-muted-foreground truncate">
                         {item.location_path || "위치 미지정"}
@@ -238,12 +278,14 @@ export function DashboardClient() {
           className="mb-6 animate-fade-in"
           style={{ animationDelay: "200ms" }}
         >
-          <h2 className="text-xl font-bold text-foreground mb-4">
-            빠른 위치
-          </h2>
+          <h2 className="text-xl font-bold text-foreground mb-4">빠른 장소</h2>
 
           {locationError ? (
-            <Alert variant="danger">{locationError instanceof Error ? locationError.message : '데이터를 불러오지 못했습니다'}</Alert>
+            <Alert variant="danger">
+              {locationError instanceof Error
+                ? locationError.message
+                : "데이터를 불러오지 못했습니다"}
+            </Alert>
           ) : isLocationLoading ? (
             <div className="grid grid-cols-2 gap-3">
               {[...Array(4)].map((_, i) => (
@@ -251,35 +293,33 @@ export function DashboardClient() {
               ))}
             </div>
           ) : locationSummary.length === 0 ? null : (
-              <div className="grid grid-cols-2 gap-3">
-                {locationSummary.slice(0, 4).map((location: Location) => (
-                  <button
-                    key={location.id}
-                    onClick={() => setSelectedLocation(location)}
-                    className="card hover-lift p-6 transition-all duration-200"
-                  >
-                    <div className="flex flex-col items-center text-center">
-                      <div className="w-16 h-16 rounded-2xl bg-secondary/50 flex items-center justify-center mb-3">
-                        <span className="text-4xl">
-                          {location.icon || "📦"}
-                        </span>
-                      </div>
-                      <h3 className="font-bold text-foreground mb-1">
-                        {location.name}
-                      </h3>
-                      <p className="text-sm text-muted-foreground">
-                        {location.item_count || location.itemCount || 0}개 물품
-                      </p>
+            <div className="grid grid-cols-2 gap-3">
+              {locationSummary.slice(0, 4).map((location: Location) => (
+                <button
+                  key={location.id}
+                  onClick={() => setSelectedLocation(location)}
+                  className="card hover-lift p-6 transition-all duration-200"
+                >
+                  <div className="flex flex-col items-center text-center">
+                    <div className="w-16 h-16 rounded-2xl bg-secondary/50 flex items-center justify-center mb-3">
+                      <span className="text-4xl">{location.icon || "📦"}</span>
                     </div>
-                  </button>
-                ))}
-              </div>
+                    <h3 className="font-bold text-foreground mb-1">
+                      {location.name}
+                    </h3>
+                    <p className="text-sm text-muted-foreground">
+                      {location.item_count || location.itemCount || 0}개 물품
+                    </p>
+                  </div>
+                </button>
+              ))}
+            </div>
           )}
         </section>
       </div>
 
       {/* Quick Add Button */}
-      <QuickAddButton 
+      <QuickAddButton
         onAddItem={handleAddItem}
         onAddLocation={handleAddLocation}
       />
@@ -287,28 +327,29 @@ export function DashboardClient() {
       {/* Location Detail Panel */}
       <LocationDetailPanel
         isOpen={!!selectedLocation}
-        onClose={() => setSelectedLocation(null)}
-        location={selectedLocation}
-        onSubLocationClick={(subLoc: Location) => setSelectedLocation(subLoc)}
-        onItemClick={(item: Item) => {
-          setSelectedLocation(null)
-          setSidePanelItem(item)
+        onClose={() => {
+          setSelectedLocation(null);
+          setLocationStack([]);
         }}
-      />
-
-      {/* Item Detail Panel */}
-      <ItemDetailPanel
-        isOpen={!!sidePanelItem}
-        onClose={() => setSidePanelItem(null)}
-        item={sidePanelItem}
-        onEdit={() => {
-          if (sidePanelItem) {
-            const itemId = 'item_id' in sidePanelItem ? sidePanelItem.item_id : sidePanelItem.id;
-            router.push(`/item/${itemId}/edit`);
+        onBack={() => {
+          if (locationStack.length > 0) {
+            const parentLoc = locationStack[locationStack.length - 1];
+            setLocationStack((s) => s.slice(0, -1));
+            setSelectedLocation(parentLoc);
+          } else {
+            setSelectedLocation(null);
           }
         }}
-        onFavorite={() => {
-          console.log('Favorite clicked');
+        location={selectedLocation}
+        onSubLocationClick={(subLoc) => {
+          if (selectedLocation) {
+            setLocationStack((s) => [...s, selectedLocation]);
+          }
+          setSelectedLocation(subLoc);
+        }}
+        onItemClick={(item) => {
+          const id = "item_id" in item ? item.item_id : item.id;
+          router.push(`/item/${id}`);
         }}
       />
 

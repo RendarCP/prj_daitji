@@ -44,14 +44,17 @@ export const metadata: Metadata = {
 
 export default function RootLayout({
   children,
+  modal,
 }: {
   children: React.ReactNode
+  modal: React.ReactNode
 }) {
   return (
     <html lang="ko" suppressHydrationWarning>
       <body className="min-h-screen bg-background text-foreground">
         <ReactQueryProvider>
           {children}
+          {modal}
         </ReactQueryProvider>
       </body>
     </html>

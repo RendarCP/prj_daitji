@@ -1,6 +1,10 @@
-import { NextRequest } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
-import { ItemFormDataSchema, ItemsQuerySchema } from '@/lib/validations/schemas'
+import { NextRequest } from "next/server";
+import { createClient } from "@/lib/supabase/server";
+import {
+  ItemFormDataSchema,
+  ItemsQuerySchema,
+  ItemsQueryInput,
+} from "@/lib/validations/schemas";
 import {
   successResponse,
   errorResponse,
@@ -11,16 +15,16 @@ import {
   applyPagination,
   getPaginationMeta,
   CORS_HEADERS,
-} from '@/lib/api/utils'
+} from "@/lib/api/utils";
 
 /**
  * GET /api/items
  * Fetch items with filtering, sorting, and pagination
- * 
+ *
  * Query Parameters:
  * - type: Filter by item type (comma-separated)
  * - status: Filter by item status (comma-separated)
- * - location_id: Filter by location UUID
+ * - location_id: Filter by location UUID (includes items in that location and all descendant locations)
  * - search: Search by item name (case-insensitive)
  * - expiring_within_days: Filter items expiring within N days
  * - page: Page number (default: 1)
@@ -30,56 +34,81 @@ import {
  */
 export async function GET(request: NextRequest) {
   try {
-    const searchParams = request.nextUrl.searchParams
-    const rawParams = parseQueryParams(searchParams)
-    
+    const searchParams = request.nextUrl.searchParams;
+    const rawParams = parseQueryParams(searchParams);
+
     // Validate query parameters
-    const params = ItemsQuerySchema.parse(rawParams)
-    
-    const supabase = await createClient()
-    
+    const params = ItemsQuerySchema.parse(rawParams);
+
+    const supabase = await createClient();
+
+    // location_id가 있으면 해당 위치 + 하위 전체 id로 변환 (주방 선택 시 냉장실 아이템도 포함)
+    const resolvedParams: ItemsQueryInput & { location_ids?: string[] } = {
+      ...params,
+    };
+
+    if (params.location_id) {
+      const { data: rawSubtree } = await supabase.rpc(
+        "get_location_ids_in_subtree",
+        {
+          location_uuid: params.location_id,
+        },
+      );
+      const subtreeIds = Array.isArray(rawSubtree)
+        ? (rawSubtree as any[])
+            .map((row: string | { get_location_ids_in_subtree: string }) =>
+              typeof row === "string" ? row : row?.get_location_ids_in_subtree,
+            )
+            .filter(Boolean)
+        : [];
+      if (subtreeIds.length) {
+        resolvedParams.location_ids = subtreeIds;
+        delete resolvedParams.location_id;
+      }
+    }
+
     // Use view for better performance with location data
     let query = supabase
-      .from('v_active_items_with_location')
-      .select('*', { count: 'exact' })
-    
+      .from("v_active_items_with_location")
+      .select("*", { count: "exact" });
+
     // Apply filters
-    query = applyFilters(query, params)
-    
+    query = applyFilters(query, resolvedParams);
+
     // Apply expiry filter if provided
     if (params.expiring_within_days !== undefined) {
       query = query
-        .not('days_until_expiry', 'is', null)
-        .lte('days_until_expiry', params.expiring_within_days)
-        .gte('days_until_expiry', 0)
+        .not("days_until_expiry", "is", null)
+        .lte("days_until_expiry", params.expiring_within_days)
+        .gte("days_until_expiry", 0);
     }
-    
+
     // Apply sorting
-    query = applySorting(query, params.sort_by, params.sort_dir)
-    
+    query = applySorting(query, params.sort_by, params.sort_dir);
+
     // Apply pagination
-    query = applyPagination(query, params.page, params.per_page)
-    
-    const { data, error, count } = await query
-    
+    query = applyPagination(query, params.page, params.per_page);
+
+    const { data, error, count } = await query;
+
     if (error) {
-      console.error('Database error:', error)
-      return errorResponse('QUERY_ERROR', { message: error.message }, 500)
+      console.error("Database error:", error);
+      return errorResponse("QUERY_ERROR", { message: error.message }, 500);
     }
-    
+
     // Calculate pagination metadata
-    const meta = getPaginationMeta(count || 0, params.page, params.per_page)
-    
-    return successResponse(data || [], meta)
+    const meta = getPaginationMeta(count || 0, params.page, params.per_page);
+
+    return successResponse(data || [], meta);
   } catch (error) {
-    return handleError(error)
+    return handleError(error);
   }
 }
 
 /**
  * POST /api/items
  * Create a new item
- * 
+ *
  * Request Body:
  * {
  *   name: string (required)
@@ -94,27 +123,27 @@ export async function GET(request: NextRequest) {
  */
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json()
-    
+    const body = await request.json();
+
     // Validate request body
-    const validatedData = ItemFormDataSchema.parse(body)
-    
-    const supabase = await createClient()
-    
+    const validatedData = ItemFormDataSchema.parse(body);
+
+    const supabase = await createClient();
+
     // Verify location exists
     const { data: location, error: locationError } = await supabase
-      .from('locations')
-      .select('id')
-      .eq('id', validatedData.location_id)
-      .single()
-    
+      .from("locations")
+      .select("id")
+      .eq("id", validatedData.location_id)
+      .single();
+
     if (locationError || !location) {
-      return errorResponse('LOCATION_NOT_FOUND', undefined, 404)
+      return errorResponse("LOCATION_NOT_FOUND", undefined, 404);
     }
-    
+
     // Insert item
     const { data, error } = await supabase
-      .from('items')
+      .from("items")
       .insert({
         name: validatedData.name,
         type: validatedData.type,
@@ -125,20 +154,22 @@ export async function POST(request: NextRequest) {
         tags: validatedData.tags,
         metadata: validatedData.metadata,
       })
-      .select(`
+      .select(
+        `
         *,
         location:locations(*)
-      `)
-      .single()
-    
+      `,
+      )
+      .single();
+
     if (error) {
-      console.error('Database error:', error)
-      return errorResponse('DATABASE_ERROR', { message: error.message }, 500)
+      console.error("Database error:", error);
+      return errorResponse("DATABASE_ERROR", { message: error.message }, 500);
     }
-    
-    return successResponse(data, undefined, 201)
+
+    return successResponse(data, undefined, 201);
   } catch (error) {
-    return handleError(error)
+    return handleError(error);
   }
 }
 
@@ -149,5 +180,5 @@ export async function OPTIONS() {
   return new Response(null, {
     status: 204,
     headers: CORS_HEADERS,
-  })
+  });
 }

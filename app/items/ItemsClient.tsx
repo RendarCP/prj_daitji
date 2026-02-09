@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { Search, SlidersHorizontal, ChevronRight } from 'lucide-react'
 import { BottomNav } from '@/components/layout/BottomNav'
@@ -9,14 +10,12 @@ import { BottomSheet } from '@/components/ui/BottomSheet'
 import { Badge } from '@/components/ui/Badge'
 import { Button } from '@/components/ui/Button'
 import { Alert } from '@/components/ui/Alert'
-import { ItemDetailPanel } from '@/components/ui/ItemDetailPanel'
 import { ListItemSkeleton } from '@/components/ui/Skeleton'
 import { useItems } from '@/lib/hooks/useItems'
 import type { Item } from '@/lib/types'
 
 export function ItemsClient() {
   const router = useRouter()
-  const [selectedItem, setSelectedItem] = useState<Item | null>(null)
   const [searchQuery, setSearchQuery] = useState('')
   const [showFilters, setShowFilters] = useState(false)
   const [isAddSheetOpen, setIsAddSheetOpen] = useState(false)
@@ -89,10 +88,10 @@ export function ItemsClient() {
               const isExpiring = daysUntilExpiry !== null && daysUntilExpiry !== undefined && daysUntilExpiry <= 7 && daysUntilExpiry >= 0
 
               return (
-                <button
+                <Link
                   key={item.id}
-                  onClick={() => setSelectedItem(item)}
-                  className="w-full card hover-lift group p-3 sm:p-4 bg-card border border-border"
+                  href={`/item/${item.id}`}
+                  className="w-full card hover-lift group p-3 sm:p-4 bg-card border border-border block"
                 >
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 rounded-lg bg-secondary/30 flex items-center justify-center text-xl shrink-0">
@@ -137,27 +136,12 @@ export function ItemsClient() {
                     </div>
                     <ChevronRight className="w-4 h-4 text-muted-foreground/50 group-hover:text-muted-foreground transition-colors" />
                   </div>
-                </button>
+                </Link>
               )
             })}
           </div>
         )}
       </div>
-
-      {/* Item Detail Panel */}
-      <ItemDetailPanel
-        isOpen={!!selectedItem}
-        onClose={() => setSelectedItem(null)}
-        item={selectedItem}
-        onEdit={() => {
-          if (selectedItem) {
-            router.push(`/item/${selectedItem.id}/edit`)
-          }
-        }}
-        onFavorite={() => {
-          console.log('Favorite clicked')
-        }}
-      />
 
       {/* Floating Action Button */}
       <FloatingActionButton onClick={() => setIsAddSheetOpen(true)} />

@@ -1,6 +1,6 @@
 'use client'
 
-import { ReactNode, useEffect, useCallback } from 'react'
+import { ReactNode, useEffect, useCallback, useState } from 'react'
 import { X, ArrowLeft, Heart, Edit } from 'lucide-react'
 import { cn } from '@/lib/utils/cn'
 
@@ -12,10 +12,13 @@ export interface SidePanelProps {
   showBackButton?: boolean
   showFavoriteButton?: boolean
   showEditButton?: boolean
+  /** 뒤로가기 클릭 시 호출. 없으면 onClose 사용(기존 동작) */
+  onBack?: () => void
   onFavorite?: () => void
   onEdit?: () => void
   closeOnOverlayClick?: boolean
   closeOnEscape?: boolean
+  disableBodyScroll?: boolean
 }
 
 export function SidePanel({
@@ -26,11 +29,30 @@ export function SidePanel({
   showBackButton = true,
   showFavoriteButton = false,
   showEditButton = false,
+  onBack,
   onFavorite,
   onEdit,
   closeOnOverlayClick = true,
   closeOnEscape = true,
+  disableBodyScroll = false,
 }: SidePanelProps) {
+  const [isVisible, setIsVisible] = useState(false) // Controls rendering
+  const [isAnimating, setIsAnimating] = useState(false) // Controls animation class
+
+  // Handle visibility and animation based on isOpen prop
+  useEffect(() => {
+    if (isOpen) {
+      setIsVisible(true)
+      // Small delay to ensure render happens before animation starts
+      requestAnimationFrame(() => setIsAnimating(true))
+    } else {
+      setIsAnimating(false)
+      // Wait for animation to finish before hiding
+      const timer = setTimeout(() => setIsVisible(false), 300) 
+      return () => clearTimeout(timer)
+    }
+  }, [isOpen])
+
   const handleEscape = useCallback(
     (e: KeyboardEvent) => {
       if (closeOnEscape && e.key === 'Escape') {
@@ -52,18 +74,21 @@ export function SidePanel({
     }
   }, [isOpen, handleEscape])
 
-  if (!isOpen) return null
+  if (!isVisible && !isOpen) return null
 
   return (
     <div 
-      className="fixed inset-0 z-50 flex items-stretch justify-end"
+      className="fixed inset-0 z-50 flex items-stretch justify-end pointer-events-none"
       role="dialog"
       aria-modal="true"
       aria-labelledby={title ? 'side-panel-title' : undefined}
     >
       {/* Overlay */}
       <div 
-        className="absolute inset-0 bg-black/60 backdrop-blur-sm animate-fade-in"
+        className={cn(
+          "absolute inset-0 bg-black/60 backdrop-blur-sm transition-opacity duration-300 pointer-events-auto",
+          isAnimating ? "opacity-100" : "opacity-0"
+        )}
         onClick={closeOnOverlayClick ? onClose : undefined}
         aria-hidden="true"
       />
@@ -72,8 +97,9 @@ export function SidePanel({
       <div 
         className={cn(
           'relative bg-card w-full md:w-[400px] md:max-w-[90vw]',
-          'flex flex-col h-full overflow-hidden',
-          'animate-slide-in-from-right shadow-2xl'
+          'flex flex-col h-full overflow-hidden pointer-events-auto',
+          'shadow-2xl transition-transform duration-300 ease-in-out transform',
+          isAnimating ? 'translate-x-0' : 'translate-x-full'
         )}
       >
         {/* Header */}
@@ -81,7 +107,7 @@ export function SidePanel({
           <div className="flex items-center gap-2">
             {showBackButton && (
               <button
-                onClick={onClose}
+                onClick={onBack ?? onClose}
                 className="p-2 hover:bg-secondary rounded-lg transition-colors"
                 aria-label="뒤로가기"
               >
@@ -125,7 +151,10 @@ export function SidePanel({
         </div>
 
         {/* Body */}
-        <div className="flex-1 overflow-y-auto">
+        <div className={cn(
+          "flex-1",
+          disableBodyScroll ? "overflow-hidden" : "overflow-y-auto"
+        )}>
           {children}
         </div>
       </div>

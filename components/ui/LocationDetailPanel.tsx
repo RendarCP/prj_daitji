@@ -15,6 +15,7 @@ interface Location {
   level: number
   parent_id?: string | null
   itemCount?: number
+  item_count?: number
 }
 
 interface Item {
@@ -31,6 +32,8 @@ interface Item {
 interface LocationDetailPanelProps {
   isOpen: boolean
   onClose: () => void
+  /** 루트일 때: 패널 닫기, 하위일 때: 한 단계 뒤로 */
+  onBack?: () => void
   location: Location | null
   onSubLocationClick?: (location: Location) => void
   onItemClick?: (item: Item) => void
@@ -54,6 +57,7 @@ const getEmojiByType = (type: string) => {
 export function LocationDetailPanel({
   isOpen,
   onClose,
+  onBack,
   location,
   onSubLocationClick,
   onItemClick,
@@ -101,6 +105,7 @@ export function LocationDetailPanel({
     <SidePanel
       isOpen={isOpen}
       onClose={onClose}
+      onBack={onBack}
       title={location.name}
       showBackButton
     >
@@ -117,7 +122,7 @@ export function LocationDetailPanel({
             {location.name}
           </h2>
           <Badge variant="secondary" size="lg">
-            {location.itemCount || items.length}개 물품
+            {location.item_count ?? location.itemCount ?? items.length}개 물품
           </Badge>
         </div>
 
@@ -151,7 +156,7 @@ export function LocationDetailPanel({
                           {subLoc.name}
                         </h4>
                         <p className="text-xs text-muted-foreground">
-                          {subLoc.itemCount || 0}개
+                          {subLoc.item_count ?? subLoc.itemCount ?? 0}개
                         </p>
                       </div>
                     </button>

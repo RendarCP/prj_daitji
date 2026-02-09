@@ -67,23 +67,32 @@ export async function GET(request: NextRequest) {
     const params = LocationsQuerySchema.parse(rawParams)
     
     const supabase = await createClient()
-    
+
+    // 목록/트리 모두 v_location_stats 사용 → 물품 개수(active_items_count) 포함
     let query = supabase
-      .from('locations')
+      .from('v_location_stats')
       .select('*')
       .order('level', { ascending: true })
       .order('sort_order', { ascending: true })
-    
-    // Apply filters
+
     query = applyFilters(query, params)
-    
-    const { data, error } = await query
-    
+
+    const { data: rawData, error } = await query
+
     if (error) {
       console.error('Database error:', error)
       return errorResponse('QUERY_ERROR', { message: error.message }, 500)
     }
-    
+
+    // Location 타입에 맞게 active_items_count → item_count, itemCount 매핑
+    const data = Array.isArray(rawData)
+      ? rawData.map((row: Record<string, unknown>) => ({
+          ...row,
+          item_count: row.active_items_count ?? 0,
+          itemCount: row.active_items_count ?? 0,
+        }))
+      : rawData
+
     // Return as tree or flat list based on query param
     const result = params.tree ? buildLocationTree(data || []) : data || []
     

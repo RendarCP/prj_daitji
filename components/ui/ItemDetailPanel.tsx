@@ -1,58 +1,69 @@
-'use client'
+"use client";
 
-import { useState } from 'react'
-import { Heart, Edit, MapPin, Plus, Minus, Calendar, Tag as TagIcon } from 'lucide-react'
-import { SidePanel } from './SidePanel'
-import { Badge } from './Badge'
-import { Button } from './Button'
-import { cn } from '@/lib/utils/cn'
+import { useState, useEffect } from "react";
+import {
+  Heart,
+  Edit,
+  MapPin,
+  Plus,
+  Minus,
+  Calendar,
+  Tag as TagIcon,
+  X,
+} from "lucide-react";
+import { SidePanel } from "./SidePanel";
+import { Badge } from "./Badge";
+import { Button } from "./Button";
+import { cn } from "@/lib/utils/cn";
 
 interface ItemDetailPanelProps {
-  isOpen: boolean
-  onClose: () => void
+  isOpen: boolean;
+  onClose: () => void;
   item: {
-    id?: string | null
-    item_id?: string | null
-    name?: string | null
-    item_name?: string | null
-    type?: string | null
-    item_type?: string | null
-    quantity?: number | null
-    location_path?: string | null
-    location_name?: string | null
-    tags?: string[] | null
-    computed_expiry_date?: string | null
-    expiry_date?: string | null
-    created_at?: string | null
-    days_until_expiry?: number | null
-    metadata?: any
-  } | null
-  onEdit?: () => void
-  onFavorite?: () => void
-  onQuantityChange?: (newQuantity: number) => void
+    id?: string | null;
+    item_id?: string | null;
+    name?: string | null;
+    item_name?: string | null;
+    type?: string | null;
+    item_type?: string | null;
+    quantity?: number | null;
+    location_path?: string | null;
+    location_name?: string | null;
+    tags?: string[] | null;
+    computed_expiry_date?: string | null;
+    expiry_date?: string | null;
+    created_at?: string | null;
+    days_until_expiry?: number | null;
+    metadata?: any;
+  } | null;
+  onEdit?: () => void;
+  onFavorite?: () => void;
+  onQuantityChange?: (newQuantity: number) => void;
 }
 
 const getEmojiByType = (type: string) => {
   switch (type) {
-    case 'FOOD':
-      return '🍽️'
-    case 'COSMETIC':
-      return '💄'
-    case 'MEDICINE':
-      return '💊'
-    case 'GENERAL':
-      return '🔋'
+    case "FOOD":
+      return "🍽️";
+    case "COSMETIC":
+      return "💄";
+    case "MEDICINE":
+      return "💊";
+    case "GENERAL":
+      return "🔋";
     default:
-      return '📦'
+      return "📦";
   }
-}
+};
 
-const getExpiryStatus = (daysUntilExpiry: number | null | undefined): 'expired' | 'expiring' | 'fresh' => {
-  if (daysUntilExpiry === null || daysUntilExpiry === undefined) return 'fresh'
-  if (daysUntilExpiry < 0) return 'expired'
-  if (daysUntilExpiry <= 7) return 'expiring'
-  return 'fresh'
-}
+const getExpiryStatus = (
+  daysUntilExpiry: number | null | undefined,
+): "expired" | "expiring" | "fresh" => {
+  if (daysUntilExpiry === null || daysUntilExpiry === undefined) return "fresh";
+  if (daysUntilExpiry < 0) return "expired";
+  if (daysUntilExpiry <= 7) return "expiring";
+  return "fresh";
+};
 
 export function ItemDetailPanel({
   isOpen,
@@ -62,216 +73,288 @@ export function ItemDetailPanel({
   onFavorite,
   onQuantityChange,
 }: ItemDetailPanelProps) {
-  const [quantity, setQuantity] = useState(item?.quantity ?? 1)
-  const [newTag, setNewTag] = useState('')
+  // Persist item data for exit animation
+  const [displayItem, setDisplayItem] = useState(item);
 
-  if (!item) return null
+  useEffect(() => {
+    if (item) {
+      setDisplayItem(item);
+      if (item.quantity !== undefined && item.quantity !== null) {
+        setQuantity(item.quantity);
+      }
+    }
+  }, [item]);
 
-  const itemName = item.item_name || item.name || '이름 없음'
-  const itemType = item.item_type || item.type || 'GENERAL'
-  const emoji = getEmojiByType(itemType)
-  const locationPath = item.location_path || item.location_name || '위치 미지정'
-  const tags = item.tags || []
-  const expiryDate = item.computed_expiry_date || item.expiry_date
-  const createdAt = item.created_at
-  const daysUntilExpiry = item.days_until_expiry
-  const expiryStatus = getExpiryStatus(daysUntilExpiry)
+  const [quantity, setQuantity] = useState(displayItem?.quantity ?? 1);
+  const [newTag, setNewTag] = useState("");
+
+  if (!displayItem) return null;
+
+  const itemName = displayItem.item_name || displayItem.name || "이름 없음";
+  const itemType = displayItem.item_type || displayItem.type || "GENERAL";
+  const emoji = getEmojiByType(itemType);
+  const locationPath =
+    displayItem.location_path || displayItem.location_name || "위치 미지정";
+  const tags = displayItem.tags || [];
+  const expiryDate =
+    displayItem.computed_expiry_date || displayItem.expiry_date;
+  const createdAt = displayItem.created_at;
+  const daysUntilExpiry = displayItem.days_until_expiry;
+  const expiryStatus = getExpiryStatus(daysUntilExpiry);
 
   const handleQuantityChange = (delta: number) => {
-    const newQuantity = Math.max(0, quantity + delta)
-    setQuantity(newQuantity)
-    onQuantityChange?.(newQuantity)
-  }
+    const newQuantity = Math.max(0, quantity + delta);
+    setQuantity(newQuantity);
+    onQuantityChange?.(newQuantity);
+  };
 
   const handleAddTag = () => {
     if (newTag.trim()) {
       // TODO: Implement tag addition API call
-      setNewTag('')
+      setNewTag("");
     }
-  }
+  };
 
   return (
     <SidePanel
       isOpen={isOpen}
       onClose={onClose}
-      title={itemName}
+      title="" // Title hidden in header, shown in content
       showBackButton
       showFavoriteButton={!!onFavorite}
-      showEditButton={!!onEdit}
+      showEditButton={false} // Hide header edit button, moved to bottom
       onFavorite={onFavorite}
       onEdit={onEdit}
+      disableBodyScroll={true}
     >
-      <div className="p-6 space-y-6">
-        {/* Item Icon and Status */}
-        <div className="text-center">
-          <div className="text-8xl mb-4">{emoji}</div>
-          
-          {/* Status Badge */}
-          {expiryStatus === 'expired' && daysUntilExpiry !== null && daysUntilExpiry !== undefined && (
-            <Badge variant="danger" size="lg" className="mb-2">
-              ⚠️ EXPIRED - {Math.abs(daysUntilExpiry)}일 지남
-            </Badge>
-          )}
-          {expiryStatus === 'expiring' && daysUntilExpiry !== null && daysUntilExpiry !== undefined && (
-            <Badge variant="warning" size="lg" className="mb-2">
-              ⚠️ {daysUntilExpiry}일 남음
-            </Badge>
-          )}
-          {expiryStatus === 'fresh' && (
-            <Badge variant="success" size="lg" className="mb-2">
-              신선함
-            </Badge>
-          )}
-          
-          {/* Category Badge */}
-          <div className="flex justify-center gap-2">
-            <Badge variant="secondary" size="md">
-              {emoji} {itemType}
-            </Badge>
-          </div>
-        </div>
-
-        {/* Item Name */}
-        <div>
-          <h2 className="text-2xl font-bold text-foreground">{itemName}</h2>
-        </div>
-
-        {/* Quantity Selector */}
-        <div className="card p-4">
-          <label className="text-sm text-muted-foreground mb-2 block">수량</label>
-          <div className="flex items-center justify-center gap-4">
-            <button
-              onClick={() => handleQuantityChange(-1)}
-              className="w-10 h-10 rounded-full bg-secondary hover:bg-secondary/80 flex items-center justify-center transition-colors"
-              aria-label="수량 감소"
-            >
-              <Minus className="w-5 h-5" />
-            </button>
-            <span className="text-3xl font-bold text-foreground min-w-[60px] text-center">
-              {quantity}
-            </span>
-            <button
-              onClick={() => handleQuantityChange(1)}
-              className="w-10 h-10 rounded-full bg-secondary hover:bg-secondary/80 flex items-center justify-center transition-colors"
-              aria-label="수량 증가"
-            >
-              <Plus className="w-5 h-5" />
-            </button>
-          </div>
-        </div>
-
-        {/* Location Path */}
-        <div className="card p-4">
-          <div className="flex items-start gap-2">
-            <MapPin className="w-5 h-5 text-primary mt-0.5 flex-shrink-0" />
-            <div className="flex-1">
-              <label className="text-sm text-muted-foreground block mb-1">저장 위치</label>
-              <p className="text-foreground font-medium">{locationPath}</p>
+      <div className="flex flex-col h-full bg-background no-scrollbar relative">
+        <div className="flex-1 overflow-y-auto p-6 space-y-8 pb-24">
+          {/* Hero Section */}
+          <div className="flex flex-col items-center justify-center pt-8 pb-4">
+            <div className="text-[100px] leading-none mb-8 drop-shadow-2xl filter hover:scale-110 transition-transform duration-300 cursor-default select-none">
+              {emoji}
             </div>
-          </div>
-        </div>
 
-        {/* Dates */}
-        <div className="space-y-3">
-          {expiryDate && (
-            <div className="card p-4">
-              <div className="flex items-start gap-2">
-                <Calendar className={cn(
-                  "w-5 h-5 mt-0.5 flex-shrink-0",
-                  expiryStatus === 'expired' ? 'text-destructive' : 'text-primary'
-                )} />
-                <div className="flex-1">
-                  <label className="text-sm text-muted-foreground block mb-1">만료일</label>
-                  <p className={cn(
-                    "font-medium",
-                    expiryStatus === 'expired' ? 'text-destructive' : 'text-foreground'
-                  )}>
-                    {new Date(expiryDate).toLocaleDateString('ko-KR', {
-                      year: 'numeric',
-                      month: 'long',
-                      day: 'numeric'
-                    })}
-                  </p>
-                </div>
-              </div>
-            </div>
-          )}
+            <div className="flex items-center gap-3 mb-4 w-full justify-start">
+              {expiryStatus === "expired" &&
+                daysUntilExpiry !== null &&
+                daysUntilExpiry !== undefined && (
+                  <Badge
+                    variant="danger"
+                    size="md"
+                    className="rounded-full px-3 uppercase tracking-wider text-xs font-bold"
+                  >
+                    ⚠️ Expired
+                  </Badge>
+                )}
+              {expiryStatus === "expiring" &&
+                daysUntilExpiry !== null &&
+                daysUntilExpiry !== undefined && (
+                  <Badge
+                    variant="warning"
+                    size="md"
+                    className="rounded-full px-3 uppercase tracking-wider text-xs font-bold"
+                  >
+                    ⚠️ Expiring
+                  </Badge>
+                )}
 
-          {createdAt && (
-            <div className="card p-4">
-              <div className="flex items-start gap-2">
-                <Calendar className="w-5 h-5 text-primary mt-0.5 flex-shrink-0" />
-                <div className="flex-1">
-                  <label className="text-sm text-muted-foreground block mb-1">등록일</label>
-                  <p className="text-foreground font-medium">
-                    {new Date(createdAt).toLocaleDateString('ko-KR', {
-                      year: 'numeric',
-                      month: 'long',
-                      day: 'numeric'
-                    })}
-                  </p>
-                </div>
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* Tags */}
-        <div className="card p-4">
-          <div className="flex items-start gap-2 mb-3">
-            <TagIcon className="w-5 h-5 text-primary mt-0.5 flex-shrink-0" />
-            <label className="text-sm text-muted-foreground">태그</label>
-          </div>
-          
-          <div className="flex flex-wrap gap-2 mb-3">
-            {tags.map((tag, idx) => (
-              <Badge key={idx} variant="secondary" size="md">
-                #{tag}
+              <Badge
+                variant="secondary"
+                size="md"
+                className="rounded-full px-3 uppercase tracking-wider text-xs font-bold bg-secondary/30 text-muted-foreground hover:bg-secondary/40"
+              >
+                {emoji} {itemType}
               </Badge>
-            ))}
+            </div>
+
+            <h1 className="text-4xl font-bold text-foreground self-start w-full leading-tight">
+              {itemName}
+            </h1>
           </div>
 
-          {/* Add Tag Input */}
-          <div className="flex gap-2">
+          {/* Quantity Section */}
+          <div className="bg-secondary/10 rounded-2xl p-2 w-fit">
+            <div className="flex items-center gap-1">
+              <button
+                onClick={() => handleQuantityChange(-1)}
+                className="w-12 h-12 rounded-xl hover:bg-white/10 flex items-center justify-center transition-colors text-muted-foreground hover:text-foreground active:scale-95 duration-200"
+                aria-label="Decrease quantity"
+              >
+                <Minus className="w-6 h-6" />
+              </button>
+              <span className="w-12 text-center text-xl font-bold font-mono">
+                {quantity}
+              </span>
+              <button
+                onClick={() => handleQuantityChange(1)}
+                className="w-12 h-12 rounded-xl hover:bg-white/10 flex items-center justify-center transition-colors text-muted-foreground hover:text-foreground active:scale-95 duration-200"
+                aria-label="Increase quantity"
+              >
+                <Plus className="w-6 h-6" />
+              </button>
+            </div>
+          </div>
+
+          {/* Location Section */}
+          <div className="space-y-3">
+            <label className="text-xs font-bold text-muted-foreground uppercase tracking-widest pl-1">
+              Location
+            </label>
+            <div className="bg-secondary/10 rounded-2xl p-5 border border-white/5 hover:border-white/10 transition-colors">
+              <div className="flex items-center gap-3">
+                <MapPin className="w-5 h-5 text-red-400 flex-shrink-0" />
+                <p className="text-foreground/90 font-medium text-lg leading-relaxed">
+                  {locationPath.replace(/\s>\s/g, " , ")}
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Details Grid */}
+          <div className="space-y-3">
+            <label className="text-xs font-bold text-muted-foreground uppercase tracking-widest pl-1">
+              Details
+            </label>
+            <div className="grid grid-cols-2 gap-4">
+              {/* Expiration Date */}
+              <div
+                className={cn(
+                  "rounded-2xl p-5 border transition-colors flex flex-col justify-between h-32 relative overflow-hidden group",
+                  expiryStatus === "expired"
+                    ? "bg-red-500/10 border-red-500/20"
+                    : "bg-secondary/10 border-white/5 hover:border-white/10",
+                )}
+              >
+                <div className="flex justify-between items-start">
+                  <span
+                    className={cn(
+                      "text-sm font-medium",
+                      expiryStatus === "expired"
+                        ? "text-red-400"
+                        : "text-muted-foreground",
+                    )}
+                  >
+                    Expiration Date
+                  </span>
+                  <Calendar
+                    className={cn(
+                      "w-5 h-5",
+                      expiryStatus === "expired"
+                        ? "text-red-400"
+                        : "text-muted-foreground/50",
+                    )}
+                  />
+                </div>
+
+                <div className="relative z-10">
+                  {expiryDate ? (
+                    <>
+                      <p
+                        className={cn(
+                          "text-lg font-bold mb-1",
+                          expiryStatus === "expired"
+                            ? "text-red-400"
+                            : "text-foreground",
+                        )}
+                      >
+                        {new Date(expiryDate).toLocaleDateString("ko-KR", {
+                          year: "numeric",
+                          month: "long",
+                          day: "numeric",
+                        })}
+                      </p>
+                      {daysUntilExpiry !== null &&
+                        daysUntilExpiry !== undefined && (
+                          <p
+                            className={cn(
+                              "text-sm font-medium",
+                              expiryStatus === "expired"
+                                ? "text-red-400"
+                                : "text-amber-500",
+                            )}
+                          >
+                            {daysUntilExpiry < 0
+                              ? `${Math.abs(daysUntilExpiry)}일 지남`
+                              : `${daysUntilExpiry}일 남음`}
+                          </p>
+                        )}
+                    </>
+                  ) : (
+                    <p className="text-muted-foreground">설정 안됨</p>
+                  )}
+                </div>
+              </div>
+
+              {/* Date Added */}
+              <div className="bg-secondary/10 rounded-2xl p-5 border border-white/5 hover:border-white/10 transition-colors flex flex-col justify-between h-32">
+                <span className="text-sm font-medium text-muted-foreground">
+                  Date Added
+                </span>
+                <div>
+                  <p className="text-lg font-bold text-foreground">
+                    {createdAt
+                      ? new Date(createdAt).toLocaleDateString("ko-KR", {
+                          year: "numeric",
+                          month: "long",
+                          day: "numeric",
+                        })
+                      : "-"}
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Tags Section */}
+          <div className="space-y-3">
+            <label className="text-xs font-bold text-muted-foreground uppercase tracking-widest pl-1">
+              Tags
+            </label>
+            <div className="flex flex-wrap gap-2">
+              {tags.map((tag, idx) => (
+                <div
+                  key={idx}
+                  className="px-4 py-2 rounded-full border border-white/10 bg-secondary/5 text-sm font-medium text-foreground/80 hover:bg-secondary/10 transition-colors cursor-default"
+                >
+                  {tag}
+                </div>
+              ))}
+              <button
+                onClick={() => {
+                  // Focus mock input or similar for now
+                  document.getElementById("add-tag-input")?.focus();
+                }}
+                className="px-4 py-2 rounded-full border border-dashed border-white/20 text-sm font-medium text-muted-foreground hover:text-foreground hover:border-white/40 transition-colors flex items-center gap-2"
+              >
+                <Plus className="w-4 h-4" />
+                Add Tag
+              </button>
+            </div>
+            {/* Hidden Input for Future Implementation */}
             <input
+              id="add-tag-input"
               type="text"
               value={newTag}
               onChange={(e) => setNewTag(e.target.value)}
-              onKeyPress={(e) => e.key === 'Enter' && handleAddTag()}
-              placeholder="새 태그 추가..."
-              className="input-field flex-1 text-sm"
+              onKeyPress={(e) => e.key === "Enter" && handleAddTag()}
+              className="sr-only"
             />
-            <Button
-              onClick={handleAddTag}
-              size="sm"
-              variant="secondary"
-              disabled={!newTag.trim()}
-            >
-              <Plus className="w-4 h-4" />
-            </Button>
           </div>
         </div>
 
-        {/* Action Buttons */}
-        <div className="flex gap-2 pt-4">
+        {/* Bottom Action Bar */}
+        <div className="z-10 absolute bottom-0 left-0 right-0 p-4 border-t border-white/10 bg-card/95 backdrop-blur-md">
           <Button
             onClick={onEdit}
-            className="flex-1"
-            variant="secondary"
+            className="w-full text-lg h-14 font-bold rounded-xl shadow-lg hover:shadow-primary/20 transition-all hover:-translate-y-0.5"
+            size="lg"
           >
-            <Edit className="w-4 h-4 mr-2" />
-            수정
-          </Button>
-          <Button
-            onClick={onFavorite}
-            className="flex-1"
-            variant="secondary"
-          >
-            <Heart className="w-4 h-4 mr-2" />
-            즐겨찾기
+            <Edit className="w-5 h-5 mr-2" />
+            수정하기
           </Button>
         </div>
       </div>
     </SidePanel>
-  )
+  );
 }

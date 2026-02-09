@@ -145,8 +145,10 @@ export function applyFilters(query: any, filters: Record<string, any>) {
     filteredQuery = filteredQuery.in('status', statuses)
   }
 
-  // Apply location filter
-  if (filters.location_id) {
+  // Apply location filter (location_ids = 선택 위치 + 하위 전체, location_id = 해당 위치만)
+  if (filters.location_ids?.length) {
+    filteredQuery = filteredQuery.in('location_id', filters.location_ids)
+  } else if (filters.location_id) {
     filteredQuery = filteredQuery.eq('location_id', filters.location_id)
   }
 

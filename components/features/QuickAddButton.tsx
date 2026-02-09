@@ -1,39 +1,40 @@
-'use client'
+"use client";
 
-import { useState } from 'react'
-import { Plus, Package, MapPin } from 'lucide-react'
-import { cn } from '@/lib/utils/cn'
+import { useState } from "react";
+import { Plus, Package, MapPin } from "lucide-react";
+import { cn } from "@/lib/utils/cn";
+import { FloatingActionButton } from "../ui/FloatingActionButton";
 
 interface QuickAddButtonProps {
-  onAddItem?: () => void
-  onAddLocation?: () => void
-  className?: string
+  onAddItem?: () => void;
+  onAddLocation?: () => void;
+  className?: string;
 }
 
-export function QuickAddButton({ 
-  onAddItem, 
+export function QuickAddButton({
+  onAddItem,
   onAddLocation,
-  className 
+  className,
 }: QuickAddButtonProps) {
-  const [isOpen, setIsOpen] = useState(false)
+  const [isOpen, setIsOpen] = useState(false);
 
   const handleAction = (action?: () => void) => {
-    setIsOpen(false)
-    action?.()
-  }
+    setIsOpen(false);
+    action?.();
+  };
 
   return (
-    <div className={cn('fixed bottom-20 right-4 z-40 md:bottom-6', className)}>
+    <div className={cn("fixed bottom-20 right-4 z-40 md:bottom-6", className)}>
       {/* Action Menu */}
       {isOpen && (
         <>
           {/* Backdrop */}
-          <div 
+          <div
             className="fixed inset-0 -z-10"
             onClick={() => setIsOpen(false)}
             aria-hidden="true"
           />
-          
+
           {/* Actions */}
           <div className="absolute bottom-16 right-0 flex flex-col gap-2 animate-fade-in">
             {onAddItem && (
@@ -50,7 +51,7 @@ export function QuickAddButton({
                 </div>
               </button>
             )}
-            
+
             {onAddLocation && (
               <button
                 onClick={() => handleAction(onAddLocation)}
@@ -69,21 +70,18 @@ export function QuickAddButton({
         </>
       )}
 
-      {/* Main Button */}
-      <button
+      {/* Main Button: Plus ↔ X (45° rotation) */}
+      <FloatingActionButton
         onClick={() => setIsOpen(!isOpen)}
-        className={cn(
-          'w-14 h-14 rounded-full shadow-glow flex items-center justify-center transition-all',
-          'hover:shadow-medium active:scale-[0.98]',
-          isOpen 
-            ? 'bg-secondary text-secondary-foreground rotate-45' 
-            : 'bg-primary text-primary-foreground hover:bg-primary/90'
-        )}
-        aria-label={isOpen ? '닫기' : '빠른 추가'}
-        aria-expanded={isOpen}
-      >
-        <Plus className="w-6 h-6" />
-      </button>
+        icon={
+          <Plus
+            className={cn(
+              "w-6 h-6 transition-transform duration-300 ease-out",
+              isOpen && "rotate-45"
+            )}
+          />
+        }
+      />
     </div>
-  )
+  );
 }
