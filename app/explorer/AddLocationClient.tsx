@@ -4,7 +4,6 @@ import { useState, FormEvent } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Save, X, MapPin, Box, Home, FolderOpen } from "lucide-react";
 import { BottomNav } from "@/components/layout/BottomNav";
-import { PageHeader } from "@/components/layout/PageHeader";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
@@ -243,7 +242,7 @@ export function AddLocationClient({
       const selectOptions: SelectOption[] = [
         {
           value: "",
-          label: levelIndex === 0 ? "Root (Top Level)" : "Select...",
+          label: levelIndex === 0 ? "루트 (최상위)" : "선택...",
         },
         ...options.map((loc) => ({
           value: loc.id,
@@ -264,12 +263,10 @@ export function AddLocationClient({
             leftIcon={
               index === 0 ? <FolderOpen className="w-4 h-4" /> : undefined
             }
-            placeholder={
-              index === 0 ? "Root (Top Level)" : "Select sub-location..."
-            }
-            className={
-              index > 0 ? "ml-8 border-l-2 border-l-secondary-200 pl-4" : ""
-            }
+            placeholder={index === 0 ? "루트 (최상위)" : "하위 위치 선택..."}
+            // className={
+            //   index > 0 ? "ml-8 border-l-2 border-l-secondary-200 pl-4" : ""
+            // }
           />
         </div>,
       );
@@ -290,27 +287,17 @@ export function AddLocationClient({
   return (
     <div
       className={cn(
-        "min-h-screen",
-        isModal ? "bg-background h-full flex flex-col" : "bg-secondary-50",
+        "flex flex-col min-h-0",
+        isModal ? "bg-background h-full" : "bg-secondary-50 flex-1",
       )}
     >
-      <main
-        className={cn(isModal ? "flex-1 overflow-y-auto pb-24" : "pb-24")}
-      >
+      <main className={cn("flex-1 overflow-y-auto", "pb-20")}>
         <div
           className={cn(
             "container mx-auto px-4 py-6 max-w-4xl",
             isModal && "p-6",
           )}
         >
-          {!isModal && (
-            <PageHeader
-              title="Add Location"
-              description="Create a new location to organize your items"
-              onBack={() => router.back()}
-            />
-          )}
-
           {error && (
             <Alert variant="danger" className="mb-6">
               {error}
@@ -364,8 +351,8 @@ export function AddLocationClient({
                 </div>
 
                 <Input
-                  label="Location Name"
-                  placeholder="e.g. Living Room, Red Box, Top Shelf"
+                  label="위치 이름"
+                  placeholder="예: 거실, 빨간색 상자, 상단 선반.."
                   value={formData.name}
                   onChange={(e) =>
                     setFormData({ ...formData, name: e.target.value })
@@ -390,9 +377,9 @@ export function AddLocationClient({
                 {/* Cascading Location Selection */}
                 <div className="space-y-2">
                   {renderLocationSelects()}
-                  <p className="text-xs text-secondary-500 mt-1">
-                    Select a parent location to nest this item inside. Leave as
-                    "Root" to create a top-level location.
+                  <p className="text-xs text-secondary-500 mt-1 whitespace-pre-wrap">
+                    {`부모 위치를 선택하여 이 항목을 중첩하세요.
+                    "루트"로두면 최상위 위치가 됩니다.`}
                   </p>
                 </div>
 
@@ -413,46 +400,28 @@ export function AddLocationClient({
               </div>
             </Card>
 
-            {/* Action Buttons */}
+            {/* Action Buttons - 모달/페이지 동일 스타일 (하단 바, 페이지에서는 BottomNav 위에 고정) */}
             <div
               className={cn(
-                "py-4",
+                "py-4 p-4 border-t border-border bg-card/95 backdrop-blur-md",
                 isModal
-                  ? "z-10 absolute bottom-0 left-0 right-0 p-4 border-t border-white/10 bg-card/95 backdrop-blur-md"
-                  : "sticky bottom-20 bg-secondary-50 -mx-4 px-4 border-t border-secondary-200",
+                  ? "z-10 absolute bottom-0 left-0 right-0"
+                  : "fixed left-0 right-0 z-40 bottom-0",
               )}
             >
               <Button
                 type="submit"
                 className={cn(
                   "w-full font-bold transition-all shadow-lg hover:shadow-primary/20",
-                  isModal
-                    ? "text-lg h-14 rounded-xl hover:-translate-y-0.5"
-                    : "",
+                  "text-lg h-14 rounded-xl hover:-translate-y-0.5",
                 )}
-                size={isModal ? "lg" : "default"}
+                size="lg"
                 variant="primary"
-                leftIcon={
-                  <Save className={cn(isModal ? "w-5 h-5 mr-2" : "w-4 h-4")} />
-                }
+                leftIcon={<Save className="w-5 h-5 mr-2" />}
                 isLoading={isSubmitting}
               >
-                Save Location
+                위치 저장하기
               </Button>
-              {!isModal && (
-                <div className="mt-3">
-                  <Button
-                    type="button"
-                    variant="secondary"
-                    leftIcon={<X className="w-4 h-4" />}
-                    onClick={handleCancel}
-                    disabled={isSubmitting}
-                    fullWidth
-                  >
-                    Cancel
-                  </Button>
-                </div>
-              )}
             </div>
           </form>
         </div>

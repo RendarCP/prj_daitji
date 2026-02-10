@@ -8,7 +8,6 @@ import {
   Package,
   Barcode,
   Calendar,
-  MapPin,
   Tag as TagIcon,
   Image as ImageIcon,
   Clock,
@@ -16,9 +15,9 @@ import {
   Pill,
   AlertTriangle,
   Info,
+  FolderOpen,
 } from "lucide-react";
 import { BottomNav } from "@/components/layout/BottomNav";
-import { PageHeader } from "@/components/layout/PageHeader";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
@@ -48,6 +47,29 @@ export function ItemAddClient({ mode = "page" }: ItemAddClientProps) {
   // React Query hook for locations
   const { data: locations = [], isLoading: isLoadingLocations } =
     useLocations();
+
+  // Location hierarchy: parent_id (or 'root') -> Location[]
+  const locationMap = locations.reduce(
+    (acc, loc) => {
+      const parentId = loc.parent_id || "root";
+      if (!acc[parentId]) acc[parentId] = [];
+      acc[parentId].push(loc);
+      return acc;
+    },
+    {} as Record<string, Location[]>,
+  );
+
+  const [selectionPath, setSelectionPath] = useState<string[]>([]);
+
+  const handleLocationChange = (levelIndex: number, selectedId: string) => {
+    const newPath = selectionPath.slice(0, levelIndex);
+    if (selectedId) newPath.push(selectedId);
+    setSelectionPath(newPath);
+    setFormData((prev) => ({
+      ...prev,
+      location_id: newPath.length > 0 ? newPath[newPath.length - 1] : "",
+    }));
+  };
 
   // Form state
   const [formData, setFormData] = useState({
@@ -180,27 +202,68 @@ export function ItemAddClient({ mode = "page" }: ItemAddClientProps) {
     router.back();
   };
 
-  const locationOptions: SelectOption[] = locations
-    .sort((a, b) => {
-      if (a.level !== b.level) return a.level - b.level;
-      return a.name.localeCompare(b.name);
-    })
-    .map((loc: Location) => ({
-      value: loc.id,
-      label: `${"  ".repeat(loc.level - 1)}${loc.icon ? loc.icon + " " : ""}${loc.name}`,
-    }));
+  const renderLocationSelects = () => {
+    const selects: React.ReactNode[] = [];
+    let currentLevelParentId = "root";
+    let levelIndex = 0;
+
+    while (true) {
+      const options = locationMap[currentLevelParentId] || [];
+      if (options.length === 0 && levelIndex > 0) break;
+
+      const selectedId = selectionPath[levelIndex] ?? "";
+
+      const selectOptions: SelectOption[] = [
+        ...options.map((loc) => ({
+          value: loc.id,
+          label: `${loc.icon ? loc.icon + " " : ""}${loc.name}`,
+        })),
+      ];
+
+      const index = levelIndex;
+      selects.push(
+        <div key={index} className="mb-2 last:mb-0">
+          <Select
+            label={index === 0 ? "위치" : undefined}
+            options={selectOptions}
+            value={selectedId}
+            onChange={(e) => handleLocationChange(index, e.target.value)}
+            placeholder={
+              isLoadingLocations
+                ? "위치 불러오는 중..."
+                : levelIndex === 0
+                  ? "위치를 선택하세요"
+                  : "하위 위치 선택..."
+            }
+            required={index === 0}
+            leftIcon={
+              index === 0 ? <FolderOpen className="w-4 h-4" /> : undefined
+            }
+            error={index === 0 ? errors.location_id : undefined}
+            disabled={isLoadingLocations}
+          />
+        </div>,
+      );
+
+      if (!selectedId) break;
+      currentLevelParentId = selectedId;
+      levelIndex++;
+    }
+
+    return selects;
+  };
 
   const isModal = mode === "modal";
 
   return (
     <div
       className={cn(
-        "min-h-screen",
-        isModal ? "bg-background h-full flex flex-col" : "bg-secondary-50",
+        "flex flex-col min-h-0",
+        isModal ? "bg-background h-full" : "bg-secondary-50 flex-1",
       )}
     >
       <main
-        className={cn(isModal ? "flex-1 overflow-y-auto pb-24" : "pb-24")}
+        className={cn("flex-1 overflow-y-auto", isModal ? "pb-24" : "pb-40")}
       >
         <div
           className={cn(
@@ -208,14 +271,6 @@ export function ItemAddClient({ mode = "page" }: ItemAddClientProps) {
             isModal && "p-6",
           )}
         >
-          {!isModal && (
-            <PageHeader
-              title="물품 추가"
-              description="새로운 물품을 등록하세요"
-              onBack={() => router.back()}
-            />
-          )}
-
           {error && (
             <Alert variant="danger" className="mb-6">
               {error}
@@ -294,23 +349,13 @@ export function ItemAddClient({ mode = "page" }: ItemAddClientProps) {
                   error={errors.type}
                 />
 
-                <Select
-                  label="위치"
-                  options={locationOptions}
-                  placeholder={
-                    isLoadingLocations
-                      ? "위치 불러오는 중..."
-                      : "위치를 선택하세요"
-                  }
-                  value={formData.location_id}
-                  onChange={(e) =>
-                    setFormData({ ...formData, location_id: e.target.value })
-                  }
-                  required
-                  leftIcon={<MapPin className="w-4 h-4" />}
-                  error={errors.location_id}
-                  disabled={isLoadingLocations}
-                />
+                <div className="space-y-2">
+                  {renderLocationSelects()}
+                  <p className="text-xs text-secondary-500 mt-1">
+                    위치를 단계별로 선택하세요. 하위 위치가 있으면 다음 선택이
+                    나타납니다.
+                  </p>
+                </div>
 
                 <Input
                   label="수량"
@@ -360,7 +405,12 @@ export function ItemAddClient({ mode = "page" }: ItemAddClientProps) {
                     }}
                     fullWidth
                   />
-                  <Button className="h-full" type="button" onClick={addTag}>
+                  <Button
+                    size="md"
+                    className="h-auto"
+                    type="button"
+                    onClick={addTag}
+                  >
                     추가
                   </Button>
                 </div>
@@ -649,46 +699,28 @@ export function ItemAddClient({ mode = "page" }: ItemAddClientProps) {
               </Card>
             )}
 
-            {/* Action Buttons */}
+            {/* Action Buttons - 모달/페이지 동일 스타일 (하단 바, 페이지에서는 BottomNav 위에 고정) */}
             <div
               className={cn(
-                "py-4",
+                "py-4 p-4 border-t border-border bg-card/95 backdrop-blur-md",
                 isModal
-                  ? "z-10 absolute bottom-0 left-0 right-0 p-4 border-t border-white/10 bg-card/95 backdrop-blur-md"
-                  : "sticky bottom-20 bg-secondary-50 -mx-4 px-4 border-t border-secondary-200",
+                  ? "z-10 absolute bottom-0 left-0 right-0"
+                  : "fixed left-0 right-0 z-40 bottom-0",
               )}
             >
               <Button
                 type="submit"
                 className={cn(
                   "w-full font-bold transition-all shadow-lg hover:shadow-primary/20",
-                  isModal
-                    ? "text-lg h-14 rounded-xl hover:-translate-y-0.5"
-                    : "",
+                  "text-lg h-14 rounded-xl hover:-translate-y-0.5",
                 )}
-                size={isModal ? "lg" : "default"}
+                size="lg"
                 variant="primary"
-                leftIcon={
-                  <Save className={cn(isModal ? "w-5 h-5 mr-2" : "w-4 h-4")} />
-                }
+                leftIcon={<Save className="w-5 h-5 mr-2" />}
                 isLoading={isSubmitting}
               >
                 저장하기
               </Button>
-              {!isModal && (
-                <div className="mt-3">
-                  <Button
-                    type="button"
-                    variant="secondary"
-                    leftIcon={<X className="w-4 h-4" />}
-                    onClick={handleCancel}
-                    disabled={isSubmitting}
-                    fullWidth
-                  >
-                    취소
-                  </Button>
-                </div>
-              )}
             </div>
           </form>
         </div>

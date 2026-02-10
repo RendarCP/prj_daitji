@@ -1,8 +1,7 @@
 import { Metadata } from "next";
 import { createClient } from "@/lib/supabase/server";
 import { ItemAddClient } from "./ItemAddClient";
-import { Header } from "@/components/layout/Header";
-import { redirect } from "next/navigation";
+import { FormPageLayout } from "@/components/layout/FormPageLayout";
 
 export const metadata: Metadata = {
   title: "물품 추가 - DAITJI",
@@ -10,20 +9,11 @@ export const metadata: Metadata = {
 };
 
 export default async function ItemAddPage() {
-  const supabase = await createClient();
-
-  // const {
-  //   data: { user },
-  // } = await supabase.auth.getUser()
-
-  // if (!user) {
-  //   redirect('/auth/login')
-  // }
+  await createClient();
 
   return (
-    <>
-      <Header />
-      <ItemAddClient />
-    </>
+    <FormPageLayout title="물품 추가">
+      <ItemAddClient mode="page" />
+    </FormPageLayout>
   );
 }

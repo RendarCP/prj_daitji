@@ -1,17 +1,16 @@
 import { Metadata } from 'next'
 import { createClient } from '@/lib/supabase/server'
 import { AddLocationClient } from '../AddLocationClient'
-import { Header } from '@/components/layout/Header'
+import { FormPageLayout } from '@/components/layout/FormPageLayout'
 
 export const metadata: Metadata = {
-  title: 'Add Location - DAITJI',
-  description: 'Create a new location in your inventory',
+  title: '위치 추가 - DAITJI',
+  description: '새 위치를 만들어 보관함을 정리하세요',
 }
 
 export default async function AddLocationPage() {
   const supabase = await createClient()
-  
-  // Fetch all locations for the hierarchical dropdown
+
   const { data: locations } = await supabase
     .from('locations')
     .select('id, name, level, parent_id, icon')
@@ -19,9 +18,8 @@ export default async function AddLocationPage() {
     .order('sort_order', { ascending: true })
 
   return (
-    <>
-      <Header />
-      <AddLocationClient locations={locations || []} />
-    </>
+    <FormPageLayout title="위치 추가">
+      <AddLocationClient locations={locations || []} mode="page" />
+    </FormPageLayout>
   )
 }
