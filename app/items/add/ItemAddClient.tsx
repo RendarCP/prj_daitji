@@ -27,6 +27,7 @@ import { Badge } from "@/components/ui/Badge";
 import { Alert } from "@/components/ui/Alert";
 import { useLocations } from "@/lib/hooks/useLocations";
 import type { Location } from "@/lib/types";
+import { cn } from "@/lib/utils/cn";
 
 const ITEM_TYPE_OPTIONS: SelectOption[] = [
   { value: "FOOD", label: "식품" },
@@ -35,7 +36,11 @@ const ITEM_TYPE_OPTIONS: SelectOption[] = [
   { value: "GENERAL", label: "일반" },
 ];
 
-export function ItemAddClient() {
+interface ItemAddClientProps {
+  mode?: "page" | "modal";
+}
+
+export function ItemAddClient({ mode = "page" }: ItemAddClientProps) {
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -156,8 +161,12 @@ export function ItemAddClient() {
       }
 
       // Navigate to the new item's detail page
-      router.push(`/item/${result.data.id}`);
-      router.refresh();
+      if (mode === "modal") {
+        window.location.href = `/item/${result.data.id}`;
+      } else {
+        router.push(`/item/${result.data.id}`);
+        router.refresh();
+      }
     } catch (err) {
       setError(
         err instanceof Error ? err.message : "알 수 없는 오류가 발생했습니다",
@@ -181,15 +190,31 @@ export function ItemAddClient() {
       label: `${"  ".repeat(loc.level - 1)}${loc.icon ? loc.icon + " " : ""}${loc.name}`,
     }));
 
+  const isModal = mode === "modal";
+
   return (
-    <div className="min-h-screen bg-secondary-50">
-      <main className="pb-24">
-        <div className="container mx-auto px-4 py-6 max-w-4xl">
-          <PageHeader
-            title="물품 추가"
-            description="새로운 물품을 등록하세요"
-            onBack={() => router.back()}
-          />
+    <div
+      className={cn(
+        "min-h-screen",
+        isModal ? "bg-background h-full flex flex-col" : "bg-secondary-50",
+      )}
+    >
+      <main
+        className={cn(isModal ? "flex-1 overflow-y-auto pb-24" : "pb-24")}
+      >
+        <div
+          className={cn(
+            "container mx-auto px-4 py-6 max-w-4xl",
+            isModal && "p-6",
+          )}
+        >
+          {!isModal && (
+            <PageHeader
+              title="물품 추가"
+              description="새로운 물품을 등록하세요"
+              onBack={() => router.back()}
+            />
+          )}
 
           {error && (
             <Alert variant="danger" className="mb-6">
@@ -335,7 +360,7 @@ export function ItemAddClient() {
                     }}
                     fullWidth
                   />
-                  <Button type="button" size="sm" onClick={addTag}>
+                  <Button className="h-full" type="button" onClick={addTag}>
                     추가
                   </Button>
                 </div>
@@ -625,31 +650,51 @@ export function ItemAddClient() {
             )}
 
             {/* Action Buttons */}
-            <div className="flex gap-3 sticky bottom-20 bg-secondary-50 py-4 -mx-4 px-4 border-t border-secondary-200">
+            <div
+              className={cn(
+                "py-4",
+                isModal
+                  ? "z-10 absolute bottom-0 left-0 right-0 p-4 border-t border-white/10 bg-card/95 backdrop-blur-md"
+                  : "sticky bottom-20 bg-secondary-50 -mx-4 px-4 border-t border-secondary-200",
+              )}
+            >
               <Button
                 type="submit"
+                className={cn(
+                  "w-full font-bold transition-all shadow-lg hover:shadow-primary/20",
+                  isModal
+                    ? "text-lg h-14 rounded-xl hover:-translate-y-0.5"
+                    : "",
+                )}
+                size={isModal ? "lg" : "default"}
                 variant="primary"
-                leftIcon={<Save className="w-4 h-4" />}
+                leftIcon={
+                  <Save className={cn(isModal ? "w-5 h-5 mr-2" : "w-4 h-4")} />
+                }
                 isLoading={isSubmitting}
-                fullWidth
               >
-                저장
+                저장하기
               </Button>
-              <Button
-                type="button"
-                variant="secondary"
-                leftIcon={<X className="w-4 h-4" />}
-                onClick={handleCancel}
-                disabled={isSubmitting}
-              >
-                취소
-              </Button>
+              {!isModal && (
+                <div className="mt-3">
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    leftIcon={<X className="w-4 h-4" />}
+                    onClick={handleCancel}
+                    disabled={isSubmitting}
+                    fullWidth
+                  >
+                    취소
+                  </Button>
+                </div>
+              )}
             </div>
           </form>
         </div>
       </main>
 
-      <BottomNav />
+      {!isModal && <BottomNav />}
     </div>
   );
 }
