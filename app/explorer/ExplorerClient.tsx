@@ -328,7 +328,7 @@ export default function ExplorerClient() {
 
       {/* Quick Add Button */}
       <QuickAddButton
-        onAddItem={() => router.push("/item/add")}
+        onAddItem={() => router.push("/items/add")}
         onAddLocation={() =>
           router.push(
             `/explorer/add${selectedLocationId ? `?parent_id=${selectedLocationId}` : ""}`,

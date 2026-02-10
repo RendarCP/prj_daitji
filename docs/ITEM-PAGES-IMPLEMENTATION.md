@@ -5,8 +5,9 @@ This document describes the implementation of the Item Detail and Item Add pages
 ## Overview
 
 Two main pages have been implemented:
+
 - **Item Detail Page** (`/item/[id]`): View, edit, and delete items
-- **Item Add Page** (`/item/add`): Create new items
+- **Item Add Page** (`/items/add`): Create new items
 
 ## File Structure
 
@@ -30,8 +31,9 @@ app/item/
 ### Item Detail Page (`/item/[id]`)
 
 #### View Mode
+
 - **Image Display**: Shows item image or placeholder icon
-- **Basic Information**: 
+- **Basic Information**:
   - Name, type, status badges
   - Quantity
   - Barcode (if available)
@@ -47,6 +49,7 @@ app/item/
 - **Actions**: Edit and Delete buttons
 
 #### Edit Mode
+
 - All fields editable via form inputs
 - Dynamic metadata fields based on item type
 - Tag management (add/remove)
@@ -55,13 +58,15 @@ app/item/
 - Loading states during API calls
 
 #### Delete Functionality
+
 - Confirmation modal before deletion
 - Redirects to explorer after successful deletion
 - Error handling
 
-### Item Add Page (`/item/add`)
+### Item Add Page (`/items/add`)
 
 #### Features
+
 - **Image URL Input**: Add image via URL (with preview)
 - **Basic Information Form**:
   - Name (required)
@@ -84,12 +89,14 @@ app/item/
 ### Endpoints Used
 
 #### Item Detail
+
 - `GET /api/items/[id]` - Fetch item with location
 - `PATCH /api/items/[id]` - Update item
 - `DELETE /api/items/[id]` - Delete item
 - `GET /api/locations/[id]/path` - Get location breadcrumb path
 
 #### Item Add
+
 - `POST /api/items` - Create new item
 - `GET /api/locations` - Fetch all locations for dropdown
 
@@ -99,20 +106,20 @@ app/item/
 
 ```typescript
 type ItemMetadata = {
-  expiry_date?: string
-  opened_date?: string
-  pao?: number
-  purchase_date?: string
-  brand?: string
-  category?: string
-  notes?: string
-  prescription?: boolean
-  dosage?: string
-  warnings?: string[]
-  warranty_until?: string
-  manufacturer?: string
-  model?: string
-}
+  expiry_date?: string;
+  opened_date?: string;
+  pao?: number;
+  purchase_date?: string;
+  brand?: string;
+  category?: string;
+  notes?: string;
+  prescription?: boolean;
+  dosage?: string;
+  warnings?: string[];
+  warranty_until?: string;
+  manufacturer?: string;
+  model?: string;
+};
 ```
 
 ### Database Type Casting
@@ -120,17 +127,19 @@ type ItemMetadata = {
 The `metadata` field from Supabase is typed as `Json`. We cast it to `ItemMetadata` for type safety:
 
 ```typescript
-const metadata = item.metadata as ItemMetadata
+const metadata = item.metadata as ItemMetadata;
 ```
 
 ## UI Components Used
 
 ### Layout Components
+
 - `Header` - Top navigation
 - `BottomNav` - Bottom navigation bar
 - `PageHeader` - Page title with back button
 
 ### UI Components
+
 - `Card` - Container cards
 - `Button` - Action buttons with variants
 - `Input` - Text, number, date inputs
@@ -142,12 +151,14 @@ const metadata = item.metadata as ItemMetadata
 - `EmptyState` - Empty/error states
 
 ### Feature Components
+
 - `LocationBreadcrumb` - Hierarchical location path
 - `ExpiryStatus` - Smart expiry status badge
 
 ## State Management
 
 ### Item Detail Client
+
 - `item` - Current item data
 - `isEditing` - Edit mode toggle
 - `isDeleteModalOpen` - Delete modal state
@@ -157,6 +168,7 @@ const metadata = item.metadata as ItemMetadata
 - `tagInput` - Tag input field state
 
 ### Item Add Client
+
 - `isSubmitting` - Form submission state
 - `error` - Global error message
 - `formData` - Form state
@@ -166,16 +178,19 @@ const metadata = item.metadata as ItemMetadata
 ## Form Handling
 
 ### Validation
+
 - **Client-side**: Basic validation (required fields, formats)
 - **Server-side**: Zod schema validation via API
 - **Real-time**: Error display on form submission
 
 ### Metadata Management
+
 - Dynamic fields based on item type
 - `updateMetadata(key, value)` helper function
 - Cleans empty values before submission
 
 ### Tag Management
+
 - Add tags with Enter key or button
 - Remove tags by clicking badge
 - Prevent duplicates
@@ -185,7 +200,7 @@ const metadata = item.metadata as ItemMetadata
 ```
 Dashboard/Explorer
     ↓
-  QuickAddButton → /item/add → Submit → /item/[id] (new item)
+  QuickAddButton → /items/add → Submit → /item/[id] (new item)
     ↓
   ItemCard → /item/[id]
     ↓
@@ -207,11 +222,13 @@ Dashboard/Explorer
 ## Error Handling
 
 ### Client-side Errors
+
 - Form validation errors displayed inline
 - API errors shown in Alert component
 - Network errors caught and displayed
 
 ### Server-side Errors
+
 - Error boundary catches React errors
 - 404 handling via not-found.tsx
 - Custom error messages per error type
@@ -219,9 +236,11 @@ Dashboard/Explorer
 ## Loading States
 
 ### Page Level
+
 - `loading.tsx` with spinner and message
 
 ### Component Level
+
 - Button loading states with spinner
 - Disabled inputs during submission
 
@@ -236,16 +255,19 @@ Dashboard/Explorer
 ## Performance Optimizations
 
 ### Server Components
+
 - Initial data fetching on server
 - Reduced client JavaScript
 - Faster initial page load
 
 ### Client Components
+
 - Only interactive parts on client
 - Optimized re-renders with useState
 - Lazy loading of images
 
 ### API Optimization
+
 - Single request for item + location
 - Efficient location path building
 - Proper caching headers (from API)
@@ -253,6 +275,7 @@ Dashboard/Explorer
 ## Future Enhancements
 
 ### Planned Features
+
 - [ ] Image upload to Supabase Storage
 - [ ] Barcode scanner integration
 - [ ] Bulk tag editing
@@ -263,6 +286,7 @@ Dashboard/Explorer
 - [ ] Multiple image support
 
 ### Potential Improvements
+
 - [ ] Optimistic UI updates
 - [ ] Auto-save draft
 - [ ] Keyboard shortcuts
@@ -274,6 +298,7 @@ Dashboard/Explorer
 ## Testing Recommendations
 
 ### Manual Testing Checklist
+
 - [ ] View item details with all metadata types
 - [ ] Edit item and save changes
 - [ ] Delete item with confirmation
@@ -287,6 +312,7 @@ Dashboard/Explorer
 - [ ] Test back button navigation
 
 ### Edge Cases to Test
+
 - [ ] Item without image
 - [ ] Item without tags
 - [ ] Item with empty metadata
@@ -300,6 +326,7 @@ Dashboard/Explorer
 ## Dependencies
 
 ### Required Packages
+
 - `next` - Framework (v14+)
 - `react` - UI library
 - `lucide-react` - Icons
@@ -308,6 +335,7 @@ Dashboard/Explorer
 - `@supabase/supabase-js` - Database client
 
 ### Internal Dependencies
+
 - All UI components in `/components/ui`
 - Feature components in `/components/features`
 - API utilities in `/lib/api`
@@ -317,18 +345,21 @@ Dashboard/Explorer
 ## Integration Points
 
 ### Database Schema
+
 - `items` table with all fields
 - `locations` table for hierarchy
 - Foreign key relationship
 - Computed expiry_date column
 
 ### API Routes
+
 - Full CRUD operations for items
 - Location path resolution
 - Validation at API layer
 - Error response standardization
 
 ### Navigation
+
 - QuickAddButton in Dashboard and Explorer
 - ItemCard links from list views
 - Back button to previous page
@@ -356,25 +387,28 @@ Dashboard/Explorer
 ## Code Examples
 
 ### Accessing Metadata
+
 ```typescript
-const metadata = item.metadata as ItemMetadata
-const expiryDate = metadata.expiry_date
+const metadata = item.metadata as ItemMetadata;
+const expiryDate = metadata.expiry_date;
 ```
 
 ### Adding a Tag
+
 ```typescript
 const addTag = () => {
   if (tagInput.trim() && !formData.tags.includes(tagInput.trim())) {
     setFormData({
       ...formData,
       tags: [...formData.tags, tagInput.trim()],
-    })
-    setTagInput('')
+    });
+    setTagInput("");
   }
-}
+};
 ```
 
 ### Updating Metadata
+
 ```typescript
 const updateMetadata = (key: string, value: any) => {
   setFormData({
@@ -383,8 +417,8 @@ const updateMetadata = (key: string, value: any) => {
       ...formData.metadata,
       [key]: value || undefined,
     },
-  })
-}
+  });
+};
 ```
 
 ## Conclusion

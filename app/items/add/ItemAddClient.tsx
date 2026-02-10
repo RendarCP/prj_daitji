@@ -1,12 +1,12 @@
-'use client'
+"use client";
 
-import { useState, FormEvent } from 'react'
-import { useRouter } from 'next/navigation'
-import { 
-  Save, 
-  X, 
-  Package, 
-  Barcode, 
+import { useState, FormEvent } from "react";
+import { useRouter } from "next/navigation";
+import {
+  Save,
+  X,
+  Package,
+  Barcode,
   Calendar,
   MapPin,
   Tag as TagIcon,
@@ -15,66 +15,66 @@ import {
   ShoppingCart,
   Pill,
   AlertTriangle,
-  Info
-} from 'lucide-react'
-import { BottomNav } from '@/components/layout/BottomNav'
-import { PageHeader } from '@/components/layout/PageHeader'
-import { Card } from '@/components/ui/Card'
-import { Button } from '@/components/ui/Button'
-import { Input } from '@/components/ui/Input'
-import { Select, SelectOption } from '@/components/ui/Select'
-import { Badge } from '@/components/ui/Badge'
-import { Alert } from '@/components/ui/Alert'
-import { Skeleton } from '@/components/ui/Skeleton'
-import { useLocations } from '@/lib/hooks/useLocations'
-import type { Location } from '@/lib/types'
+  Info,
+} from "lucide-react";
+import { BottomNav } from "@/components/layout/BottomNav";
+import { PageHeader } from "@/components/layout/PageHeader";
+import { Card } from "@/components/ui/Card";
+import { Button } from "@/components/ui/Button";
+import { Input } from "@/components/ui/Input";
+import { Select, SelectOption } from "@/components/ui/Select";
+import { Badge } from "@/components/ui/Badge";
+import { Alert } from "@/components/ui/Alert";
+import { useLocations } from "@/lib/hooks/useLocations";
+import type { Location } from "@/lib/types";
 
 const ITEM_TYPE_OPTIONS: SelectOption[] = [
-  { value: 'FOOD', label: '식품' },
-  { value: 'COSMETIC', label: '화장품' },
-  { value: 'MEDICINE', label: '의약품' },
-  { value: 'GENERAL', label: '일반' },
-]
+  { value: "FOOD", label: "식품" },
+  { value: "COSMETIC", label: "화장품" },
+  { value: "MEDICINE", label: "의약품" },
+  { value: "GENERAL", label: "일반" },
+];
 
 export function ItemAddClient() {
-  const router = useRouter()
-  const [isSubmitting, setIsSubmitting] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  const router = useRouter();
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   // React Query hook for locations
-  const { data: locations = [], isLoading: isLoadingLocations } = useLocations()
+  const { data: locations = [], isLoading: isLoadingLocations } =
+    useLocations();
 
   // Form state
   const [formData, setFormData] = useState({
-    name: '',
-    type: '' as 'FOOD' | 'COSMETIC' | 'MEDICINE' | 'GENERAL' | '',
-    location_id: '',
+    name: "",
+    type: "" as "FOOD" | "COSMETIC" | "MEDICINE" | "GENERAL" | "",
+    location_id: "",
     quantity: 1,
-    barcode: '',
-    image_url: '',
+    barcode: "",
+    image_url: "",
     tags: [] as string[],
     metadata: {} as Record<string, any>,
-  })
+  });
 
-  const [tagInput, setTagInput] = useState('')
-  const [errors, setErrors] = useState<Record<string, string>>({})
+  const [tagInput, setTagInput] = useState("");
+  const [errors, setErrors] = useState<Record<string, string>>({});
 
   const addTag = () => {
     if (tagInput.trim() && !formData.tags.includes(tagInput.trim())) {
       setFormData({
         ...formData,
         tags: [...formData.tags, tagInput.trim()],
-      })
-      setTagInput('')
+      });
+      setTagInput("");
     }
-  }
+  };
 
   const removeTag = (tag: string) => {
     setFormData({
       ...formData,
-      tags: formData.tags.filter(t => t !== tag),
-    })
-  }
+      tags: formData.tags.filter((t) => t !== tag),
+    });
+  };
 
   const updateMetadata = (key: string, value: any) => {
     setFormData({
@@ -83,52 +83,54 @@ export function ItemAddClient() {
         ...formData.metadata,
         [key]: value || undefined,
       },
-    })
-  }
+    });
+  };
 
   const validateForm = (): boolean => {
-    const newErrors: Record<string, string> = {}
+    const newErrors: Record<string, string> = {};
 
     if (!formData.name.trim()) {
-      newErrors.name = '물품 이름은 필수입니다'
+      newErrors.name = "물품 이름은 필수입니다";
     }
 
     if (!formData.type) {
-      newErrors.type = '타입을 선택해주세요'
+      newErrors.type = "타입을 선택해주세요";
     }
 
     if (!formData.location_id) {
-      newErrors.location_id = '위치를 선택해주세요'
+      newErrors.location_id = "위치를 선택해주세요";
     }
 
     if (formData.quantity < 0) {
-      newErrors.quantity = '수량은 0 이상이어야 합니다'
+      newErrors.quantity = "수량은 0 이상이어야 합니다";
     }
 
     if (formData.image_url && !formData.image_url.match(/^https?:\/\/.+/)) {
-      newErrors.image_url = '올바른 URL 형식이 아닙니다'
+      newErrors.image_url = "올바른 URL 형식이 아닙니다";
     }
 
-    setErrors(newErrors)
-    return Object.keys(newErrors).length === 0
-  }
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
 
   const handleSubmit = async (e: FormEvent) => {
-    e.preventDefault()
-    
+    e.preventDefault();
+
     if (!validateForm()) {
-      setError('입력 내용을 확인해주세요')
-      return
+      setError("입력 내용을 확인해주세요");
+      return;
     }
 
     try {
-      setIsSubmitting(true)
-      setError(null)
+      setIsSubmitting(true);
+      setError(null);
 
       // Clean metadata - remove empty values
       const cleanMetadata = Object.fromEntries(
-        Object.entries(formData.metadata).filter(([_, value]) => value !== undefined && value !== '' && value !== null)
-      )
+        Object.entries(formData.metadata).filter(
+          ([_, value]) => value !== undefined && value !== "" && value !== null,
+        ),
+      );
 
       const payload = {
         name: formData.name.trim(),
@@ -139,43 +141,45 @@ export function ItemAddClient() {
         image_url: formData.image_url.trim() || undefined,
         tags: formData.tags,
         metadata: cleanMetadata,
-      }
+      };
 
-      const response = await fetch('/api/items', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      const response = await fetch("/api/items", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
-      })
+      });
 
-      const result = await response.json()
+      const result = await response.json();
 
       if (!response.ok) {
-        throw new Error(result.error?.message || '물품 추가에 실패했습니다')
+        throw new Error(result.error?.message || "물품 추가에 실패했습니다");
       }
 
       // Navigate to the new item's detail page
-      router.push(`/item/${result.data.id}`)
-      router.refresh()
+      router.push(`/item/${result.data.id}`);
+      router.refresh();
     } catch (err) {
-      setError(err instanceof Error ? err.message : '알 수 없는 오류가 발생했습니다')
+      setError(
+        err instanceof Error ? err.message : "알 수 없는 오류가 발생했습니다",
+      );
     } finally {
-      setIsSubmitting(false)
+      setIsSubmitting(false);
     }
-  }
+  };
 
   const handleCancel = () => {
-    router.back()
-  }
+    router.back();
+  };
 
   const locationOptions: SelectOption[] = locations
     .sort((a, b) => {
-      if (a.level !== b.level) return a.level - b.level
-      return a.name.localeCompare(b.name)
+      if (a.level !== b.level) return a.level - b.level;
+      return a.name.localeCompare(b.name);
     })
     .map((loc: Location) => ({
       value: loc.id,
-      label: `${'  '.repeat(loc.level - 1)}${loc.icon ? loc.icon + ' ' : ''}${loc.name}`,
-    }))
+      label: `${"  ".repeat(loc.level - 1)}${loc.icon ? loc.icon + " " : ""}${loc.name}`,
+    }));
 
   return (
     <div className="min-h-screen bg-secondary-50">
@@ -196,8 +200,10 @@ export function ItemAddClient() {
           <form onSubmit={handleSubmit} className="space-y-6">
             {/* Image URL */}
             <Card>
-              <h2 className="text-xl font-bold text-secondary-900 mb-4">이미지</h2>
-              
+              <h2 className="text-xl font-bold text-secondary-900 mb-4">
+                이미지
+              </h2>
+
               <div className="aspect-video bg-secondary-100 rounded-lg overflow-hidden relative mb-4">
                 {formData.image_url ? (
                   <img
@@ -205,7 +211,7 @@ export function ItemAddClient() {
                     alt="물품 이미지 미리보기"
                     className="w-full h-full object-cover"
                     onError={(e) => {
-                      (e.target as HTMLImageElement).style.display = 'none'
+                      (e.target as HTMLImageElement).style.display = "none";
                     }}
                   />
                 ) : (
@@ -219,7 +225,9 @@ export function ItemAddClient() {
                 label="이미지 URL"
                 placeholder="https://example.com/image.jpg"
                 value={formData.image_url}
-                onChange={(e) => setFormData({ ...formData, image_url: e.target.value })}
+                onChange={(e) =>
+                  setFormData({ ...formData, image_url: e.target.value })
+                }
                 leftIcon={<ImageIcon className="w-4 h-4" />}
                 error={errors.image_url}
                 helperText="물품 이미지의 URL을 입력하세요 (선택사항)"
@@ -228,14 +236,18 @@ export function ItemAddClient() {
 
             {/* Basic Information */}
             <Card>
-              <h2 className="text-xl font-bold text-secondary-900 mb-4">기본 정보</h2>
+              <h2 className="text-xl font-bold text-secondary-900 mb-4">
+                기본 정보
+              </h2>
 
               <div className="space-y-4">
                 <Input
                   label="물품 이름"
                   placeholder="물품 이름을 입력하세요"
                   value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  onChange={(e) =>
+                    setFormData({ ...formData, name: e.target.value })
+                  }
                   required
                   leftIcon={<Package className="w-4 h-4" />}
                   error={errors.name}
@@ -246,7 +258,13 @@ export function ItemAddClient() {
                   options={ITEM_TYPE_OPTIONS}
                   placeholder="타입을 선택하세요"
                   value={formData.type}
-                  onChange={(e) => setFormData({ ...formData, type: e.target.value as any, metadata: {} })}
+                  onChange={(e) =>
+                    setFormData({
+                      ...formData,
+                      type: e.target.value as any,
+                      metadata: {},
+                    })
+                  }
                   required
                   error={errors.type}
                 />
@@ -254,9 +272,15 @@ export function ItemAddClient() {
                 <Select
                   label="위치"
                   options={locationOptions}
-                  placeholder={isLoadingLocations ? "위치 불러오는 중..." : "위치를 선택하세요"}
+                  placeholder={
+                    isLoadingLocations
+                      ? "위치 불러오는 중..."
+                      : "위치를 선택하세요"
+                  }
                   value={formData.location_id}
-                  onChange={(e) => setFormData({ ...formData, location_id: e.target.value })}
+                  onChange={(e) =>
+                    setFormData({ ...formData, location_id: e.target.value })
+                  }
                   required
                   leftIcon={<MapPin className="w-4 h-4" />}
                   error={errors.location_id}
@@ -268,7 +292,12 @@ export function ItemAddClient() {
                   type="number"
                   min="0"
                   value={formData.quantity}
-                  onChange={(e) => setFormData({ ...formData, quantity: parseInt(e.target.value) || 0 })}
+                  onChange={(e) =>
+                    setFormData({
+                      ...formData,
+                      quantity: parseInt(e.target.value) || 0,
+                    })
+                  }
                   required
                   error={errors.quantity}
                 />
@@ -277,7 +306,9 @@ export function ItemAddClient() {
                   label="바코드"
                   placeholder="바코드 번호 (선택사항)"
                   value={formData.barcode}
-                  onChange={(e) => setFormData({ ...formData, barcode: e.target.value })}
+                  onChange={(e) =>
+                    setFormData({ ...formData, barcode: e.target.value })
+                  }
                   leftIcon={<Barcode className="w-4 h-4" />}
                 />
               </div>
@@ -297,9 +328,9 @@ export function ItemAddClient() {
                     value={tagInput}
                     onChange={(e) => setTagInput(e.target.value)}
                     onKeyPress={(e) => {
-                      if (e.key === 'Enter') {
-                        e.preventDefault()
-                        addTag()
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        addTag();
                       }
                     }}
                     fullWidth
@@ -312,10 +343,10 @@ export function ItemAddClient() {
                 {formData.tags.length > 0 && (
                   <div className="flex flex-wrap gap-2">
                     {formData.tags.map((tag) => (
-                      <Badge 
-                        key={tag} 
-                        variant="secondary" 
-                        className="cursor-pointer hover:bg-secondary-300" 
+                      <Badge
+                        key={tag}
+                        variant="secondary"
+                        className="cursor-pointer hover:bg-secondary-300"
                         onClick={() => removeTag(tag)}
                       >
                         {tag}
@@ -330,83 +361,142 @@ export function ItemAddClient() {
             {/* Type-specific Metadata */}
             {formData.type && (
               <Card>
-                <h2 className="text-xl font-bold text-secondary-900 mb-4">상세 정보</h2>
+                <h2 className="text-xl font-bold text-secondary-900 mb-4">
+                  상세 정보
+                </h2>
 
                 <div className="space-y-4">
                   {/* FOOD metadata */}
-                  {formData.type === 'FOOD' && (
+                  {formData.type === "FOOD" && (
                     <>
                       <Input
                         label="유통기한"
                         type="date"
-                        value={formData.metadata.expiry_date ? formData.metadata.expiry_date.split('T')[0] : ''}
-                        onChange={(e) => updateMetadata('expiry_date', e.target.value ? new Date(e.target.value).toISOString() : null)}
+                        value={
+                          formData.metadata.expiry_date
+                            ? formData.metadata.expiry_date.split("T")[0]
+                            : ""
+                        }
+                        onChange={(e) =>
+                          updateMetadata(
+                            "expiry_date",
+                            e.target.value
+                              ? new Date(e.target.value).toISOString()
+                              : null,
+                          )
+                        }
                         leftIcon={<Calendar className="w-4 h-4" />}
                       />
                       <Input
                         label="구매일"
                         type="date"
-                        value={formData.metadata.purchase_date ? formData.metadata.purchase_date.split('T')[0] : ''}
-                        onChange={(e) => updateMetadata('purchase_date', e.target.value ? new Date(e.target.value).toISOString() : null)}
+                        value={
+                          formData.metadata.purchase_date
+                            ? formData.metadata.purchase_date.split("T")[0]
+                            : ""
+                        }
+                        onChange={(e) =>
+                          updateMetadata(
+                            "purchase_date",
+                            e.target.value
+                              ? new Date(e.target.value).toISOString()
+                              : null,
+                          )
+                        }
                         leftIcon={<ShoppingCart className="w-4 h-4" />}
                       />
                       <Input
                         label="브랜드"
                         placeholder="브랜드명"
-                        value={formData.metadata.brand || ''}
-                        onChange={(e) => updateMetadata('brand', e.target.value)}
+                        value={formData.metadata.brand || ""}
+                        onChange={(e) =>
+                          updateMetadata("brand", e.target.value)
+                        }
                       />
                       <Input
                         label="카테고리"
                         placeholder="식품 카테고리 (예: 과자, 음료)"
-                        value={formData.metadata.category || ''}
-                        onChange={(e) => updateMetadata('category', e.target.value)}
+                        value={formData.metadata.category || ""}
+                        onChange={(e) =>
+                          updateMetadata("category", e.target.value)
+                        }
                       />
                     </>
                   )}
 
                   {/* COSMETIC metadata */}
-                  {formData.type === 'COSMETIC' && (
+                  {formData.type === "COSMETIC" && (
                     <>
                       <Input
                         label="개봉일"
                         type="date"
-                        value={formData.metadata.opened_date ? formData.metadata.opened_date.split('T')[0] : ''}
-                        onChange={(e) => updateMetadata('opened_date', e.target.value ? new Date(e.target.value).toISOString() : null)}
+                        value={
+                          formData.metadata.opened_date
+                            ? formData.metadata.opened_date.split("T")[0]
+                            : ""
+                        }
+                        onChange={(e) =>
+                          updateMetadata(
+                            "opened_date",
+                            e.target.value
+                              ? new Date(e.target.value).toISOString()
+                              : null,
+                          )
+                        }
                         leftIcon={<Calendar className="w-4 h-4" />}
                       />
                       <Input
                         label="PAO (개봉 후 사용기한)"
                         type="number"
                         placeholder="12"
-                        value={formData.metadata.pao || ''}
-                        onChange={(e) => updateMetadata('pao', e.target.value ? parseInt(e.target.value) : null)}
+                        value={formData.metadata.pao || ""}
+                        onChange={(e) =>
+                          updateMetadata(
+                            "pao",
+                            e.target.value ? parseInt(e.target.value) : null,
+                          )
+                        }
                         leftIcon={<Clock className="w-4 h-4" />}
                         helperText="개봉 후 사용 가능한 개월 수"
                       />
                       <Input
                         label="브랜드"
                         placeholder="브랜드명"
-                        value={formData.metadata.brand || ''}
-                        onChange={(e) => updateMetadata('brand', e.target.value)}
+                        value={formData.metadata.brand || ""}
+                        onChange={(e) =>
+                          updateMetadata("brand", e.target.value)
+                        }
                       />
                       <Input
                         label="카테고리"
                         placeholder="화장품 카테고리 (예: 스킨케어, 메이크업)"
-                        value={formData.metadata.category || ''}
-                        onChange={(e) => updateMetadata('category', e.target.value)}
+                        value={formData.metadata.category || ""}
+                        onChange={(e) =>
+                          updateMetadata("category", e.target.value)
+                        }
                       />
                     </>
                   )}
 
                   {/* MEDICINE metadata */}
-                  {formData.type === 'MEDICINE' && (
+                  {formData.type === "MEDICINE" && (
                     <>
                       <Input
                         label="유효기한"
                         type="date"
-                        value={formData.metadata.expiry_date ? formData.metadata.expiry_date.split('T')[0] : ''}
-                        onChange={(e) => updateMetadata('expiry_date', e.target.value ? new Date(e.target.value).toISOString() : null)}
+                        value={
+                          formData.metadata.expiry_date
+                            ? formData.metadata.expiry_date.split("T")[0]
+                            : ""
+                        }
+                        onChange={(e) =>
+                          updateMetadata(
+                            "expiry_date",
+                            e.target.value
+                              ? new Date(e.target.value).toISOString()
+                              : null,
+                          )
+                        }
                         leftIcon={<Calendar className="w-4 h-4" />}
                       />
                       <div className="flex items-center gap-2">
@@ -414,10 +504,15 @@ export function ItemAddClient() {
                           type="checkbox"
                           id="prescription"
                           checked={formData.metadata.prescription || false}
-                          onChange={(e) => updateMetadata('prescription', e.target.checked)}
+                          onChange={(e) =>
+                            updateMetadata("prescription", e.target.checked)
+                          }
                           className="w-4 h-4 text-primary-600 rounded"
                         />
-                        <label htmlFor="prescription" className="text-sm font-medium text-secondary-700 flex items-center gap-1">
+                        <label
+                          htmlFor="prescription"
+                          className="text-sm font-medium text-secondary-700 flex items-center gap-1"
+                        >
                           <Pill className="w-4 h-4" />
                           전문의약품
                         </label>
@@ -425,8 +520,10 @@ export function ItemAddClient() {
                       <Input
                         label="복용량"
                         placeholder="1일 3회, 1회 1정"
-                        value={formData.metadata.dosage || ''}
-                        onChange={(e) => updateMetadata('dosage', e.target.value)}
+                        value={formData.metadata.dosage || ""}
+                        onChange={(e) =>
+                          updateMetadata("dosage", e.target.value)
+                        }
                       />
                       <div>
                         <label className="text-sm font-medium text-secondary-700 mb-2 flex items-center gap-1">
@@ -437,41 +534,74 @@ export function ItemAddClient() {
                           className="w-full px-4 py-2.5 border border-secondary-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
                           rows={3}
                           placeholder="주의사항을 입력하세요 (줄바꿈으로 구분)"
-                          value={formData.metadata.warnings?.join('\n') || ''}
-                          onChange={(e) => updateMetadata('warnings', e.target.value.split('\n').filter(w => w.trim()))}
+                          value={formData.metadata.warnings?.join("\n") || ""}
+                          onChange={(e) =>
+                            updateMetadata(
+                              "warnings",
+                              e.target.value
+                                .split("\n")
+                                .filter((w) => w.trim()),
+                            )
+                          }
                         />
                       </div>
                     </>
                   )}
 
                   {/* GENERAL metadata */}
-                  {formData.type === 'GENERAL' && (
+                  {formData.type === "GENERAL" && (
                     <>
                       <Input
                         label="구매일"
                         type="date"
-                        value={formData.metadata.purchase_date ? formData.metadata.purchase_date.split('T')[0] : ''}
-                        onChange={(e) => updateMetadata('purchase_date', e.target.value ? new Date(e.target.value).toISOString() : null)}
+                        value={
+                          formData.metadata.purchase_date
+                            ? formData.metadata.purchase_date.split("T")[0]
+                            : ""
+                        }
+                        onChange={(e) =>
+                          updateMetadata(
+                            "purchase_date",
+                            e.target.value
+                              ? new Date(e.target.value).toISOString()
+                              : null,
+                          )
+                        }
                         leftIcon={<ShoppingCart className="w-4 h-4" />}
                       />
                       <Input
                         label="품질보증기간"
                         type="date"
-                        value={formData.metadata.warranty_until ? formData.metadata.warranty_until.split('T')[0] : ''}
-                        onChange={(e) => updateMetadata('warranty_until', e.target.value ? new Date(e.target.value).toISOString() : null)}
+                        value={
+                          formData.metadata.warranty_until
+                            ? formData.metadata.warranty_until.split("T")[0]
+                            : ""
+                        }
+                        onChange={(e) =>
+                          updateMetadata(
+                            "warranty_until",
+                            e.target.value
+                              ? new Date(e.target.value).toISOString()
+                              : null,
+                          )
+                        }
                         leftIcon={<Calendar className="w-4 h-4" />}
                       />
                       <Input
                         label="제조사"
                         placeholder="제조사명"
-                        value={formData.metadata.manufacturer || ''}
-                        onChange={(e) => updateMetadata('manufacturer', e.target.value)}
+                        value={formData.metadata.manufacturer || ""}
+                        onChange={(e) =>
+                          updateMetadata("manufacturer", e.target.value)
+                        }
                       />
                       <Input
                         label="모델명"
                         placeholder="모델명/제품번호"
-                        value={formData.metadata.model || ''}
-                        onChange={(e) => updateMetadata('model', e.target.value)}
+                        value={formData.metadata.model || ""}
+                        onChange={(e) =>
+                          updateMetadata("model", e.target.value)
+                        }
                       />
                       <div>
                         <label className="text-sm font-medium text-secondary-700 mb-2 flex items-center gap-1">
@@ -482,8 +612,10 @@ export function ItemAddClient() {
                           className="w-full px-4 py-2.5 border border-secondary-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
                           rows={3}
                           placeholder="추가 정보를 입력하세요"
-                          value={formData.metadata.notes || ''}
-                          onChange={(e) => updateMetadata('notes', e.target.value)}
+                          value={formData.metadata.notes || ""}
+                          onChange={(e) =>
+                            updateMetadata("notes", e.target.value)
+                          }
                         />
                       </div>
                     </>
@@ -519,5 +651,5 @@ export function ItemAddClient() {
 
       <BottomNav />
     </div>
-  )
+  );
 }

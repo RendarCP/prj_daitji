@@ -5,11 +5,12 @@ Quick reference guide for working with the Item Detail and Item Add pages.
 ## URLs
 
 - **Item Detail**: `/item/[id]` (e.g., `/item/123e4567-e89b-12d3-a456-426614174000`)
-- **Item Add**: `/item/add`
+- **Item Add**: `/items/add`
 
 ## Navigation
 
 ### Access Item Detail
+
 ```typescript
 // From ItemCard component
 <Link href={`/item/${item.id}`}>
@@ -19,33 +20,37 @@ router.push(`/item/${itemId}`)
 ```
 
 ### Access Item Add
+
 ```typescript
 // From QuickAddButton
-<QuickAddButton onAddItem={() => router.push('/item/add')} />
+<QuickAddButton onAddItem={() => router.push('/items/add')} />
 
 // From code
-router.push('/item/add')
+router.push('/items/add')
 ```
 
 ## Item Detail Page
 
 ### View Mode Features
+
 - View all item information
 - Navigate location breadcrumb
 - See expiry status
 - View all tags
 
 ### Edit Mode Features
+
 - Edit all fields inline
 - Add/remove tags
 - Update type-specific metadata
 - Save or cancel changes
 
 ### Delete Item
+
 ```typescript
 // Confirmation modal appears
 // After confirmation:
-DELETE /api/items/[id]
+DELETE / api / items / [id];
 // Redirects to /explorer
 ```
 
@@ -54,11 +59,13 @@ DELETE /api/items/[id]
 ### Form Fields
 
 #### Required Fields
+
 - **Name**: Text input, 1-200 characters
 - **Type**: Select dropdown (FOOD, COSMETIC, MEDICINE, GENERAL)
 - **Location**: Select dropdown (hierarchical)
 
 #### Optional Fields
+
 - **Image URL**: Text input (URL format)
 - **Quantity**: Number input (default: 1)
 - **Barcode**: Text input
@@ -67,24 +74,28 @@ DELETE /api/items/[id]
 #### Type-Specific Metadata
 
 **FOOD**
+
 - `expiry_date`: Date
 - `purchase_date`: Date
 - `brand`: String
 - `category`: String
 
 **COSMETIC**
+
 - `opened_date`: Date
 - `pao`: Number (months)
 - `brand`: String
 - `category`: String
 
 **MEDICINE**
+
 - `expiry_date`: Date
 - `prescription`: Boolean
 - `dosage`: String
 - `warnings`: Array of strings
 
 **GENERAL**
+
 - `purchase_date`: Date
 - `warranty_until`: Date
 - `manufacturer`: String
@@ -94,99 +105,108 @@ DELETE /api/items/[id]
 ## API Calls
 
 ### Get Item Detail
+
 ```typescript
-const response = await fetch(`/api/items/${id}`)
-const { data } = await response.json()
+const response = await fetch(`/api/items/${id}`);
+const { data } = await response.json();
 // data includes item + location
 ```
 
 ### Update Item
+
 ```typescript
 const response = await fetch(`/api/items/${id}`, {
-  method: 'PATCH',
-  headers: { 'Content-Type': 'application/json' },
+  method: "PATCH",
+  headers: { "Content-Type": "application/json" },
   body: JSON.stringify(updatedData),
-})
+});
 ```
 
 ### Create Item
+
 ```typescript
-const response = await fetch('/api/items', {
-  method: 'POST',
-  headers: { 'Content-Type': 'application/json' },
+const response = await fetch("/api/items", {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
   body: JSON.stringify(itemData),
-})
+});
 ```
 
 ### Delete Item
+
 ```typescript
 const response = await fetch(`/api/items/${id}`, {
-  method: 'DELETE',
-})
+  method: "DELETE",
+});
 ```
 
 ## Type Definitions
 
 ### ItemMetadata
+
 ```typescript
 type ItemMetadata = {
   // FOOD & MEDICINE
-  expiry_date?: string
-  
+  expiry_date?: string;
+
   // FOOD & GENERAL
-  purchase_date?: string
-  
+  purchase_date?: string;
+
   // FOOD & COSMETIC
-  brand?: string
-  category?: string
-  
+  brand?: string;
+  category?: string;
+
   // COSMETIC
-  opened_date?: string
-  pao?: number
-  
+  opened_date?: string;
+  pao?: number;
+
   // MEDICINE
-  prescription?: boolean
-  dosage?: string
-  warnings?: string[]
-  
+  prescription?: boolean;
+  dosage?: string;
+  warnings?: string[];
+
   // GENERAL
-  warranty_until?: string
-  manufacturer?: string
-  model?: string
-  notes?: string
-}
+  warranty_until?: string;
+  manufacturer?: string;
+  model?: string;
+  notes?: string;
+};
 ```
 
 ## Component Props
 
 ### ItemDetailClient
+
 ```typescript
 interface ItemDetailClientProps {
-  item: Item
+  item: Item;
   locationPath: Array<{
-    id: string
-    name: string
-    icon?: string | null
-  }>
-  allLocations: Location[]
+    id: string;
+    name: string;
+    icon?: string | null;
+  }>;
+  allLocations: Location[];
 }
 ```
 
 ### ItemAddClient
+
 ```typescript
 interface ItemAddClientProps {
-  locations: Location[]
+  locations: Location[];
 }
 ```
 
 ## Common Patterns
 
 ### Casting Metadata
+
 ```typescript
-const metadata = item.metadata as ItemMetadata
+const metadata = item.metadata as ItemMetadata;
 ```
 
 ### Handling Dates
+
 ```typescript
 // Display
 import { formatDate } from '@/lib/utils/format'
@@ -200,21 +220,23 @@ new Date(dateString).toISOString()
 ```
 
 ### Tag Management
+
 ```typescript
 // Add tag
 setFormData({
   ...formData,
-  tags: [...formData.tags, newTag]
-})
+  tags: [...formData.tags, newTag],
+});
 
 // Remove tag
 setFormData({
   ...formData,
-  tags: formData.tags.filter(t => t !== tagToRemove)
-})
+  tags: formData.tags.filter((t) => t !== tagToRemove),
+});
 ```
 
 ### Metadata Updates
+
 ```typescript
 const updateMetadata = (key: string, value: any) => {
   setFormData({
@@ -223,47 +245,50 @@ const updateMetadata = (key: string, value: any) => {
       ...formData.metadata,
       [key]: value || undefined,
     },
-  })
-}
+  });
+};
 ```
 
 ## Error Handling
 
 ### Client-Side Validation
+
 ```typescript
-const errors: Record<string, string> = {}
+const errors: Record<string, string> = {};
 
 if (!formData.name.trim()) {
-  errors.name = '물품 이름은 필수입니다'
+  errors.name = "물품 이름은 필수입니다";
 }
 
 if (!formData.type) {
-  errors.type = '타입을 선택해주세요'
+  errors.type = "타입을 선택해주세요";
 }
 ```
 
 ### API Error Handling
+
 ```typescript
 try {
-  const response = await fetch('/api/items', {
-    method: 'POST',
+  const response = await fetch("/api/items", {
+    method: "POST",
     body: JSON.stringify(data),
-  })
-  
+  });
+
   if (!response.ok) {
-    const result = await response.json()
-    throw new Error(result.error?.message || 'Failed')
+    const result = await response.json();
+    throw new Error(result.error?.message || "Failed");
   }
-  
+
   // Success
 } catch (err) {
-  setError(err.message)
+  setError(err.message);
 }
 ```
 
 ## Styling Tips
 
 ### Form Grid (Desktop)
+
 ```typescript
 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
   <Input label="Field 1" />
@@ -272,6 +297,7 @@ try {
 ```
 
 ### Sticky Action Buttons (Mobile)
+
 ```typescript
 <div className="sticky bottom-20 bg-secondary-50 py-4 border-t">
   <Button>Save</Button>
@@ -279,6 +305,7 @@ try {
 ```
 
 ### Responsive Image Container
+
 ```typescript
 <div className="aspect-video bg-secondary-100 rounded-lg overflow-hidden">
   {image ? <img /> : <PlaceholderIcon />}
@@ -288,6 +315,7 @@ try {
 ## Testing Quick Checks
 
 ### Item Detail
+
 ```bash
 # View item
 curl http://localhost:3000/api/items/{id}
@@ -302,6 +330,7 @@ curl -X DELETE http://localhost:3000/api/items/{id}
 ```
 
 ### Item Add
+
 ```bash
 # Create item
 curl -X POST http://localhost:3000/api/items \
@@ -324,16 +353,16 @@ curl -X POST http://localhost:3000/api/items \
 
 ```javascript
 // Check item data
-console.log('Item:', item)
+console.log("Item:", item);
 
 // Check metadata type
-console.log('Metadata:', item.metadata)
+console.log("Metadata:", item.metadata);
 
 // Check form state
-console.log('Form Data:', formData)
+console.log("Form Data:", formData);
 
 // Check validation errors
-console.log('Errors:', errors)
+console.log("Errors:", errors);
 ```
 
 ## Common Gotchas
@@ -347,16 +376,18 @@ console.log('Errors:', errors)
 ## Quick Fixes
 
 ### Issue: Metadata not showing
+
 ```typescript
 // Bad
-const expiry = item.metadata.expiry_date
+const expiry = item.metadata.expiry_date;
 
 // Good
-const metadata = item.metadata as ItemMetadata
-const expiry = metadata.expiry_date
+const metadata = item.metadata as ItemMetadata;
+const expiry = metadata.expiry_date;
 ```
 
 ### Issue: Date input not working
+
 ```typescript
 // Bad
 value={metadata.expiry_date}
@@ -366,15 +397,16 @@ value={metadata.expiry_date ? metadata.expiry_date.split('T')[0] : ''}
 ```
 
 ### Issue: Tags not updating
+
 ```typescript
 // Bad
-formData.tags.push(newTag)
+formData.tags.push(newTag);
 
 // Good
 setFormData({
   ...formData,
-  tags: [...formData.tags, newTag]
-})
+  tags: [...formData.tags, newTag],
+});
 ```
 
 ## Performance Tips

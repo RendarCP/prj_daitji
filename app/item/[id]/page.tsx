@@ -1,7 +1,8 @@
 import { Metadata } from "next";
 import { createClient } from "@/lib/supabase/server";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { ItemDetailPageClient } from "./ItemDetailPageClient";
+import { getServerSideProps } from "next/dist/build/templates/pages";
 
 type Props = {
   params: Promise<{ id: string }>;
@@ -9,6 +10,13 @@ type Props = {
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { id } = await params;
+
+  if (id === "add") {
+    return {
+      title: "물품 추가 - DAITJI",
+      description: "새로운 물품을 등록하세요",
+    };
+  }
 
   try {
     const supabase = await createClient();
@@ -33,11 +41,19 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 export default async function ItemDetailPage({ params }: Props) {
   const { id } = await params;
 
+  console.log("id @@@@@@@@@@@@@@@@@@@@@@@@@@", id);
+
+  // /items/add 가 [id]로 잡혀서 id='add'로 들어오는 경우 → 정적 라우트로 보냄
+  if (id === "add") {
+    redirect("/items/add");
+  }
+
   const uuidRegex =
     /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-  if (!uuidRegex.test(id)) {
-    notFound();
-  }
+  console.log("uuidRegex ##########################", uuidRegex.test(id));
+  // if (!uuidRegex.test(id)) {
+  //   notFound();
+  // }
 
   const supabase = await createClient();
 
@@ -47,9 +63,9 @@ export default async function ItemDetailPage({ params }: Props) {
     .eq("id", id)
     .single();
 
-  if (itemError || !item) {
-    notFound();
-  }
+  // if (itemError || !item) {
+  //   notFound();
+  // }
 
   const { data: pathData } = await supabase
     .from("locations")

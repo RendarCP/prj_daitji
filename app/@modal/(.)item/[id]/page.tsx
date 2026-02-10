@@ -9,6 +9,7 @@ type Props = {
 export default async function ItemDetailModalPage({ params }: Props) {
   const { id } = await params;
 
+  // /items/add 는 (.)item/add 가 인터셉트하므로 여기엔 UUID만 옴
   const uuidRegex =
     /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
   if (!uuidRegex.test(id)) {
@@ -30,7 +31,7 @@ export default async function ItemDetailModalPage({ params }: Props) {
   const { data: pathData } = await supabase
     .from("locations")
     .select("id, name, icon, parent_id")
-    .eq("id", item.location_id)
+    .eq("id", item?.location_id)
     .single();
 
   let locationPath: Array<{ id: string; name: string; icon?: string | null }> =

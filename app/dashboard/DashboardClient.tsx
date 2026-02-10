@@ -53,7 +53,7 @@ export function DashboardClient() {
   } = useLocationSummary();
 
   const handleAddItem = () => {
-    router.push("/item/add");
+    router.push("/items/add");
   };
 
   const handleAddLocation = () => {
