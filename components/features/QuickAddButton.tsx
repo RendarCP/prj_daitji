@@ -39,9 +39,9 @@ export function QuickAddButton({
           {/* Actions */}
           <div className="absolute bottom-16 right-0 flex flex-col gap-2 animate-fade-in">
             {/* {onAddItem && ( */}
-            <Link
-              href="/items/add"
-              // onClick={() => handleAction(onAddItem)}
+            <button
+              // href="/items/add"
+              onClick={() => handleAction(onAddItem)}
               className="flex items-center gap-3 px-4 py-3 bg-card rounded-full shadow-soft hover:shadow-medium transition-all hover:scale-105 active:scale-95 group border border-border"
               aria-label="물품 추가"
             >
@@ -51,7 +51,7 @@ export function QuickAddButton({
               <div className="w-12 h-12 rounded-full bg-success text-success-foreground flex items-center justify-center group-hover:opacity-90 transition-opacity">
                 <Package className="w-5 h-5" />
               </div>
-            </Link>
+            </button>
             {/* )} */}
 
             {onAddLocation && (

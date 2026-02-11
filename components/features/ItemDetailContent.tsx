@@ -1,13 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import {
-  Heart,
-  Edit,
-  MapPin,
-  Plus,
-  Calendar,
-} from "lucide-react";
+import { Heart, Edit, MapPin, Plus, Calendar } from "lucide-react";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { cn } from "@/lib/utils/cn";
@@ -31,7 +25,7 @@ interface ItemDetailContentProps {
     metadata?: any;
   } | null;
   onEdit?: () => void;
-  /** If provided, renders the extra content (like Bottom Bar) used in SidePanel. 
+  /** If provided, renders the extra content (like Bottom Bar) used in SidePanel.
    * For the Page version, we might want to put Bottom Bar in a specific slot or just inline.
    * This component will render the SCROLLABLE CONTENT primarily.
    */
@@ -80,6 +74,7 @@ export function ItemDetailContent({ item, onEdit }: ItemDetailContentProps) {
   const locationPath =
     displayItem.location_path || displayItem.location_name || "위치 미지정";
   const tags = displayItem.tags || [];
+  const quantity = displayItem.quantity ?? null;
   const expiryDate =
     displayItem.computed_expiry_date || displayItem.expiry_date;
   const createdAt = displayItem.created_at;
@@ -161,6 +156,20 @@ export function ItemDetailContent({ item, onEdit }: ItemDetailContentProps) {
             Details
           </label>
           <div className="grid grid-cols-2 gap-4">
+            {/* 갯수 */}
+            <div className="bg-secondary/10 rounded-2xl p-5 border border-white/5 hover:border-white/10 transition-colors flex flex-col justify-between h-32">
+              <span className="text-sm font-medium text-muted-foreground">
+                갯수
+              </span>
+              <div>
+                <p className="text-lg font-bold text-foreground">
+                  {quantity !== null && quantity !== undefined
+                    ? `${quantity}개`
+                    : "-"}
+                </p>
+              </div>
+            </div>
+
             {/* Expiration Date */}
             <div
               className={cn(
@@ -179,7 +188,7 @@ export function ItemDetailContent({ item, onEdit }: ItemDetailContentProps) {
                       : "text-muted-foreground",
                   )}
                 >
-                  Expiration Date
+                  유통기한
                 </span>
                 <Calendar
                   className={cn(
@@ -233,7 +242,7 @@ export function ItemDetailContent({ item, onEdit }: ItemDetailContentProps) {
             {/* Date Added */}
             <div className="bg-secondary/10 rounded-2xl p-5 border border-white/5 hover:border-white/10 transition-colors flex flex-col justify-between h-32">
               <span className="text-sm font-medium text-muted-foreground">
-                Date Added
+                추가일
               </span>
               <div>
                 <p className="text-lg font-bold text-foreground">
@@ -253,7 +262,7 @@ export function ItemDetailContent({ item, onEdit }: ItemDetailContentProps) {
         {/* Tags Section */}
         <div className="space-y-3">
           <label className="text-xs font-bold text-muted-foreground uppercase tracking-widest pl-1">
-            Tags
+            태그
           </label>
           <div className="flex flex-wrap gap-2">
             {tags.map((tag, idx) => (
@@ -264,26 +273,7 @@ export function ItemDetailContent({ item, onEdit }: ItemDetailContentProps) {
                 {tag}
               </div>
             ))}
-            <button
-              onClick={() => {
-                // Focus mock input or similar for now
-                document.getElementById("add-tag-input")?.focus();
-              }}
-              className="px-4 py-2 rounded-full border border-dashed border-white/20 text-sm font-medium text-muted-foreground hover:text-foreground hover:border-white/40 transition-colors flex items-center gap-2"
-            >
-              <Plus className="w-4 h-4" />
-              Add Tag
-            </button>
           </div>
-          {/* Hidden Input for Future Implementation */}
-          <input
-            id="add-tag-input"
-            type="text"
-            value={newTag}
-            onChange={(e) => setNewTag(e.target.value)}
-            onKeyPress={(e) => e.key === "Enter" && handleAddTag()}
-            className="sr-only"
-          />
         </div>
       </div>
 
