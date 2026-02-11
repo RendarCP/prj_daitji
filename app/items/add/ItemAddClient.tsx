@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, FormEvent } from "react";
+import { useState, FormEvent, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import {
   Save,
@@ -16,6 +16,8 @@ import {
   AlertTriangle,
   Info,
   FolderOpen,
+  Plus,
+  Minus,
 } from "lucide-react";
 import { BottomNav } from "@/components/layout/BottomNav";
 import { Card } from "@/components/ui/Card";
@@ -37,12 +39,19 @@ const ITEM_TYPE_OPTIONS: SelectOption[] = [
 
 interface ItemAddClientProps {
   mode?: "page" | "modal";
+  isEditMode?: boolean;
+  itemId?: string;
 }
 
-export function ItemAddClient({ mode = "page" }: ItemAddClientProps) {
+export function ItemAddClient({
+  mode = "page",
+  isEditMode = false,
+  itemId,
+}: ItemAddClientProps) {
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isLoadingItem, setIsLoadingItem] = useState(isEditMode && !!itemId);
 
   // React Query hook for locations
   const { data: locations = [], isLoading: isLoadingLocations } =
@@ -85,6 +94,63 @@ export function ItemAddClient({ mode = "page" }: ItemAddClientProps) {
 
   const [tagInput, setTagInput] = useState("");
   const [errors, setErrors] = useState<Record<string, string>>({});
+
+  // Load item when in edit mode
+  useEffect(() => {
+    if (!isEditMode || !itemId) return;
+
+    let cancelled = false;
+
+    async function loadItem() {
+      try {
+        const itemRes = await fetch(`/api/items/${itemId}`);
+        if (!itemRes.ok) {
+          const err = await itemRes.json();
+          throw new Error(err.error?.message || "물품을 불러올 수 없습니다");
+        }
+        const { data: item } = await itemRes.json();
+        if (cancelled || !item) return;
+
+        let pathIds: string[] = [];
+        if (item.location_id) {
+          const pathRes = await fetch(
+            `/api/locations/${item.location_id}/path`
+          );
+          if (pathRes.ok) {
+            const { data: pathData } = await pathRes.json();
+            pathIds = (pathData?.path || []).map((p: { id: string }) => p.id);
+          }
+        }
+
+        setSelectionPath(pathIds);
+        setFormData({
+          name: item.name ?? "",
+          type: (item.type as "FOOD" | "COSMETIC" | "MEDICINE" | "GENERAL") ?? "",
+          location_id: item.location_id ?? "",
+          quantity: typeof item.quantity === "number" ? item.quantity : 1,
+          barcode: item.barcode ?? "",
+          image_url: item.image_url ?? "",
+          tags: Array.isArray(item.tags) ? item.tags : [],
+          metadata: (item.metadata && typeof item.metadata === "object")
+            ? item.metadata
+            : {},
+        });
+      } catch (e) {
+        if (!cancelled) {
+          setError(
+            e instanceof Error ? e.message : "물품을 불러오는 중 오류가 발생했습니다"
+          );
+        }
+      } finally {
+        if (!cancelled) setIsLoadingItem(false);
+      }
+    }
+
+    loadItem();
+    return () => {
+      cancelled = true;
+    };
+  }, [isEditMode, itemId]);
 
   const addTag = () => {
     if (tagInput.trim() && !formData.tags.includes(tagInput.trim())) {
@@ -170,8 +236,11 @@ export function ItemAddClient({ mode = "page" }: ItemAddClientProps) {
         metadata: cleanMetadata,
       };
 
-      const response = await fetch("/api/items", {
-        method: "POST",
+      const url = isEditMode && itemId ? `/api/items/${itemId}` : "/api/items";
+      const method = isEditMode && itemId ? "PATCH" : "POST";
+
+      const response = await fetch(url, {
+        method,
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
@@ -179,14 +248,18 @@ export function ItemAddClient({ mode = "page" }: ItemAddClientProps) {
       const result = await response.json();
 
       if (!response.ok) {
-        throw new Error(result.error?.message || "물품 추가에 실패했습니다");
+        throw new Error(
+          result.error?.message ||
+            (isEditMode ? "물품 수정에 실패했습니다" : "물품 추가에 실패했습니다")
+        );
       }
 
-      // Navigate to the new item's detail page
+      const targetId = result.data?.id ?? itemId;
+
       if (mode === "modal") {
-        window.location.href = `/item/${result.data.id}`;
+        window.location.href = `/item/${targetId}`;
       } else {
-        router.push(`/item/${result.data.id}`);
+        router.push(`/item/${targetId}`);
         router.refresh();
       }
     } catch (err) {
@@ -271,13 +344,23 @@ export function ItemAddClient({ mode = "page" }: ItemAddClientProps) {
             isModal && "p-6",
           )}
         >
+          {isEditMode && isLoadingItem && (
+            <Alert variant="info" className="mb-6">
+              물품 정보를 불러오는 중...
+            </Alert>
+          )}
+
           {error && (
             <Alert variant="danger" className="mb-6">
               {error}
             </Alert>
           )}
 
-          <form onSubmit={handleSubmit} className="space-y-6">
+          <form
+            onSubmit={handleSubmit}
+            className="space-y-6"
+            aria-busy={isEditMode && isLoadingItem}
+          >
             {/* Image URL */}
             <Card>
               <h2 className="text-xl font-bold text-secondary-900 mb-4">
@@ -357,20 +440,67 @@ export function ItemAddClient({ mode = "page" }: ItemAddClientProps) {
                   </p>
                 </div>
 
-                <Input
-                  label="수량"
-                  type="number"
-                  min="0"
-                  value={formData.quantity}
-                  onChange={(e) =>
-                    setFormData({
-                      ...formData,
-                      quantity: parseInt(e.target.value) || 0,
-                    })
-                  }
-                  required
-                  error={errors.quantity}
-                />
+                {/* Quantity Section - stepper + number */}
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-secondary-700">
+                    수량
+                  </label>
+                  <div className="flex items-center gap-3">
+                    <div className="bg-secondary/10 rounded-2xl p-2 w-fit border border-white/5">
+                      <div className="flex items-center gap-1">
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setFormData({
+                              ...formData,
+                              quantity: Math.max(0, formData.quantity - 1),
+                            })
+                          }
+                          className="w-12 h-12 rounded-xl hover:bg-white/10 flex items-center justify-center transition-colors text-muted-foreground hover:text-foreground active:scale-95 duration-200"
+                          aria-label="수량 감소"
+                        >
+                          <Minus className="w-6 h-6" />
+                        </button>
+                        <span className="w-12 text-center text-xl font-bold font-mono">
+                          {formData.quantity}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setFormData({
+                              ...formData,
+                              quantity: formData.quantity + 1,
+                            })
+                          }
+                          className="w-12 h-12 rounded-xl hover:bg-white/10 flex items-center justify-center transition-colors text-muted-foreground hover:text-foreground active:scale-95 duration-200"
+                          aria-label="수량 증가"
+                        >
+                          <Plus className="w-6 h-6" />
+                        </button>
+                      </div>
+                    </div>
+                    <Input
+                      type="number"
+                      min={0}
+                      value={formData.quantity}
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          quantity: Math.max(
+                            0,
+                            parseInt(e.target.value, 10) || 0
+                          ),
+                        })
+                      }
+                      className="w-24"
+                      error={errors.quantity}
+                      aria-label="수량 직접 입력"
+                    />
+                  </div>
+                  {errors.quantity && (
+                    <p className="text-sm text-red-600">{errors.quantity}</p>
+                  )}
+                </div>
 
                 <Input
                   label="바코드"
@@ -718,8 +848,9 @@ export function ItemAddClient({ mode = "page" }: ItemAddClientProps) {
                 variant="primary"
                 leftIcon={<Save className="w-5 h-5 mr-2" />}
                 isLoading={isSubmitting}
+                disabled={isEditMode && isLoadingItem}
               >
-                저장하기
+                {isEditMode ? "수정하기" : "저장하기"}
               </Button>
             </div>
           </form>

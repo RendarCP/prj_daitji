@@ -1,8 +1,7 @@
 import { Metadata } from "next";
 import { createClient } from "@/lib/supabase/server";
-import { notFound, redirect } from "next/navigation";
+import { redirect } from "next/navigation";
 import { ItemDetailPageClient } from "./ItemDetailPageClient";
-import { getServerSideProps } from "next/dist/build/templates/pages";
 
 type Props = {
   params: Promise<{ id: string }>;

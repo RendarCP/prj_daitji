@@ -1,4 +1,4 @@
-import { HTMLAttributes, forwardRef, ReactNode } from 'react'
+import { HTMLAttributes, forwardRef, isValidElement, ReactNode } from 'react'
 import { AlertCircle, CheckCircle, Info, XCircle, X } from 'lucide-react'
 import { cn } from '@/lib/utils/cn'
 
@@ -47,7 +47,18 @@ export const Alert = forwardRef<HTMLDivElement, AlertProps>(
       >
         {Icon && (
           <div className={cn('flex-shrink-0 mt-0.5', iconColors[variant])}>
-            {typeof Icon === 'function' ? <Icon className="w-5 h-5" /> : Icon}
+            {isValidElement(Icon)
+              ? Icon
+              : typeof Icon === 'function' ||
+                  (typeof Icon === 'object' &&
+                    Icon !== null &&
+                    '$$typeof' in (Icon as object))
+                ? (
+                    <Icon className="w-5 h-5" />
+                  )
+                : (
+                    Icon
+                  )}
           </div>
         )}
         

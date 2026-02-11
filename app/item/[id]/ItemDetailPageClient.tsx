@@ -21,7 +21,7 @@ export function ItemDetailPageClient({
     <ItemDetailPanelFromData
       item={item}
       locationPath={locationPath}
-      onCloseRequested={() => router.back()}
+      mode="page"
     />
   );
 }

@@ -49,13 +49,18 @@ export interface ItemDetailPanelFromDataProps {
   item: DbItemForPanel;
   locationPath: LocationPathItem[];
   /** Called after close animation (e.g. router.back() or router.push('/explorer')) */
-  onCloseRequested: () => void;
+  onCloseRequested?: () => void;
+  mode?: "modal" | "page";
 }
+
+import { FormPageLayout } from "@/components/layout/FormPageLayout";
+import { ItemDetailContent } from "@/components/features/ItemDetailContent";
 
 export function ItemDetailPanelFromData({
   item,
   locationPath,
   onCloseRequested,
+  mode = "modal", // Default to modal (SidePanel) for backward compat
 }: ItemDetailPanelFromDataProps) {
   const router = useRouter();
   const [isOpen, setIsOpen] = useState(true);
@@ -63,9 +68,11 @@ export function ItemDetailPanelFromData({
 
   const handleClose = useCallback(() => {
     setIsOpen(false);
-    closeTimerRef.current = setTimeout(() => {
-      onCloseRequested();
-    }, PANEL_EXIT_MS);
+    if (onCloseRequested) {
+      closeTimerRef.current = setTimeout(() => {
+        onCloseRequested();
+      }, PANEL_EXIT_MS);
+    }
   }, [onCloseRequested]);
 
   useEffect(() => {
@@ -96,12 +103,27 @@ export function ItemDetailPanelFromData({
     days_until_expiry: days_until_expiry ?? undefined,
   };
 
+  const handleEdit = () => router.push(`/item/${item.id}/edit`);
+
+  if (mode === "page") {
+    // Page Mode: Use FormPageLayout
+    return (
+      <FormPageLayout
+        title={item.name}
+        className="bg-background" // Ensure background is set
+      >
+        <ItemDetailContent item={panelItem} onEdit={handleEdit} />
+      </FormPageLayout>
+    );
+  }
+
+  // Modal Mode: Use SidePanel (ItemDetailPanel wraps SidePanel)
   return (
     <ItemDetailPanel
       isOpen={isOpen}
       onClose={handleClose}
       item={panelItem}
-      onEdit={() => router.push(`/item/${item.id}/edit`)}
+      onEdit={handleEdit}
       onFavorite={() => {}}
     />
   );
