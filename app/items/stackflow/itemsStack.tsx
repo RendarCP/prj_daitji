@@ -224,6 +224,7 @@ const ItemDetailActivity: ActivityComponentType<{ id: string }> = ({
     <div className="min-h-screen bg-background">
       <ItemDetailPanelFromData
         item={data.item}
+        location={data.location}
         locationPath={data.locationPath}
         onCloseRequested={() => pop()}
         onEditRequested={(itemId) => push("ItemEditActivity", { id: itemId })}

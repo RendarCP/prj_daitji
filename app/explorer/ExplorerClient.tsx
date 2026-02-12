@@ -379,6 +379,7 @@ export default function ExplorerClient() {
       {activeItemId && activeItemDetail && !isActiveItemLoading && (
         <ItemDetailPanelFromData
           item={activeItemDetail.item}
+          location={activeItemDetail.location}
           locationPath={activeItemDetail.locationPath}
           onCloseRequested={() => setActiveItemId(null)}
           onEditRequested={(itemId) => openEditSheet(itemId)}

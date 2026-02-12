@@ -3,10 +3,12 @@
 import { useQuery } from "@tanstack/react-query";
 import type { DbItemForPanel } from "@/components/features/ItemDetailPanelFromData";
 import type { LocationPathItem } from "@/components/features/ItemDetailPanelFromData";
+import type { ItemLocationInfo } from "@/components/features/ItemDetailPanelFromData";
 
 interface ItemDetailResponse {
   item: DbItemForPanel;
-  locationPath: LocationPathItem[];
+  location?: ItemLocationInfo | null;
+  locationPath?: LocationPathItem[];
 }
 
 async function fetchItemDetail(id: string): Promise<ItemDetailResponse> {
@@ -17,7 +19,11 @@ async function fetchItemDetail(id: string): Promise<ItemDetailResponse> {
     throw new Error(json.error?.message ?? "Failed to fetch item detail");
   }
 
-  return json.data as ItemDetailResponse;
+  const data = json.data as ItemDetailResponse;
+  return {
+    ...data,
+    locationPath: data.locationPath ?? [],
+  };
 }
 
 export function useItemDetail(id: string | null) {

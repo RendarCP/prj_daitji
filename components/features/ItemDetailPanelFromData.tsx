@@ -11,6 +11,12 @@ export type LocationPathItem = {
   name: string;
   icon?: string | null;
 };
+export type ItemLocationInfo = {
+  id: string;
+  name: string | null;
+  icon?: string | null;
+  parent_id?: string | null;
+};
 
 export type DbItemForPanel = {
   id: string;
@@ -51,7 +57,8 @@ function getExpiryFromMetadata(
 
 export interface ItemDetailPanelFromDataProps {
   item: DbItemForPanel;
-  locationPath: LocationPathItem[];
+  locationPath?: LocationPathItem[];
+  location?: ItemLocationInfo | null;
   /** Called after close animation (e.g. router.back() or router.push('/explorer')) */
   onCloseRequested?: () => void;
   /** Stackflow 등 외부 네비게이션으로 수정 화면 열기 */
@@ -64,7 +71,8 @@ import { ItemDetailContent } from "@/components/features/ItemDetailContent";
 
 export function ItemDetailPanelFromData({
   item,
-  locationPath,
+  locationPath = [],
+  location,
   onCloseRequested,
   onEditRequested,
   mode = "modal", // Default to modal (SidePanel) for backward compat
@@ -90,7 +98,10 @@ export function ItemDetailPanelFromData({
     };
   }, []);
 
-  const locationPathStr = locationPath.map((p) => p.name).join(" > ");
+  const locationPathStr =
+    locationPath.length > 0
+      ? locationPath.map((p) => p.name).join(" > ")
+      : (location?.name ?? "");
   const { computed_expiry_date, days_until_expiry } = getExpiryFromMetadata(
     item.type,
     item.metadata ?? undefined,

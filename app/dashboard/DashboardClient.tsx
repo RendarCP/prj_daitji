@@ -382,6 +382,7 @@ export function DashboardClient() {
         }}
         onItemClick={(item) => {
           const id = "item_id" in item ? item.item_id : item.id;
+          if (!id) return;
           setActiveItemId(id);
         }}
       />
@@ -389,6 +390,7 @@ export function DashboardClient() {
       {activeItemId && activeItemDetail && !isActiveItemLoading && (
         <ItemDetailPanelFromData
           item={activeItemDetail.item}
+          location={activeItemDetail.location}
           locationPath={activeItemDetail.locationPath}
           onCloseRequested={() => setActiveItemId(null)}
           onEditRequested={(itemId) => openEditSheet(itemId)}

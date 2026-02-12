@@ -1,7 +1,14 @@
 import { Metadata } from "next";
 import { createClient } from "@/lib/supabase/server";
-import { redirect } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { ItemDetailPageClient } from "./ItemDetailPageClient";
+import type { Database } from "@/lib/types/database.types";
+
+type ItemRow = Database["public"]["Tables"]["items"]["Row"];
+type LocationRow = Database["public"]["Tables"]["locations"]["Row"];
+type ItemWithLocationRow = ItemRow & {
+  location: Pick<LocationRow, "id" | "name" | "icon" | "parent_id"> | null;
+};
 
 type Props = {
   params: Promise<{ id: string }>;
@@ -23,7 +30,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       .from("items")
       .select("name")
       .eq("id", id)
-      .single();
+      .single<{ name: string }>();
 
     return {
       title: item ? `${item.name} - 물품 상세` : "물품 상세",
@@ -40,8 +47,6 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 export default async function ItemDetailPage({ params }: Props) {
   const { id } = await params;
 
-  console.log("id @@@@@@@@@@@@@@@@@@@@@@@@@@", id);
-
   // /items/add 가 [id]로 잡혀서 id='add'로 들어오는 경우 → 정적 라우트로 보냄
   if (id === "add") {
     redirect("/items/add");
@@ -49,50 +54,25 @@ export default async function ItemDetailPage({ params }: Props) {
 
   const uuidRegex =
     /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-  console.log("uuidRegex ##########################", uuidRegex.test(id));
-  // if (!uuidRegex.test(id)) {
-  //   notFound();
-  // }
+  if (!uuidRegex.test(id)) {
+    notFound();
+  }
 
   const supabase = await createClient();
 
   const { data: item, error: itemError } = await supabase
     .from("items")
-    .select("*")
+    .select(
+      `
+        *,
+        location:locations(id, name, icon, parent_id)
+      `,
+    )
     .eq("id", id)
-    .single();
+    .single<ItemWithLocationRow>();
 
-  // if (itemError || !item) {
-  //   notFound();
-  // }
-
-  const { data: pathData } = await supabase
-    .from("locations")
-    .select("id, name, icon, parent_id")
-    .eq("id", item.location_id)
-    .single();
-
-  let locationPath: Array<{ id: string; name: string; icon?: string | null }> =
-    [];
-
-  if (pathData) {
-    let currentId: string | null = pathData.id;
-    const path: Array<{ id: string; name: string; icon?: string | null }> = [];
-
-    while (currentId) {
-      const { data: loc } = await supabase
-        .from("locations")
-        .select("id, name, icon, parent_id")
-        .eq("id", currentId)
-        .single();
-
-      if (!loc) break;
-
-      path.unshift({ id: loc.id, name: loc.name, icon: loc.icon });
-      currentId = loc.parent_id;
-    }
-
-    locationPath = path;
+  if (itemError || !item) {
+    notFound();
   }
 
   return (
@@ -107,7 +87,8 @@ export default async function ItemDetailPage({ params }: Props) {
         created_at: item.created_at,
         metadata: item.metadata as Record<string, unknown> | null,
       }}
-      locationPath={locationPath}
+      location={item.location}
+      locationPath={[]}
     />
   );
 }
