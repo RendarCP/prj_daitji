@@ -17,6 +17,9 @@ import {
   CORS_HEADERS,
 } from "@/lib/api/utils";
 
+// Keep API execution close to Supabase region on Vercel.
+export const preferredRegion = "icn1";
+
 /**
  * GET /api/items
  * Fetch items with filtering, sorting, and pagination
@@ -48,7 +51,7 @@ export async function GET(request: NextRequest) {
     };
 
     if (params.location_id) {
-      const { data: rawSubtree } = await supabase.rpc(
+      const { data: rawSubtree } = await (supabase.rpc as any)(
         "get_location_ids_in_subtree",
         {
           location_uuid: params.location_id,
@@ -153,11 +156,34 @@ export async function POST(request: NextRequest) {
         image_url: validatedData.image_url || null,
         tags: validatedData.tags,
         metadata: validatedData.metadata,
-      })
+      } as any)
       .select(
         `
-        *,
-        location:locations(*)
+        id,
+        name,
+        type,
+        location_id,
+        quantity,
+        barcode,
+        image_url,
+        tags,
+        metadata,
+        status,
+        created_at,
+        updated_at,
+        user_id,
+        location:locations(
+          id,
+          name,
+          icon,
+          parent_id,
+          level,
+          sort_order,
+          color,
+          created_at,
+          updated_at,
+          user_id
+        )
       `,
       )
       .single();

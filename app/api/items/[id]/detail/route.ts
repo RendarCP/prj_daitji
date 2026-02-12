@@ -16,6 +16,9 @@ type ItemWithLocationRow = ItemRow & {
 const UUID_REGEX =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
+// Keep API execution close to Supabase region on Vercel.
+export const preferredRegion = "icn1";
+
 /**
  * GET /api/items/[id]/detail
  * 단일 물품 + 위치 정보 반환
@@ -37,7 +40,14 @@ export async function GET(
       .from("items")
       .select(
         `
-          *,
+          id,
+          name,
+          type,
+          location_id,
+          quantity,
+          tags,
+          created_at,
+          metadata,
           location:locations(id, name, icon, parent_id)
         `,
       )

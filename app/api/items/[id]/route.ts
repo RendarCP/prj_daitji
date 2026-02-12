@@ -8,6 +8,9 @@ import {
   CORS_HEADERS,
 } from '@/lib/api/utils'
 
+// Keep API execution close to Supabase region on Vercel.
+export const preferredRegion = "icn1";
+
 /**
  * GET /api/items/[id]
  * Fetch a single item by ID with location information
@@ -32,8 +35,31 @@ export async function GET(
     const { data, error } = await supabase
       .from('items')
       .select(`
-        *,
-        location:locations(*)
+        id,
+        name,
+        type,
+        location_id,
+        quantity,
+        barcode,
+        image_url,
+        tags,
+        metadata,
+        status,
+        created_at,
+        updated_at,
+        user_id,
+        location:locations(
+          id,
+          name,
+          icon,
+          parent_id,
+          level,
+          sort_order,
+          color,
+          created_at,
+          updated_at,
+          user_id
+        )
       `)
       .eq('id', id)
       .single()
@@ -109,16 +135,39 @@ export async function PATCH(
     }
     
     // Update item
-    const { data, error } = await supabase
-      .from('items')
+    const { data, error } = await (supabase
+      .from('items') as any)
       .update({
         ...validatedData,
         updated_at: new Date().toISOString(),
       })
       .eq('id', id)
       .select(`
-        *,
-        location:locations(*)
+        id,
+        name,
+        type,
+        location_id,
+        quantity,
+        barcode,
+        image_url,
+        tags,
+        metadata,
+        status,
+        created_at,
+        updated_at,
+        user_id,
+        location:locations(
+          id,
+          name,
+          icon,
+          parent_id,
+          level,
+          sort_order,
+          color,
+          created_at,
+          updated_at,
+          user_id
+        )
       `)
       .single()
     
