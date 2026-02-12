@@ -26,11 +26,12 @@ cp .env.local.example .env.local
 3. `.env.local` 파일에 다음 값 입력:
 
 ```env
-NEXT_PUBLIC_SUPABASE_URL=https://YOUR_PROJECT_REF.supabase.co
-NEXT_PUBLIC_SUPABASE_ANON_KEY=YOUR_ANON_KEY
+SUPABASE_URL=https://YOUR_PROJECT_REF.supabase.co
+SUPABASE_ANON_KEY=YOUR_ANON_KEY
 ```
 
 > **찾는 방법:**
+>
 > - `URL`: Project Settings > API > Project URL
 > - `anon key`: Project Settings > API > Project API keys > `anon` `public`
 
@@ -108,7 +109,7 @@ npm run db:reset            # 데이터베이스 리셋
 SELECT * FROM get_expiring_items(7);
 
 -- 2. 활성 물품 목록 + 위치 정보
-SELECT 
+SELECT
   item_name,
   location_path,
   expiry_status,
@@ -118,7 +119,7 @@ ORDER BY days_until_expiry ASC NULLS LAST
 LIMIT 10;
 
 -- 3. 위치별 물품 수량
-SELECT 
+SELECT
   location_name,
   location_path,
   total_items,
@@ -129,7 +130,7 @@ WHERE total_items > 0
 ORDER BY expiring_soon_items DESC;
 
 -- 4. 계층 구조 확인
-SELECT 
+SELECT
   id,
   name,
   level,
@@ -138,7 +139,7 @@ FROM locations
 ORDER BY level, sort_order;
 
 -- 5. 물품 타입별 통계
-SELECT 
+SELECT
   type,
   COUNT(*) AS count,
   SUM(quantity) AS total_quantity
@@ -154,25 +155,25 @@ ORDER BY count DESC;
 
 ```sql
 -- 테이블 목록
-SELECT tablename FROM pg_tables 
-WHERE schemaname = 'public' 
+SELECT tablename FROM pg_tables
+WHERE schemaname = 'public'
 ORDER BY tablename;
 
 -- 함수 목록
-SELECT routine_name 
-FROM information_schema.routines 
+SELECT routine_name
+FROM information_schema.routines
 WHERE routine_schema = 'public'
 ORDER BY routine_name;
 
 -- 뷰 목록
-SELECT viewname 
-FROM pg_views 
+SELECT viewname
+FROM pg_views
 WHERE schemaname = 'public'
 ORDER BY viewname;
 
 -- 인덱스 목록
-SELECT indexname 
-FROM pg_indexes 
+SELECT indexname
+FROM pg_indexes
 WHERE schemaname = 'public'
 ORDER BY indexname;
 ```
@@ -182,6 +183,7 @@ ORDER BY indexname;
 프로젝트 레퍼런스는 다음 위치에서 확인:
 
 1. **Supabase Dashboard URL**:
+
    ```
    https://supabase.com/dashboard/project/[YOUR_PROJECT_REF]
                                           ^^^^^^^^^^^^^^^^^
@@ -233,9 +235,11 @@ TRUNCATE TABLE locations CASCADE;
 ## 📚 다음 단계
 
 1. **프론트엔드 연동 테스트**:
+
    ```bash
    npm run dev
    ```
+
    브라우저에서 `http://localhost:3000` 접속
 
 2. **API 라우트 테스트**:
@@ -256,5 +260,6 @@ TRUNCATE TABLE locations CASCADE;
 ---
 
 **문제가 계속 발생하면:**
+
 - [Supabase Discord](https://discord.supabase.com) 커뮤니티 문의
 - [GitHub Issues](https://github.com/supabase/supabase/issues) 검색

@@ -25,8 +25,8 @@ cp .env.local.example .env.local
 `.env.local` 파일에 Supabase 정보 입력:
 
 ```env
-NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
-NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
+SUPABASE_URL=https://your-project.supabase.co
+SUPABASE_ANON_KEY=your-anon-key
 NEXT_PUBLIC_APP_URL=http://localhost:3000
 ```
 
@@ -82,18 +82,22 @@ create policy "Users can manage their items"
 ## 3단계: 기능 확인
 
 ### 홈페이지
+
 - http://localhost:3000
 - 프로젝트 소개 및 주요 기능 확인
 
 ### 대시보드
+
 - http://localhost:3000/dashboard
 - 물건 및 위치 통계 확인
 
 ### 탐색
+
 - http://localhost:3000/explorer
 - 물건 검색 기능
 
 ### 물건 추가
+
 - http://localhost:3000/item/new
 - 새 물건 등록 폼
 
@@ -160,6 +164,7 @@ lib/
 ## 문제 해결
 
 ### 빌드 에러
+
 ```bash
 # node_modules 삭제 후 재설치
 rm -rf node_modules package-lock.json
@@ -167,6 +172,7 @@ npm install
 ```
 
 ### 타입 에러
+
 ```bash
 # TypeScript 캐시 클리어
 rm -rf .next
@@ -174,6 +180,7 @@ npm run type-check
 ```
 
 ### 환경 변수 오류
+
 - `.env.local` 파일이 존재하는지 확인
 - Supabase URL과 Key가 올바른지 확인
 - 개발 서버 재시작 (Ctrl+C 후 npm run dev)

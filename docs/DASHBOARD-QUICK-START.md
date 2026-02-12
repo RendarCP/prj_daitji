@@ -33,6 +33,7 @@ app/dashboard/
 ## 🔍 주요 기능
 
 ### 1. 통계 카드 (5개)
+
 - 전체 물품 수
 - 활성 물품 수
 - 만료 임박 물품 수 (7일)
@@ -40,16 +41,19 @@ app/dashboard/
 - 위치 개수
 
 ### 2. 만료 임박 물품 리스트
+
 - D-Day 순서로 정렬
 - 물품 카드로 표시
 - 클릭 시 상세 페이지 이동
 
 ### 3. 최근 등록 물품
+
 - 최근 5개 물품
 - 등록일 기준 정렬
 - 전체보기 버튼
 
 ### 4. 위치별 물품 요약
+
 - Level 1 위치만 표시
 - 물품 개수 표시
 - 클릭 시 Explorer 이동
@@ -59,15 +63,18 @@ app/dashboard/
 ### 만료 임박 기준 변경
 
 `app/dashboard/page.tsx`:
+
 ```typescript
 // 7일 → 14일로 변경
-const { data } = await supabase
-  .rpc('get_expiring_items', { days_threshold: 14 }) // 7 → 14
+const { data } = await supabase.rpc("get_expiring_items", {
+  days_threshold: 14,
+}); // 7 → 14
 ```
 
 ### 최근 물품 개수 변경
 
 `app/dashboard/page.tsx`:
+
 ```typescript
 // 5개 → 10개로 변경
 .limit(10)  // 5 → 10
@@ -76,6 +83,7 @@ const { data } = await supabase
 ### 통계 카드 색상 변경
 
 `app/dashboard/DashboardClient.tsx`:
+
 ```typescript
 // Primary → Success로 변경
 <div className="p-2 bg-success-100 rounded-lg">
@@ -88,11 +96,13 @@ const { data } = await supabase
 ### 데이터가 표시되지 않을 때
 
 1. **Supabase 실행 확인**:
+
    ```bash
    npm run db:status
    ```
 
 2. **샘플 데이터 확인**:
+
    ```bash
    npm run db:reset
    ```
@@ -100,8 +110,8 @@ const { data } = await supabase
 3. **환경 변수 확인**:
    `.env.local` 파일에 다음이 있는지 확인:
    ```env
-   NEXT_PUBLIC_SUPABASE_URL=http://127.0.0.1:54321
-   NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
+   SUPABASE_URL=http://127.0.0.1:54321
+   SUPABASE_ANON_KEY=your-anon-key
    ```
 
 ### 에러가 발생할 때
@@ -136,19 +146,19 @@ const { data } = await supabase
 
 ```typescript
 // Primary (파란색) - 기본, 위치
-bg-primary-100, text-primary-600
+(bg - primary - 100, text - primary - 600);
 
 // Success (초록색) - 활성, 신선
-bg-success-100, text-success-600
+(bg - success - 100, text - success - 600);
 
 // Warning (노란색) - 만료 임박
-bg-warning-100, text-warning-600
+(bg - warning - 100, text - warning - 600);
 
 // Danger (빨간색) - 만료, 에러
-bg-danger-100, text-danger-600
+(bg - danger - 100, text - danger - 600);
 
 // Secondary (회색) - 기본 텍스트, 배경
-bg-secondary-100, text-secondary-600
+(bg - secondary - 100, text - secondary - 600);
 ```
 
 ### 그리드 시스템
@@ -182,6 +192,7 @@ grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4
 ## 🧪 테스트 시나리오
 
 ### 1. 정상 케이스
+
 ```
 ✓ Dashboard 접속
 ✓ 통계 카드 5개 표시
@@ -191,6 +202,7 @@ grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4
 ```
 
 ### 2. 빈 데이터 케이스
+
 ```
 ✓ 통계 0으로 표시
 ✓ "만료 임박 물품 없음" 메시지
@@ -198,6 +210,7 @@ grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4
 ```
 
 ### 3. 인터랙션 테스트
+
 ```
 ✓ 새로고침 버튼 클릭
 ✓ 물품 카드 클릭 → 상세 페이지 이동
@@ -226,6 +239,7 @@ Ctrl+Shift+M  - 반응형 모드
 ### 코드 스니펫
 
 새 섹션 추가:
+
 ```typescript
 <section className="mb-8 animate-fade-in">
   <Card>

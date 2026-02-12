@@ -17,7 +17,7 @@
 
 - **PostgreSQL 버전**: 15.x
 - **마이그레이션**: ✅ 적용 완료
-- **스키마**: 
+- **스키마**:
   - `locations` 테이블 (계층형 위치 관리)
   - `items` 테이블 (물품 정보)
   - 2개의 뷰 (v_active_items_with_location, v_location_item_counts)
@@ -28,8 +28,8 @@
 `.env.local` 파일이 자동으로 생성되었습니다:
 
 ```bash
-NEXT_PUBLIC_SUPABASE_URL=https://raqcqnoipwgbmdqcskhj.supabase.co
-NEXT_PUBLIC_SUPABASE_ANON_KEY=sb_publishable_U0mufezVqVtw-mccBk6kUg_6k0JxG-v
+SUPABASE_URL=https://raqcqnoipwgbmdqcskhj.supabase.co
+SUPABASE_ANON_KEY=sb_publishable_U0mufezVqVtw-mccBk6kUg_6k0JxG-v
 ```
 
 ### TypeScript 타입

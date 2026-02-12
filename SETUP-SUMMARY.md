@@ -29,11 +29,13 @@ Supabase MCP를 통해 프로젝트가 성공적으로 설정되었습니다!
 ✅ **테스트 데이터 생성 완료**
 
 **위치 데이터** (7개):
+
 - Level 1 (방): 주방, 침실, 욕실
 - Level 2 (가구): 냉장고, 싱크대
 - Level 3 (칸): 냉장실, 냉동실
 
 **물품 데이터** (3개):
+
 - 우유 (냉장실, 유통기한: 5일 후)
 - 김치 (냉장실, 유통기한: 30일 후)
 - 아이스크림 (냉동실, 유통기한: 90일 후)
@@ -43,8 +45,8 @@ Supabase MCP를 통해 프로젝트가 성공적으로 설정되었습니다!
 ✅ `.env.local` 파일 생성 완료
 
 ```bash
-NEXT_PUBLIC_SUPABASE_URL=https://raqcqnoipwgbmdqcskhj.supabase.co
-NEXT_PUBLIC_SUPABASE_ANON_KEY=sb_publishable_U0mufezVqVtw-mccBk6kUg_6k0JxG-v
+SUPABASE_URL=https://raqcqnoipwgbmdqcskhj.supabase.co
+SUPABASE_ANON_KEY=sb_publishable_U0mufezVqVtw-mccBk6kUg_6k0JxG-v
 ```
 
 ### 5. TypeScript 타입 생성
@@ -88,7 +90,7 @@ https://supabase.com/dashboard/project/raqcqnoipwgbmdqcskhj
 
 ```sql
 -- 전체 위치 계층 구조 확인
-SELECT 
+SELECT
   id,
   name,
   level,
@@ -126,17 +128,23 @@ curl http://localhost:3000/api/items/expiring
 ## 📱 주요 페이지
 
 ### Dashboard
+
 http://localhost:3000/dashboard
+
 - 유통기한 임박 물품 확인
 - 전체 재고 통계
 
 ### Explorer
+
 http://localhost:3000/explorer
+
 - 계층형 위치 탐색
 - 위치별 물품 목록
 
 ### Item 페이지
+
 http://localhost:3000/item/[id]
+
 - 물품 상세 정보
 - 인라인 수정 기능
 
@@ -241,7 +249,8 @@ Error: supabaseUrl is required
 Failed to fetch
 ```
 
-**해결**: 
+**해결**:
+
 1. Supabase 프로젝트 상태 확인
 2. 환경 변수 값 확인
 3. 네트워크 연결 확인

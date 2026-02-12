@@ -73,10 +73,10 @@ generate_types_remote() {
   
   # .env.local 파일에서 프로젝트 URL 추출
   if [ -f ".env.local" ]; then
-    PROJECT_URL=$(grep NEXT_PUBLIC_SUPABASE_URL .env.local | cut -d '=' -f2 | tr -d '"' | tr -d ' ')
+    PROJECT_URL=$(grep SUPABASE_URL .env.local | cut -d '=' -f2 | tr -d '"' | tr -d ' ')
     
     if [ -z "$PROJECT_URL" ]; then
-      log_error ".env.local 파일에서 NEXT_PUBLIC_SUPABASE_URL을 찾을 수 없습니다."
+      log_error ".env.local 파일에서 SUPABASE_URL을 찾을 수 없습니다."
       exit 1
     fi
     

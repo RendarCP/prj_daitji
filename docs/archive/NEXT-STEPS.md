@@ -8,6 +8,7 @@
 ## ✅ 완료된 작업 (2026-02-02)
 
 ### 데이터베이스 스키마
+
 - ✅ `locations` 테이블 생성 (계층형 위치 관리)
 - ✅ `items` 테이블 생성 (물품 정보)
 - ✅ 15개 인덱스 (성능 최적화)
@@ -17,6 +18,7 @@
 - ✅ 샘플 데이터 (26개 위치, 27개 물품)
 
 ### 문서 및 스크립트
+
 - ✅ 마이그레이션 파일 (001, 002)
 - ✅ TypeScript 타입 생성 스크립트
 - ✅ npm 스크립트 (8개 DB 관리 명령어)
@@ -77,6 +79,7 @@ npm run dev
 ```
 
 **현재 상태 확인**:
+
 ```bash
 # API 라우트 파일 확인
 ls -la app/api/
@@ -208,7 +211,7 @@ npm run lint              # ESLint 실행
 SELECT * FROM get_expiring_items(7);
 
 -- 2. 활성 물품 + 위치 정보
-SELECT 
+SELECT
   item_name,
   location_path,
   expiry_status,
@@ -226,7 +229,7 @@ ORDER BY expiring_soon_items DESC;
 SELECT get_location_path('11111111-1111-3333-0001-000000000001'::UUID);
 
 -- 5. 물품 타입별 통계
-SELECT 
+SELECT
   type,
   COUNT(*) AS count,
   SUM(quantity) AS total_quantity
@@ -252,22 +255,26 @@ SELECT * FROM location_tree ORDER BY path;
 ## 🐛 문제 해결 체크리스트
 
 ### Supabase 연결 오류
+
 - [ ] `.env.local` 파일이 존재하는가?
-- [ ] `NEXT_PUBLIC_SUPABASE_URL`이 올바른가?
-- [ ] `NEXT_PUBLIC_SUPABASE_ANON_KEY`가 올바른가?
+- [ ] `SUPABASE_URL`이 올바른가?
+- [ ] `SUPABASE_ANON_KEY`가 올바른가?
 - [ ] Supabase 프로젝트가 활성 상태인가?
 
 ### 마이그레이션 오류
+
 - [ ] 순서대로 실행했는가? (001 → 002)
 - [ ] SQL 문법 오류가 없는가?
 - [ ] PostgreSQL 버전이 호환되는가? (14+)
 
 ### TypeScript 타입 오류
+
 - [ ] `npm run db:types`를 실행했는가?
 - [ ] `lib/types/database.types.ts` 파일이 존재하는가?
 - [ ] 타입 import 경로가 올바른가?
 
 ### API 응답 오류
+
 - [ ] 브라우저 콘솔에서 네트워크 오류를 확인했는가?
 - [ ] Supabase Dashboard > Logs에서 오류를 확인했는가?
 - [ ] RLS 정책이 비활성화되어 있는가? (1차 MVP)
@@ -277,16 +284,19 @@ SELECT * FROM location_tree ORDER BY path;
 ## 📖 참고 문서
 
 ### 프로젝트 문서
+
 - [`PROJECT.md`](./PROJECT.md) - 전체 프로젝트 기획서
 - [`PROJECT-STRUCTURE.md`](./PROJECT-STRUCTURE.md) - 프로젝트 구조
 - [`SETUP-COMPLETE.md`](./SETUP-COMPLETE.md) - 초기 설정 완료 가이드
 
 ### Supabase 문서
+
 - [`supabase/QUICKSTART.md`](./supabase/QUICKSTART.md) - 빠른 시작 가이드
 - [`supabase/IMPLEMENTATION-REPORT.md`](./supabase/IMPLEMENTATION-REPORT.md) - 구현 완료 보고서
 - [`supabase/migrations/README.md`](./supabase/migrations/README.md) - 마이그레이션 상세 가이드
 
 ### 외부 문서
+
 - [Supabase 공식 문서](https://supabase.com/docs)
 - [Next.js 공식 문서](https://nextjs.org/docs)
 - [PostgreSQL 공식 문서](https://www.postgresql.org/docs/)
@@ -296,6 +306,7 @@ SELECT * FROM location_tree ORDER BY path;
 ## 🎯 목표 및 마일스톤
 
 ### 1차 MVP 목표 (현재 단계)
+
 - ✅ 데이터베이스 스키마 완성
 - ⏳ API 라우트 구현 및 테스트
 - ⏳ 프론트엔드 페이지 연동
@@ -303,12 +314,14 @@ SELECT * FROM location_tree ORDER BY path;
 - ⏳ 만료 임박 알림 UI 구현
 
 ### 2차 계획 (인증 시스템)
+
 - [ ] RLS 정책 활성화
 - [ ] 구글/카카오 OAuth 연동
 - [ ] 사용자별 데이터 격리
 - [ ] 위치 시스템 고도화
 
 ### 3차 계획 (AI 스캐너)
+
 - [ ] 바코드 스캔 기능
 - [ ] OCR 유통기한 인식
 - [ ] AI 레시피 추천
@@ -318,6 +331,7 @@ SELECT * FROM location_tree ORDER BY path;
 ## 💡 추천 작업 흐름
 
 **첫 개발 세션 (2-3시간)**
+
 1. ✅ Supabase 프로젝트 생성 및 마이그레이션 (15분)
 2. ✅ 환경 변수 설정 및 타입 생성 (10분)
 3. ⏳ API 라우트 동작 확인 (30분)
@@ -325,6 +339,7 @@ SELECT * FROM location_tree ORDER BY path;
 5. ⏳ 탐색 페이지 연동 (1시간)
 
 **두 번째 세션 (2-3시간)**
+
 1. ⏳ 물품 생성/수정 폼 구현
 2. ⏳ 위치 생성/수정 기능
 3. ⏳ 검색 및 필터링 기능

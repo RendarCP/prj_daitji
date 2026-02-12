@@ -58,8 +58,8 @@ cp .env.local.example .env.local
 `.env.local` 파일 내용:
 
 ```env
-NEXT_PUBLIC_SUPABASE_URL=your-project-url.supabase.co
-NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
+SUPABASE_URL=your-project-url.supabase.co
+SUPABASE_ANON_KEY=your-anon-key
 NEXT_PUBLIC_APP_URL=http://localhost:3000
 ```
 
@@ -233,6 +233,7 @@ Supabase 프로젝트 설정에서 API URL과 anon key를 복사하여 `.env.loc
 ### 기타 플랫�폼
 
 Next.js는 다양한 플랫폼에 배포할 수 있습니다:
+
 - Netlify
 - AWS Amplify
 - Docker
