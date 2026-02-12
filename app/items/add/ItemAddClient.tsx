@@ -2,6 +2,7 @@
 
 import { useState, FormEvent, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { useQueryClient } from "@tanstack/react-query";
 import {
   Save,
   X,
@@ -41,14 +42,17 @@ interface ItemAddClientProps {
   mode?: "page" | "modal";
   isEditMode?: boolean;
   itemId?: string;
+  onSuccess?: (targetId: string) => void;
 }
 
 export function ItemAddClient({
   mode = "page",
   isEditMode = false,
   itemId,
+  onSuccess,
 }: ItemAddClientProps) {
   const router = useRouter();
+  const queryClient = useQueryClient();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isLoadingItem, setIsLoadingItem] = useState(isEditMode && !!itemId);
@@ -255,6 +259,17 @@ export function ItemAddClient({
       }
 
       const targetId = result.data?.id ?? itemId;
+      if (targetId) {
+        await Promise.all([
+          queryClient.invalidateQueries({ queryKey: ["items"] }),
+          queryClient.invalidateQueries({ queryKey: ["item", "detail", targetId] }),
+        ]);
+      }
+
+      if (targetId && onSuccess) {
+        onSuccess(targetId);
+        return;
+      }
 
       if (mode === "modal") {
         window.location.href = `/item/${targetId}`;
@@ -269,10 +284,6 @@ export function ItemAddClient({
     } finally {
       setIsSubmitting(false);
     }
-  };
-
-  const handleCancel = () => {
-    router.back();
   };
 
   const renderLocationSelects = () => {

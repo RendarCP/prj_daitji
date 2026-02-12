@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Package, CheckCircle, Plus, ChevronRight } from "lucide-react";
 import { BottomNav } from "@/components/layout/BottomNav";
@@ -8,6 +8,10 @@ import { Button } from "@/components/ui/Button";
 import { Alert } from "@/components/ui/Alert";
 import { QuickAddButton } from "@/components/features/QuickAddButton";
 import { LocationDetailPanel } from "@/components/ui/LocationDetailPanel";
+import { BottomSheet } from "@/components/ui/BottomSheet";
+import { ItemAddClient } from "@/app/items/add/ItemAddClient";
+import { useItemDetail } from "@/lib/hooks/useItemDetail";
+import { ItemDetailPanelFromData } from "@/components/features/ItemDetailPanelFromData";
 import {
   ExpiryItemSkeleton,
   ListItemSkeleton,
@@ -23,12 +27,19 @@ import { cn } from "@/lib/utils/cn";
 import type { ExpiringItem, Item, Location } from "@/lib/types";
 
 export function DashboardClient() {
+  const SHEET_EXIT_MS = 300;
   const router = useRouter();
   const [selectedLocation, setSelectedLocation] = useState<Location | null>(
     null,
   );
   /** 장소 디테일 패널에서 하위로 들어갈 때마다 부모를 쌓음. 뒤로가기 시 pop */
   const [locationStack, setLocationStack] = useState<Location[]>([]);
+  const [activeItemId, setActiveItemId] = useState<string | null>(null);
+  const [editingItemId, setEditingItemId] = useState<string | null>(null);
+  const [isEditSheetOpen, setIsEditSheetOpen] = useState(false);
+  const editSheetCloseTimerRef = useRef<ReturnType<typeof setTimeout> | null>(
+    null,
+  );
 
   // React Query hooks
   const {
@@ -51,6 +62,8 @@ export function DashboardClient() {
     isLoading: isLocationLoading,
     error: locationError,
   } = useLocationSummary();
+  const { data: activeItemDetail, isLoading: isActiveItemLoading } =
+    useItemDetail(activeItemId);
 
   const handleAddItem = () => {
     router.push("/items/add");
@@ -62,8 +75,28 @@ export function DashboardClient() {
 
   const handleItemClick = (item: Item | ExpiringItem) => {
     const id = "item_id" in item ? item.item_id : item.id;
-    router.push(`/item/${id}`);
+    setActiveItemId(id);
   };
+
+  const openEditSheet = (itemId: string) => {
+    setEditingItemId(itemId);
+    setIsEditSheetOpen(true);
+  };
+
+  const closeEditSheetWithAnimation = () => {
+    setIsEditSheetOpen(false);
+    editSheetCloseTimerRef.current = setTimeout(() => {
+      setEditingItemId(null);
+    }, SHEET_EXIT_MS);
+  };
+
+  useEffect(() => {
+    return () => {
+      if (editSheetCloseTimerRef.current) {
+        clearTimeout(editSheetCloseTimerRef.current);
+      }
+    };
+  }, []);
 
   return (
     <div className="min-h-screen bg-background pb-20 md:pb-6">
@@ -349,9 +382,37 @@ export function DashboardClient() {
         }}
         onItemClick={(item) => {
           const id = "item_id" in item ? item.item_id : item.id;
-          router.push(`/item/${id}`);
+          setActiveItemId(id);
         }}
       />
+
+      {activeItemId && activeItemDetail && !isActiveItemLoading && (
+        <ItemDetailPanelFromData
+          item={activeItemDetail.item}
+          locationPath={activeItemDetail.locationPath}
+          onCloseRequested={() => setActiveItemId(null)}
+          onEditRequested={(itemId) => openEditSheet(itemId)}
+        />
+      )}
+
+      {editingItemId && (
+        <BottomSheet
+          isOpen={isEditSheetOpen}
+          onClose={closeEditSheetWithAnimation}
+          title="물품 수정"
+          maxHeight="max-h-[95vh]"
+          closeOnOverlayClick={false}
+        >
+          <div className="-mx-6 -my-4">
+            <ItemAddClient
+              mode="modal"
+              isEditMode
+              itemId={editingItemId}
+              onSuccess={() => closeEditSheetWithAnimation()}
+            />
+          </div>
+        </BottomSheet>
+      )}
 
       {/* Bottom Navigation */}
       <BottomNav />

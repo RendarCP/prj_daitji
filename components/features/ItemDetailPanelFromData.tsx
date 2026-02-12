@@ -54,6 +54,8 @@ export interface ItemDetailPanelFromDataProps {
   locationPath: LocationPathItem[];
   /** Called after close animation (e.g. router.back() or router.push('/explorer')) */
   onCloseRequested?: () => void;
+  /** Stackflow 등 외부 네비게이션으로 수정 화면 열기 */
+  onEditRequested?: (itemId: string) => void;
   mode?: "modal" | "page";
 }
 
@@ -64,6 +66,7 @@ export function ItemDetailPanelFromData({
   item,
   locationPath,
   onCloseRequested,
+  onEditRequested,
   mode = "modal", // Default to modal (SidePanel) for backward compat
 }: ItemDetailPanelFromDataProps) {
   const router = useRouter();
@@ -110,6 +113,10 @@ export function ItemDetailPanelFromData({
   };
 
   const handleEdit = useCallback(() => {
+    if (onEditRequested) {
+      onEditRequested(item.id);
+      return;
+    }
     if (mode === "modal") {
       setIsOpen(false);
       editNavTimerRef.current = setTimeout(() => {
@@ -118,7 +125,7 @@ export function ItemDetailPanelFromData({
       return;
     }
     router.push(`/item/${item.id}/edit`);
-  }, [mode, item.id, router]);
+  }, [mode, item.id, onEditRequested, router]);
 
   if (mode === "page") {
     // Page Mode: Use FormPageLayout

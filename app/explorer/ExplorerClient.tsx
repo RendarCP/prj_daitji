@@ -1,7 +1,6 @@
 "use client";
 
-import { useState, useCallback, useEffect, useMemo } from "react";
-import Link from "next/link";
+import { useState, useCallback, useEffect, useMemo, useRef } from "react";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import {
   Home,
@@ -19,10 +18,15 @@ import {
 } from "@/components/ui/Skeleton";
 import { useLocations, useLocationPath } from "@/lib/hooks/useLocations";
 import { useItems } from "@/lib/hooks/useItems";
+import { useItemDetail } from "@/lib/hooks/useItemDetail";
 import { cn } from "@/lib/utils/cn";
 import type { Location, Item } from "@/lib/types";
+import { ItemDetailPanelFromData } from "@/components/features/ItemDetailPanelFromData";
+import { BottomSheet } from "@/components/ui/BottomSheet";
+import { ItemAddClient } from "@/app/items/add/ItemAddClient";
 
 export default function ExplorerClient() {
+  const SHEET_EXIT_MS = 300;
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -34,6 +38,12 @@ export default function ExplorerClient() {
   );
   const [searchQuery, setSearchQuery] = useState("");
   const [showFilters, setShowFilters] = useState(false);
+  const [activeItemId, setActiveItemId] = useState<string | null>(null);
+  const [editingItemId, setEditingItemId] = useState<string | null>(null);
+  const [isEditSheetOpen, setIsEditSheetOpen] = useState(false);
+  const editSheetCloseTimerRef = useRef<ReturnType<typeof setTimeout> | null>(
+    null,
+  );
 
   // React Query hooks
   const { data: locations = [], isLoading: isLoadingLocations } = useLocations({
@@ -46,8 +56,8 @@ export default function ExplorerClient() {
   const { data: items = [], isLoading: isLoadingItems } = useItems({
     location_id: selectedLocationId,
   });
-
-  console.log(items);
+  const { data: activeItemDetail, isLoading: isActiveItemLoading } =
+    useItemDetail(activeItemId);
 
   // Create query string helper
   const createQueryString = useCallback(
@@ -99,6 +109,26 @@ export default function ExplorerClient() {
     }
   }, [locationIdParam]);
 
+  useEffect(() => {
+    return () => {
+      if (editSheetCloseTimerRef.current) {
+        clearTimeout(editSheetCloseTimerRef.current);
+      }
+    };
+  }, []);
+
+  const openEditSheet = (itemId: string) => {
+    setEditingItemId(itemId);
+    setIsEditSheetOpen(true);
+  };
+
+  const closeEditSheetWithAnimation = () => {
+    setIsEditSheetOpen(false);
+    editSheetCloseTimerRef.current = setTimeout(() => {
+      setEditingItemId(null);
+    }, SHEET_EXIT_MS);
+  };
+
   // Build breadcrumb items including root
   const breadcrumbItems: (
     | { id: string; name: string; isHome?: boolean }
@@ -108,42 +138,17 @@ export default function ExplorerClient() {
   const displayLocations = selectedLocationId
     ? subLocations
     : locations.filter((l) => l.level === 1);
+  const hasVisibleItems =
+    selectedLocationId !== null && filteredItems.length > 0;
 
   return (
-    <div className="min-h-screen bg-background pb-20">
-      {/* Breadcrumb Navigation */}
-      <div className="mt-4 px-4 py-2 flex items-center justify-center gap-2 overflow-x-auto no-scrollbar mb-6">
-        {breadcrumbItems.map((item, index) => {
-          const isLast = index === breadcrumbItems.length - 1;
-          const isHome = (item as any).isHome;
-
-          return (
-            <div key={item.id} className="flex items-center shrink-0">
-              {index > 0 && (
-                <ChevronRight className="w-4 h-4 text-muted-foreground mx-1" />
-              )}
-              <button
-                onClick={() => {
-                  if (isHome) handleLocationSelect({ id: null } as any);
-                  else if (!isLast) handleLocationSelect(item as any);
-                }}
-                className={cn(
-                  "flex items-center gap-1 px-3 py-1.5 rounded-full text-sm font-medium transition-colors border",
-                  isLast
-                    ? "bg-primary/20 text-primary-foreground border-primary/30"
-                    : "bg-secondary/50 text-muted-foreground hover:bg-secondary border-transparent",
-                )}
-                disabled={isLast}
-              >
-                {isHome && <Home className="w-3.5 h-3.5 mr-1" />}
-                {item.name}
-              </button>
-            </div>
-          );
-        })}
-      </div>
-
-      <div className="container mx-auto px-4 max-w-3xl space-y-6">
+    <div
+      className={cn(
+        "bg-background pb-20",
+        hasVisibleItems ? "min-h-screen overflow-y-auto" : "overflow-y-hidden",
+      )}
+    >
+      <div className="container mx-auto px-4 max-w-3xl space-y-6 mt-5">
         {/* Sub-locations Section */}
         <div>
           {displayLocations.length > 0 && (
@@ -185,6 +190,37 @@ export default function ExplorerClient() {
             )
           )}
         </div>
+        {/* Breadcrumb Navigation */}
+        <div className="mt-4 px-4 py-2 flex items-center justify-center gap-2 overflow-x-auto no-scrollbar mb-6">
+          {breadcrumbItems.map((item, index) => {
+            const isLast = index === breadcrumbItems.length - 1;
+            const isHome = (item as any).isHome;
+
+            return (
+              <div key={item.id} className="flex items-center shrink-0">
+                {index > 0 && (
+                  <ChevronRight className="w-4 h-4 text-muted-foreground mx-1" />
+                )}
+                <button
+                  onClick={() => {
+                    if (isHome) handleLocationSelect({ id: null } as any);
+                    else if (!isLast) handleLocationSelect(item as any);
+                  }}
+                  className={cn(
+                    "flex items-center gap-1 px-3 py-1.5 rounded-full text-sm font-medium transition-colors border",
+                    isLast
+                      ? "bg-primary/20 text-primary-foreground border-primary/30"
+                      : "bg-secondary/50 text-muted-foreground hover:bg-secondary border-transparent",
+                  )}
+                  disabled={isLast}
+                >
+                  {isHome && <Home className="w-3.5 h-3.5 mr-1" />}
+                  {item.name}
+                </button>
+              </div>
+            );
+          })}
+        </div>
 
         {/* Search Bar */}
         <div className="relative flex items-center gap-2">
@@ -195,7 +231,7 @@ export default function ExplorerClient() {
               placeholder="Search items..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full h-10 pl-9 pr-4 rounded-xl bg-secondary/50 border-none text-sm placeholder:text-muted-foreground focus:ring-1 focus:ring-primary/50 transition-all focus:bg-background focus:ring-primary"
+              className="w-full h-10 pl-9 pr-4 rounded-xl bg-secondary/50 border-none text-sm placeholder:text-muted-foreground focus:ring-1 focus:ring-primary transition-all focus:bg-background"
             />
           </div>
           <button
@@ -251,10 +287,11 @@ export default function ExplorerClient() {
                     daysUntilExpiry >= 0;
 
                   return (
-                    <Link
+                    <button
                       key={item.id}
-                      href={`/item/${item.id}`}
-                      className="w-full card hover-lift group p-3 sm:p-4 bg-card border border-border block"
+                      type="button"
+                      onClick={() => setActiveItemId(item.id)}
+                      className="w-full card hover-lift group p-3 sm:p-4 bg-card border border-border block text-left"
                     >
                       <div className="flex items-center gap-3">
                         <div className="w-10 h-10 rounded-lg bg-secondary/30 flex items-center justify-center text-xl shrink-0">
@@ -317,7 +354,7 @@ export default function ExplorerClient() {
                         </div>
                         <ChevronRight className="w-4 h-4 text-muted-foreground/50 group-hover:text-muted-foreground transition-colors" />
                       </div>
-                    </Link>
+                    </button>
                   );
                 })}
               </div>
@@ -338,6 +375,34 @@ export default function ExplorerClient() {
 
       {/* Bottom Navigation */}
       <BottomNav />
+
+      {activeItemId && activeItemDetail && !isActiveItemLoading && (
+        <ItemDetailPanelFromData
+          item={activeItemDetail.item}
+          locationPath={activeItemDetail.locationPath}
+          onCloseRequested={() => setActiveItemId(null)}
+          onEditRequested={(itemId) => openEditSheet(itemId)}
+        />
+      )}
+
+      {editingItemId && (
+        <BottomSheet
+          isOpen={isEditSheetOpen}
+          onClose={closeEditSheetWithAnimation}
+          title="물품 수정"
+          maxHeight="max-h-[95vh]"
+          closeOnOverlayClick={false}
+        >
+          <div className="-mx-6 -my-4">
+            <ItemAddClient
+              mode="modal"
+              isEditMode
+              itemId={editingItemId}
+              onSuccess={() => closeEditSheetWithAnimation()}
+            />
+          </div>
+        </BottomSheet>
+      )}
     </div>
   );
 }

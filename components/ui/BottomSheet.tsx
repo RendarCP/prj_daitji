@@ -1,6 +1,6 @@
 'use client'
 
-import { ReactNode, useEffect, useCallback } from 'react'
+import { ReactNode, useEffect, useCallback, useRef, useState } from 'react'
 import { X } from 'lucide-react'
 import { cn } from '@/lib/utils/cn'
 
@@ -17,6 +17,8 @@ export interface BottomSheetProps {
   maxHeight?: string
 }
 
+const SHEET_ANIMATION_MS = 300
+
 export function BottomSheet({
   isOpen,
   onClose,
@@ -29,6 +31,10 @@ export function BottomSheet({
   totalSteps,
   maxHeight = 'max-h-[80vh]',
 }: BottomSheetProps) {
+  const [shouldRender, setShouldRender] = useState(isOpen)
+  const [isClosing, setIsClosing] = useState(false)
+  const closeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
   const handleEscape = useCallback(
     (e: KeyboardEvent) => {
       if (closeOnEscape && e.key === 'Escape') {
@@ -40,6 +46,32 @@ export function BottomSheet({
 
   useEffect(() => {
     if (isOpen) {
+      setShouldRender(true)
+      setIsClosing(false)
+      if (closeTimerRef.current) {
+        clearTimeout(closeTimerRef.current)
+        closeTimerRef.current = null
+      }
+      return
+    }
+
+    if (!shouldRender) return
+
+    setIsClosing(true)
+    closeTimerRef.current = setTimeout(() => {
+      setShouldRender(false)
+      setIsClosing(false)
+    }, SHEET_ANIMATION_MS)
+
+    return () => {
+      if (closeTimerRef.current) {
+        clearTimeout(closeTimerRef.current)
+      }
+    }
+  }, [isOpen, shouldRender])
+
+  useEffect(() => {
+    if (shouldRender) {
       document.body.style.overflow = 'hidden'
       document.addEventListener('keydown', handleEscape)
     }
@@ -48,9 +80,9 @@ export function BottomSheet({
       document.body.style.overflow = 'unset'
       document.removeEventListener('keydown', handleEscape)
     }
-  }, [isOpen, handleEscape])
+  }, [shouldRender, handleEscape])
 
-  if (!isOpen) return null
+  if (!shouldRender) return null
 
   return (
     <div 
@@ -61,7 +93,10 @@ export function BottomSheet({
     >
       {/* Overlay */}
       <div 
-        className="absolute inset-0 bg-black/60 backdrop-blur-sm animate-fade-in"
+        className={cn(
+          'absolute inset-0 bg-black/60 backdrop-blur-sm transition-opacity duration-300',
+          isClosing ? 'opacity-0' : 'opacity-100'
+        )}
         onClick={closeOnOverlayClick ? onClose : undefined}
         aria-hidden="true"
       />
@@ -71,7 +106,8 @@ export function BottomSheet({
         className={cn(
           'relative bg-card w-full rounded-t-3xl',
           'flex flex-col overflow-hidden',
-          'animate-slide-up-sheet shadow-2xl',
+          isClosing ? 'animate-slide-down-sheet' : 'animate-slide-up-sheet',
+          'shadow-2xl',
           maxHeight
         )}
       >
