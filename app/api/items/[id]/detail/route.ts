@@ -5,6 +5,9 @@ import type { Database } from "@/lib/types/database.types";
 
 type ItemRow = Database["public"]["Tables"]["items"]["Row"];
 type LocationRow = Database["public"]["Tables"]["locations"]["Row"];
+type ItemWithLocationRow = ItemRow & {
+  location: Pick<LocationRow, "id" | "name" | "icon" | "parent_id"> | null;
+};
 type LocationPathSegment = Pick<
   LocationRow,
   "id" | "name" | "icon" | "parent_id"
@@ -12,6 +15,7 @@ type LocationPathSegment = Pick<
 
 const UUID_REGEX =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const MAX_LOCATION_PATH_DEPTH = 20;
 
 /**
  * GET /api/items/[id]/detail
@@ -32,9 +36,14 @@ export async function GET(
 
     const { data, error: itemError } = await supabase
       .from("items")
-      .select("*")
+      .select(
+        `
+          *,
+          location:locations(id, name, icon, parent_id)
+        `,
+      )
       .eq("id", id)
-      .single<ItemRow>();
+      .single<ItemWithLocationRow>();
 
     const item = data;
 
@@ -45,20 +54,23 @@ export async function GET(
       return errorResponse("QUERY_ERROR", { message: itemError?.message }, 500);
     }
 
-    const { data: pathData } = await supabase
-      .from("locations")
-      .select("id, name, icon, parent_id")
-      .eq("id", item.location_id)
-      .single<Pick<LocationRow, "id" | "name" | "icon" | "parent_id">>();
-
     let locationPath: Array<{ id: string; name: string; icon?: string | null }> =
       [];
 
-    if (pathData) {
-      let currentId: string | null = pathData.id;
-      const path: Array<{ id: string; name: string; icon?: string | null }> = [];
+    if (item.location) {
+      const path: Array<{ id: string; name: string; icon?: string | null }> = [
+        {
+          id: item.location.id,
+          name: item.location.name,
+          icon: item.location.icon,
+        },
+      ];
+      const visited = new Set<string>([item.location.id]);
+      let currentId: string | null = item.location.parent_id;
+      let depth = 0;
 
-      while (currentId) {
+      while (currentId && depth < MAX_LOCATION_PATH_DEPTH) {
+        if (visited.has(currentId)) break;
         const res: { data: LocationPathSegment | null } = await supabase
           .from("locations")
           .select("id, name, icon, parent_id")
@@ -69,8 +81,10 @@ export async function GET(
 
         if (!loc) break;
 
+        visited.add(loc.id);
         path.unshift({ id: loc.id, name: loc.name, icon: loc.icon });
         currentId = loc.parent_id;
+        depth += 1;
       }
 
       locationPath = path;
