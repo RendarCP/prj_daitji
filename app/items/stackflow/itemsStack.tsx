@@ -4,13 +4,13 @@ import type { ActivityComponentType } from "@stackflow/react";
 import { stackflow } from "@stackflow/react";
 import { basicRendererPlugin } from "@stackflow/plugin-renderer-basic";
 import { useEffect, useRef, useState } from "react";
-import { Search, SlidersHorizontal, ChevronRight } from "lucide-react";
+import { Search, SlidersHorizontal } from "lucide-react";
 import { BottomNav } from "@/components/layout/BottomNav";
 import { FloatingActionButton } from "@/components/ui/FloatingActionButton";
-import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Alert } from "@/components/ui/Alert";
 import { ListItemSkeleton } from "@/components/ui/Skeleton";
+import { ItemListRowCard } from "@/components/features/ItemListRowCard";
 import { useItems } from "@/lib/hooks/useItems";
 import { useItemDetail } from "@/lib/hooks/useItemDetail";
 import { ItemDetailPanelFromData } from "@/components/features/ItemDetailPanelFromData";
@@ -108,79 +108,17 @@ const ItemsListActivity: ActivityComponentType = () => {
         ) : (
           <div className="space-y-2">
             {filteredItems.map((item) => {
-              const daysUntilExpiry = item.days_until_expiry;
-              const isExpired =
-                daysUntilExpiry !== null &&
-                daysUntilExpiry !== undefined &&
-                daysUntilExpiry < 0;
-              const isExpiring =
-                daysUntilExpiry !== null &&
-                daysUntilExpiry !== undefined &&
-                daysUntilExpiry <= 7 &&
-                daysUntilExpiry >= 0;
-
               return (
-                <button
+                <ItemListRowCard
                   key={item.id}
-                  type="button"
+                  title={item.item_name}
+                  type={item.type}
+                  imageUrl={item.image_url}
+                  locationText={item.location_path}
+                  tags={item.tags || []}
+                  daysUntilExpiry={item.days_until_expiry}
                   onClick={() => push("ItemDetailActivity", { id: item.id })}
-                  className="w-full card hover-lift group p-3 sm:p-4 bg-card border border-border block text-left"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-lg bg-secondary/30 flex items-center justify-center text-xl shrink-0">
-                      {item.type === "FOOD"
-                        ? "🍽️"
-                        : item.type === "COSMETIC"
-                          ? "💄"
-                          : item.type === "MEDICINE"
-                            ? "💊"
-                            : "📦"}
-                    </div>
-                    <div className="flex-1 text-left min-w-0">
-                      <div className="flex items-center gap-2 mb-0.5">
-                        <h3 className="font-semibold text-foreground truncate text-sm">
-                          {item.item_name}
-                        </h3>
-                        {isExpired && (
-                          <Badge
-                            variant="danger"
-                            size="sm"
-                            className="h-5 px-1.5 text-[10px]"
-                          >
-                            만료됨
-                          </Badge>
-                        )}
-                        {isExpiring && (
-                          <Badge
-                            variant="warning"
-                            size="sm"
-                            className="h-5 px-1.5 text-[10px]"
-                          >
-                            임박
-                          </Badge>
-                        )}
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <p className="text-xs text-muted-foreground truncate">
-                          {item.location_path || "위치 미지정"}
-                        </p>
-                        {item.tags && item.tags.length > 0 && (
-                          <div className="flex gap-1">
-                            {item.tags.slice(0, 2).map((tag) => (
-                              <span
-                                key={tag}
-                                className="text-[10px] px-1.5 py-0.5 rounded bg-secondary text-muted-foreground"
-                              >
-                                #{tag}
-                              </span>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                    <ChevronRight className="w-4 h-4 text-muted-foreground/50 group-hover:text-muted-foreground transition-colors" />
-                  </div>
-                </button>
+                />
               );
             })}
           </div>

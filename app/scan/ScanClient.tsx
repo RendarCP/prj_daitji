@@ -30,7 +30,7 @@ export function ScanClient() {
   }
 
   return (
-    <div className="min-h-screen bg-secondary-50">
+    <div className="min-h-screen bg-secondary/10">
       <main className="pb-24">
         <div className="container mx-auto px-4 py-6 max-w-4xl">
           <PageHeader
@@ -49,13 +49,13 @@ export function ScanClient() {
             <div className="text-center py-12">
               {!isScanning ? (
                 <>
-                  <div className="inline-flex items-center justify-center w-24 h-24 rounded-full bg-primary-100 text-primary-600 mb-6">
+                  <div className="inline-flex items-center justify-center w-24 h-24 rounded-full bg-primary/15 text-primary mb-6">
                     <ScanBarcode className="w-12 h-12" />
                   </div>
-                  <h2 className="text-2xl font-bold text-secondary-900 mb-4">
+                  <h2 className="text-2xl font-bold text-foreground mb-4">
                     바코드 스캔 시작
                   </h2>
-                  <p className="text-secondary-600 mb-8 max-w-md mx-auto">
+                  <p className="text-muted-foreground mb-8 max-w-md mx-auto">
                     물품의 바코드를 스캔하면 자동으로 정보를 가져와 등록할 수 있습니다.
                   </p>
                   <Button
@@ -68,13 +68,13 @@ export function ScanClient() {
                 </>
               ) : (
                 <>
-                  <div className="aspect-video bg-secondary-900 rounded-lg mb-6 flex items-center justify-center">
+                  <div className="aspect-video bg-secondary rounded-lg mb-6 flex items-center justify-center">
                     <Camera className="w-16 h-16 text-white animate-pulse" />
                   </div>
-                  <h2 className="text-2xl font-bold text-secondary-900 mb-4">
+                  <h2 className="text-2xl font-bold text-foreground mb-4">
                     바코드를 화면에 맞춰주세요
                   </h2>
-                  <p className="text-secondary-600 mb-8">
+                  <p className="text-muted-foreground mb-8">
                     바코드가 화면 중앙에 오도록 조정해주세요
                   </p>
                   <Button
@@ -92,24 +92,24 @@ export function ScanClient() {
 
           <div className="mt-6">
             <Card>
-              <h3 className="text-lg font-semibold text-secondary-900 mb-4">
+              <h3 className="text-lg font-semibold text-foreground mb-4">
                 스캔 팁
               </h3>
-              <ul className="space-y-2 text-secondary-600">
+              <ul className="space-y-2 text-muted-foreground">
                 <li className="flex items-start gap-2">
-                  <span className="text-primary-600 font-bold">•</span>
+                  <span className="text-primary font-bold">•</span>
                   <span>밝은 곳에서 스캔하면 더 정확합니다</span>
                 </li>
                 <li className="flex items-start gap-2">
-                  <span className="text-primary-600 font-bold">•</span>
+                  <span className="text-primary font-bold">•</span>
                   <span>바코드가 화면 중앙에 오도록 조정하세요</span>
                 </li>
                 <li className="flex items-start gap-2">
-                  <span className="text-primary-600 font-bold">•</span>
+                  <span className="text-primary font-bold">•</span>
                   <span>카메라 렌즈를 깨끗이 닦아주세요</span>
                 </li>
                 <li className="flex items-start gap-2">
-                  <span className="text-primary-600 font-bold">•</span>
+                  <span className="text-primary font-bold">•</span>
                   <span>바코드가 구겨지거나 손상되지 않았는지 확인하세요</span>
                 </li>
               </ul>

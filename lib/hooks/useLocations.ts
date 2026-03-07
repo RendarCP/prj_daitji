@@ -23,7 +23,7 @@ async function fetchLocations(params: LocationsParams = {}): Promise<Location[]>
   const result = await response.json()
 
   if (!result.success) {
-    throw new Error(result.error?.message || 'Failed to fetch locations')
+    throw new Error(result.error?.message || '위치 목록을 불러오지 못했습니다')
   }
 
   return result.data || []
@@ -41,7 +41,7 @@ async function fetchLocationPath(locationId: string): Promise<Location[]> {
   const result = await response.json()
 
   if (!result.success) {
-    throw new Error(result.error?.message || 'Failed to fetch location path')
+    throw new Error(result.error?.message || '위치 경로를 불러오지 못했습니다')
   }
 
   return result.data?.path || []

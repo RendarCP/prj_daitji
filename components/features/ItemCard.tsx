@@ -6,6 +6,7 @@ import { Apple, Sparkles, Pill, Package, MapPin, Calendar } from 'lucide-react'
 import { Card } from '@/components/ui/Card'
 import { Badge } from '@/components/ui/Badge'
 import { formatRelativeDate, isExpired, isExpiringSoon } from '@/lib/utils/format'
+import { ITEM_TYPE_ICON_COLORS } from '@/lib/constants/colors'
 
 interface ItemCardProps {
   item: {
@@ -35,12 +36,7 @@ const typeIcons = {
   GENERAL: Package,
 }
 
-const typeColors = {
-  FOOD: 'bg-success-100 text-success-700',
-  COSMETIC: 'bg-pink-100 text-pink-700',
-  MEDICINE: 'bg-danger-100 text-danger-700',
-  GENERAL: 'bg-primary-100 text-primary-700',
-}
+const typeColors = ITEM_TYPE_ICON_COLORS
 
 const typeLabels = {
   FOOD: '식품',
@@ -69,7 +65,7 @@ export function ItemCard({ item, onClick }: ItemCardProps) {
     <Card hover className="h-full">
       <div className="flex flex-col gap-4">
         {/* Image or Icon */}
-        <div className="relative aspect-square w-full bg-secondary-50 rounded-lg overflow-hidden">
+        <div className="relative aspect-square w-full bg-secondary/10 rounded-lg overflow-hidden">
           {item.image_url ? (
             <Image 
               src={item.image_url} 
@@ -94,7 +90,7 @@ export function ItemCard({ item, onClick }: ItemCardProps) {
           {/* Quantity Badge */}
           {item.quantity !== undefined && item.quantity > 1 && (
             <div className="absolute top-2 right-2">
-              <Badge size="sm" variant="primary" className="bg-white/90 backdrop-blur-sm text-primary-700">
+              <Badge size="sm" variant="primary" className="bg-white/90 backdrop-blur-sm text-primary">
                 × {item.quantity}
               </Badge>
             </div>
@@ -103,7 +99,7 @@ export function ItemCard({ item, onClick }: ItemCardProps) {
 
         {/* Content */}
         <div className="flex-1 flex flex-col gap-2">
-          <h3 className="font-semibold text-secondary-900 leading-tight line-clamp-2">
+          <h3 className="font-semibold text-foreground leading-tight line-clamp-2">
             {item.name}
           </h3>
 
@@ -125,7 +121,7 @@ export function ItemCard({ item, onClick }: ItemCardProps) {
 
           {/* Location */}
           {item.location && (
-            <div className="flex items-center gap-1.5 text-sm text-secondary-600">
+            <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
               <MapPin className="w-4 h-4 flex-shrink-0" />
               <span className="truncate">{item.location.name}</span>
             </div>
@@ -133,7 +129,7 @@ export function ItemCard({ item, onClick }: ItemCardProps) {
 
           {/* Purchase Date */}
           {item.metadata?.purchase_date && (
-            <div className="flex items-center gap-1.5 text-sm text-secondary-600">
+            <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
               <Calendar className="w-4 h-4 flex-shrink-0" />
               <span>{formatRelativeDate(item.metadata.purchase_date)}</span>
             </div>

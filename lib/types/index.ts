@@ -4,6 +4,7 @@ export interface Item {
   item_name: string;
   type: "FOOD" | "COSMETIC" | "MEDICINE" | "GENERAL";
   location_id: string;
+  image_url?: string | null;
   location_path?: string;
   quantity: number;
   expiry_date?: string;
@@ -48,4 +49,17 @@ export interface DashboardStats {
   expiring_soon: number;
   expired: number;
   locations_count: number;
+}
+
+export interface ApiError {
+  code: string;
+  message: string;
+  details?: unknown;
+}
+
+export interface ApiResponse<T = unknown> {
+  success: boolean;
+  data?: T;
+  error?: ApiError;
+  meta?: Record<string, unknown>;
 }

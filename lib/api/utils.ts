@@ -86,7 +86,7 @@ export function handleDatabaseError(error: any): NextResponse<ApiResponse> {
 
   if (error.code === '23505') {
     // Unique violation
-    return errorResponse('DATABASE_ERROR', { message: 'Resource already exists' }, 409)
+    return errorResponse('DATABASE_ERROR', { message: '이미 존재하는 리소스입니다' }, 409)
   }
 
   return errorResponse('DATABASE_ERROR', { message: error.message }, 500)

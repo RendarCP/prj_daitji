@@ -56,16 +56,16 @@ export function EmptyState({
       )}
       {...props}
     >
-      <div className={cn('mb-4 text-secondary-400', sizeConfig.icon)}>
+      <div className={cn('mb-4 text-muted-foreground', sizeConfig.icon)}>
         {icon || <PackageX className="w-full h-full" />}
       </div>
       
-      <h3 className={cn('font-semibold text-secondary-900 mb-2', sizeConfig.title)}>
+      <h3 className={cn('font-semibold text-foreground mb-2', sizeConfig.title)}>
         {title}
       </h3>
       
       {description && (
-        <p className={cn('text-secondary-600 max-w-md mb-6', sizeConfig.description)}>
+        <p className={cn('text-muted-foreground max-w-md mb-6', sizeConfig.description)}>
           {description}
         </p>
       )}

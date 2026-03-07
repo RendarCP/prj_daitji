@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { ArrowLeft, X } from "lucide-react";
+import { X } from "lucide-react";
 import { ReactNode } from "react";
 import { cn } from "@/lib/utils/cn";
 
@@ -15,7 +15,7 @@ export interface FormPageLayoutProps {
 
 /**
  * 추가/편집 폼 페이지용 레이아웃.
- * FullPageModal과 동일한 헤더(뒤로 + 제목 + X) + 본문 구조로, 페이지/모달 UX를 통일.
+ * FullPageModal과 동일한 헤더(제목 + X) + 본문 구조로, 페이지/모달 UX를 통일.
  */
 export function FormPageLayout({
   title,
@@ -25,7 +25,6 @@ export function FormPageLayout({
 }: FormPageLayoutProps) {
   const router = useRouter();
 
-  const handleBack = () => router.back();
   const handleClose = () => router.back();
 
   return (
@@ -43,11 +42,11 @@ export function FormPageLayout({
         <div className="flex items-center gap-2">
           <button
             type="button"
-            onClick={handleBack}
+            onClick={handleClose}
             className="p-2 hover:bg-secondary rounded-lg transition-colors"
-            aria-label="뒤로가기"
+            aria-label="닫기"
           >
-            <ArrowLeft className="w-5 h-5" />
+            <X className="w-5 h-5" />
           </button>
           <h1
             id="form-page-title"
@@ -56,16 +55,7 @@ export function FormPageLayout({
             {title}
           </h1>
         </div>
-        <div className="flex items-center gap-1">
-          <button
-            type="button"
-            onClick={handleClose}
-            className="p-2 hover:bg-secondary rounded-lg transition-colors"
-            aria-label="닫기"
-          >
-            <X className="w-5 h-5" />
-          </button>
-        </div>
+        <div className="w-9" aria-hidden="true" />
       </header>
 
       {/* Body - 헤더 아래부터 스크롤 영역 (pt-14 = 헤더 높이) */}

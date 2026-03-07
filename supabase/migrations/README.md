@@ -8,6 +8,8 @@ Supabase 데이터베이스 마이그레이션 파일 모음입니다.
 supabase/migrations/
 ├── 001_initial_schema.sql      # 초기 스키마 생성 (테이블, 인덱스, 함수, 뷰)
 ├── 002_seed_sample_data.sql    # 샘플 데이터 (개발/테스트용)
+├── 003_add_get_location_ids_in_subtree.sql # subtree 조회 함수 추가
+├── 004_notification_system.sql # 알림 시스템 (설정/토큰/이벤트 큐)
 └── README.md                   # 이 파일
 ```
 

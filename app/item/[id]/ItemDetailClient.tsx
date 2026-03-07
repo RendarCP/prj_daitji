@@ -97,7 +97,7 @@ export function ItemDetailClient({ item: initialItem, locationPath, allLocations
     type: item.type,
     status: item.status,
     location_id: item.location_id,
-    quantity: item.quantity,
+    quantity: item.quantity ?? 0,
     barcode: item.barcode || '',
     image_url: item.image_url || '',
     tags: item.tags || [],
@@ -118,7 +118,7 @@ export function ItemDetailClient({ item: initialItem, locationPath, allLocations
       type: item.type,
       status: item.status,
       location_id: item.location_id,
-      quantity: item.quantity,
+      quantity: item.quantity ?? 0,
       barcode: item.barcode || '',
       image_url: item.image_url || '',
       tags: item.tags || [],
@@ -231,7 +231,7 @@ export function ItemDetailClient({ item: initialItem, locationPath, allLocations
   const expiryDate = getExpiryDate()
 
   return (
-    <div className="min-h-screen bg-secondary-50">
+    <div className="min-h-screen bg-secondary/10">
       <main className="pb-24">
         <div className="container mx-auto px-4 py-6 max-w-4xl">
           <PageHeader
@@ -249,7 +249,7 @@ export function ItemDetailClient({ item: initialItem, locationPath, allLocations
           <div className="space-y-6">
             {/* Image Section */}
             <Card>
-              <div className="aspect-video bg-secondary-100 rounded-lg overflow-hidden relative">
+              <div className="aspect-video bg-secondary/20 rounded-lg overflow-hidden relative">
                 {(isEditing ? formData.image_url : item.image_url) ? (
                   <img
                     src={isEditing ? formData.image_url : item.image_url!}
@@ -258,7 +258,7 @@ export function ItemDetailClient({ item: initialItem, locationPath, allLocations
                   />
                 ) : (
                   <div className="w-full h-full flex items-center justify-center">
-                    <Package className="w-20 h-20 text-secondary-400" />
+                    <Package className="w-20 h-20 text-muted-foreground" />
                   </div>
                 )}
               </div>
@@ -279,7 +279,7 @@ export function ItemDetailClient({ item: initialItem, locationPath, allLocations
             {/* Basic Information */}
             <Card>
               <div className="flex items-center justify-between mb-6">
-                <h2 className="text-xl font-bold text-secondary-900">기본 정보</h2>
+                <h2 className="text-xl font-bold text-foreground">기본 정보</h2>
                 {!isEditing && (
                   <div className="flex gap-2">
                     <Button
@@ -336,7 +336,7 @@ export function ItemDetailClient({ item: initialItem, locationPath, allLocations
                       label="수량"
                       type="number"
                       min="0"
-                      value={formData.quantity}
+                      value={formData.quantity ?? 0}
                       onChange={(e) => setFormData({ ...formData, quantity: parseInt(e.target.value) || 0 })}
                       required
                     />
@@ -370,13 +370,13 @@ export function ItemDetailClient({ item: initialItem, locationPath, allLocations
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
                       <div>
-                        <div className="text-sm text-secondary-600 mb-1">수량</div>
+                        <div className="text-sm text-muted-foreground mb-1">수량</div>
                         <div className="font-medium">{item.quantity}개</div>
                       </div>
 
                       {item.barcode && (
                         <div>
-                          <div className="text-sm text-secondary-600 mb-1 flex items-center gap-1">
+                          <div className="text-sm text-muted-foreground mb-1 flex items-center gap-1">
                             <Barcode className="w-4 h-4" />
                             바코드
                           </div>
@@ -386,7 +386,7 @@ export function ItemDetailClient({ item: initialItem, locationPath, allLocations
                     </div>
 
                     <div>
-                      <div className="text-sm text-secondary-600 mb-2 flex items-center gap-1">
+                      <div className="text-sm text-muted-foreground mb-2 flex items-center gap-1">
                         <MapPin className="w-4 h-4" />
                         위치
                       </div>
@@ -402,7 +402,7 @@ export function ItemDetailClient({ item: initialItem, locationPath, allLocations
 
             {/* Tags */}
             <Card>
-              <h2 className="text-xl font-bold text-secondary-900 mb-4 flex items-center gap-2">
+              <h2 className="text-xl font-bold text-foreground mb-4 flex items-center gap-2">
                 <TagIcon className="w-5 h-5" />
                 태그
               </h2>
@@ -443,7 +443,7 @@ export function ItemDetailClient({ item: initialItem, locationPath, allLocations
                       </Badge>
                     ))
                   ) : (
-                    <p className="text-secondary-500">태그가 없습니다</p>
+                    <p className="text-muted-foreground">태그가 없습니다</p>
                   )}
                 </div>
               )}
@@ -452,7 +452,7 @@ export function ItemDetailClient({ item: initialItem, locationPath, allLocations
             {/* Type-specific Metadata */}
             {(isEditing || Object.keys((item.metadata as ItemMetadata) || {}).length > 0) && (
               <Card>
-                <h2 className="text-xl font-bold text-secondary-900 mb-4">상세 정보</h2>
+                <h2 className="text-xl font-bold text-foreground mb-4">상세 정보</h2>
 
                 <div className="space-y-4">
                   {/* FOOD metadata */}
@@ -547,9 +547,9 @@ export function ItemDetailClient({ item: initialItem, locationPath, allLocations
                           checked={formData.metadata.prescription || false}
                           onChange={(e) => updateMetadata('prescription', e.target.checked)}
                           disabled={!isEditing}
-                          className="w-4 h-4 text-primary-600 rounded"
+                          className="w-4 h-4 text-primary rounded"
                         />
-                        <label htmlFor="prescription" className="text-sm font-medium text-secondary-700 flex items-center gap-1">
+                        <label htmlFor="prescription" className="text-sm font-medium text-foreground flex items-center gap-1">
                           <Pill className="w-4 h-4" />
                           전문의약품
                         </label>
@@ -563,12 +563,12 @@ export function ItemDetailClient({ item: initialItem, locationPath, allLocations
                       />
                       {isEditing ? (
                         <div>
-                          <label className="text-sm font-medium text-secondary-700 mb-2 flex items-center gap-1">
+                          <label className="text-sm font-medium text-foreground mb-2 flex items-center gap-1">
                             <AlertTriangle className="w-4 h-4" />
                             주의사항
                           </label>
                           <textarea
-                            className="w-full px-4 py-2.5 border border-secondary-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                            className="w-full px-4 py-2.5 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-ring"
                             rows={3}
                             placeholder="주의사항을 입력하세요 (줄바꿈으로 구분)"
                             value={formData.metadata.warnings?.join('\n') || ''}
@@ -578,11 +578,11 @@ export function ItemDetailClient({ item: initialItem, locationPath, allLocations
                       ) : (
                         formData.metadata.warnings && formData.metadata.warnings.length > 0 && (
                           <div>
-                            <div className="text-sm font-medium text-secondary-700 mb-2 flex items-center gap-1">
+                            <div className="text-sm font-medium text-foreground mb-2 flex items-center gap-1">
                               <AlertTriangle className="w-4 h-4" />
                               주의사항
                             </div>
-                            <ul className="list-disc list-inside space-y-1 text-sm text-secondary-600">
+                            <ul className="list-disc list-inside space-y-1 text-sm text-muted-foreground">
                               {formData.metadata.warnings.map((warning: string, idx: number) => (
                                 <li key={idx}>{warning}</li>
                               ))}
@@ -628,12 +628,12 @@ export function ItemDetailClient({ item: initialItem, locationPath, allLocations
                       />
                       {isEditing ? (
                         <div>
-                          <label className="text-sm font-medium text-secondary-700 mb-2 flex items-center gap-1">
+                          <label className="text-sm font-medium text-foreground mb-2 flex items-center gap-1">
                             <Info className="w-4 h-4" />
                             메모
                           </label>
                           <textarea
-                            className="w-full px-4 py-2.5 border border-secondary-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                            className="w-full px-4 py-2.5 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-ring"
                             rows={3}
                             placeholder="추가 정보를 입력하세요"
                             value={formData.metadata.notes || ''}
@@ -643,11 +643,11 @@ export function ItemDetailClient({ item: initialItem, locationPath, allLocations
                       ) : (
                         formData.metadata.notes && (
                           <div>
-                            <div className="text-sm font-medium text-secondary-700 mb-2 flex items-center gap-1">
+                            <div className="text-sm font-medium text-foreground mb-2 flex items-center gap-1">
                               <Info className="w-4 h-4" />
                               메모
                             </div>
-                            <p className="text-sm text-secondary-600 whitespace-pre-wrap">{formData.metadata.notes}</p>
+                            <p className="text-sm text-muted-foreground whitespace-pre-wrap">{formData.metadata.notes}</p>
                           </div>
                         )
                       )}
@@ -659,15 +659,15 @@ export function ItemDetailClient({ item: initialItem, locationPath, allLocations
 
             {/* Metadata - Created/Updated */}
             <Card>
-              <h2 className="text-xl font-bold text-secondary-900 mb-4">시스템 정보</h2>
+              <h2 className="text-xl font-bold text-foreground mb-4">시스템 정보</h2>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
                 <div>
-                  <div className="text-secondary-600 mb-1">등록일</div>
-                  <div className="font-medium">{formatDate(item.created_at)}</div>
+                  <div className="text-muted-foreground mb-1">등록일</div>
+                  <div className="font-medium">{item.created_at ? formatDate(item.created_at) : '-'}</div>
                 </div>
                 <div>
-                  <div className="text-secondary-600 mb-1">수정일</div>
-                  <div className="font-medium">{formatDate(item.updated_at)}</div>
+                  <div className="text-muted-foreground mb-1">수정일</div>
+                  <div className="font-medium">{item.updated_at ? formatDate(item.updated_at) : '-'}</div>
                 </div>
               </div>
             </Card>
@@ -726,7 +726,7 @@ export function ItemDetailClient({ item: initialItem, locationPath, allLocations
           </>
         }
       >
-        <p className="text-secondary-700">
+        <p className="text-foreground">
           <strong>{item.name}</strong>을(를) 삭제하면 복구할 수 없습니다.
         </p>
       </Modal>

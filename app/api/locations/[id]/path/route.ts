@@ -1,20 +1,15 @@
 import { NextRequest } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
 import {
   successResponse,
   errorResponse,
   handleError,
   CORS_HEADERS,
 } from '@/lib/api/utils'
+import { getAuthenticatedClient } from '@/lib/api/auth'
 
 /**
  * GET /api/locations/[id]/path
  * Get the hierarchical path for a location
- * 
- * @param id - Location UUID
- * 
- * Returns an array of location objects from root to the specified location
- * Example: [{ id: "...", name: "주방", icon: "🍳" }, { id: "...", name: "냉장고", icon: "🧊" }]
  */
 export async function GET(
   _request: NextRequest,
@@ -22,54 +17,60 @@ export async function GET(
 ) {
   try {
     const { id } = await params
-    
+
     // Validate UUID format
     const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
     if (!uuidRegex.test(id)) {
       return errorResponse('INVALID_ID', undefined, 400)
     }
-    
-    const supabase = await createClient()
-    
-    // First, verify the location exists
+
+    const { supabase, user } = await getAuthenticatedClient()
+
+    if (!user) {
+      return errorResponse('UNAUTHORIZED', undefined, 401)
+    }
+
+    // First, verify the location exists and belongs to user
     const { data: location, error: locationError } = await supabase
       .from('locations')
       .select('id')
       .eq('id', id)
+      .eq('user_id', user.id)
       .single()
-    
+
     if (locationError || !location) {
       return errorResponse('LOCATION_NOT_FOUND', undefined, 404)
     }
-    
-    // Build the path by traversing up the hierarchy
+
+    // Build the path by traversing up the hierarchy within the same user
     type PathLocation = { id: string; name: string; icon: string | null; parent_id: string | null }
     const path: Array<{ id: string; name: string; icon?: string | null }> = []
     let currentId: string | null = id
-    
+
     while (currentId) {
       const result = await supabase
         .from('locations')
         .select('id, name, icon, parent_id')
         .eq('id', currentId)
+        .eq('user_id', user.id)
         .single()
-      
+
       const locData = result.data as PathLocation | null
-      
+
       if (result.error || !locData) {
         break
       }
-      
+
       // Prepend to build path from root to target
       path.unshift({
         id: locData.id,
         name: locData.name,
         icon: locData.icon,
       })
-      
+
       currentId = locData.parent_id
     }
-    
+
     return successResponse({ path })
   } catch (error) {
     return handleError(error)

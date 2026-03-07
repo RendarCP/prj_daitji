@@ -23,7 +23,7 @@ export function FullPageModal({
   onClose,
   title,
   children,
-  showBackButton = true,
+  showBackButton = false,
   onBack,
   closeOnEscape = true,
   disableBodyScroll = false,
@@ -120,6 +120,13 @@ export function FullPageModal({
         {/* Header - Matching SidePanel style */}
         <div className="flex items-center justify-between p-4 border-b border-border bg-card/95 backdrop-blur-sm">
           <div className="flex items-center gap-2">
+            <button
+              onClick={startClose}
+              className="p-2 hover:bg-secondary rounded-lg transition-colors"
+              aria-label="닫기"
+            >
+              <X className="w-5 h-5" />
+            </button>
             {showBackButton && (
               <button
                 onClick={onBack ?? startClose}
@@ -138,16 +145,7 @@ export function FullPageModal({
               </h2>
             )}
           </div>
-
-          <div className="flex items-center gap-1">
-            <button
-              onClick={startClose}
-              className="p-2 hover:bg-secondary rounded-lg transition-colors"
-              aria-label="닫기"
-            >
-              <X className="w-5 h-5" />
-            </button>
-          </div>
+          <div className="w-9" aria-hidden="true" />
         </div>
 
         {/* Body */}

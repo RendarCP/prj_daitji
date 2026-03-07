@@ -95,7 +95,7 @@ export function ItemFilter({
             filters.search && (
               <button
                 onClick={() => updateFilter('search', '')}
-                className="hover:text-secondary-700"
+                className="hover:text-foreground"
                 aria-label="검색어 지우기"
               >
                 <X className="w-4 h-4" />
@@ -119,10 +119,10 @@ export function ItemFilter({
 
       {/* Advanced Filters */}
       {showAdvanced && (
-        <div className="p-4 bg-secondary-50 rounded-lg space-y-4 animate-slide-down">
+        <div className="p-4 bg-secondary/10 rounded-lg space-y-4 animate-slide-down">
           {/* Type Filter */}
           <div>
-            <label className="text-sm font-medium text-secondary-700 mb-2 block">
+            <label className="text-sm font-medium text-foreground mb-2 block">
               물품 타입
             </label>
             <div className="flex flex-wrap gap-2">
@@ -137,8 +137,8 @@ export function ItemFilter({
                     className={`
                       flex items-center gap-2 px-3 py-2 rounded-lg border-2 transition-all
                       ${isActive
-                        ? 'border-primary-500 bg-primary-50 text-primary-700'
-                        : 'border-secondary-200 bg-white text-secondary-700 hover:border-secondary-300'
+                        ? 'border-primary bg-primary/10 text-primary'
+                        : 'border-border bg-white text-foreground hover:border-border'
                       }
                     `}
                   >

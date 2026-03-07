@@ -53,13 +53,13 @@ export function PageHeader({
           )}
 
           {/* Title */}
-          <h1 className="text-2xl sm:text-3xl font-bold text-secondary-900 leading-tight">
+          <h1 className="text-2xl sm:text-3xl font-bold text-foreground leading-tight">
             {title}
           </h1>
 
           {/* Description */}
           {description && (
-            <p className="mt-2 text-base text-secondary-600">
+            <p className="mt-2 text-base text-muted-foreground">
               {description}
             </p>
           )}

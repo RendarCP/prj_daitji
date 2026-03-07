@@ -21,18 +21,18 @@ export default function ItemDetailError({
   }, [error])
 
   return (
-    <div className="min-h-screen bg-secondary-50">
+    <div className="min-h-screen bg-secondary/10">
       <Header />
       
       <main className="pb-24 pt-16">
         <div className="container mx-auto px-4 py-6 max-w-4xl">
           <Card>
             <div className="text-center py-12">
-              <AlertCircle className="w-16 h-16 text-danger-500 mx-auto mb-4" />
-              <h2 className="text-2xl font-bold text-secondary-900 mb-2">
+              <AlertCircle className="w-16 h-16 text-destructive mx-auto mb-4" />
+              <h2 className="text-2xl font-bold text-foreground mb-2">
                 오류가 발생했습니다
               </h2>
-              <p className="text-secondary-600 mb-6">
+              <p className="text-muted-foreground mb-6">
                 물품 정보를 불러오는 중 문제가 발생했습니다.
               </p>
 

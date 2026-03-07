@@ -1,5 +1,4 @@
 import { NextRequest } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
 import { ExpiringItemsQuerySchema } from '@/lib/validations/schemas'
 import {
   successResponse,
@@ -8,45 +7,66 @@ import {
   parseQueryParams,
   CORS_HEADERS,
 } from '@/lib/api/utils'
+import { getAuthenticatedClient } from '@/lib/api/auth'
+import { computeItemExpiryDate, getDaysUntilExpiry } from '@/lib/utils/expiry'
 
 /**
  * GET /api/items/expiring
  * Fetch items expiring within specified days
- * 
- * Query Parameters:
- * - days: Number of days threshold (default: 7)
- * 
- * Uses the get_expiring_items() database function which returns:
- * - item_id
- * - item_name
- * - item_type
- * - expiry_date
- * - days_until_expiry
- * - location_name
- * - location_path
  */
 export async function GET(request: NextRequest) {
   try {
     const searchParams = request.nextUrl.searchParams
     const rawParams = parseQueryParams(searchParams)
-    
+
     // Validate query parameters
     const params = ExpiringItemsQuerySchema.parse(rawParams)
-    
-    const supabase = await createClient()
-    
-    // Call the database function
-    const { data, error } = await supabase
-      .rpc('get_expiring_items', {
-        days_threshold: params.days
-      })
-    
+
+    const { supabase, user } = await getAuthenticatedClient()
+
+    if (!user) {
+      return errorResponse('UNAUTHORIZED', undefined, 401)
+    }
+
+    const { data, error } = await (supabase as any)
+      .from('items')
+      .select('id, name, type, metadata, location:locations(name)')
+      .eq('user_id', user.id)
+      .eq('status', 'ACTIVE')
+      .order('created_at', { ascending: false })
+
     if (error) {
       console.error('Database error:', error)
       return errorResponse('QUERY_ERROR', { message: error.message }, 500)
     }
-    
-    return successResponse(data || [])
+
+    const result = Array.isArray(data)
+      ? data
+          .map((row) => {
+            const expiryDate = computeItemExpiryDate(row.type, row.metadata)
+            const daysUntil = getDaysUntilExpiry(expiryDate)
+
+            return {
+              item_id: row.id,
+              item_name: row.name,
+              item_type: row.type,
+              expiry_date: expiryDate,
+              days_until_expiry: daysUntil,
+              location_name: row.location?.name ?? null,
+              location_path: null,
+            }
+          })
+          .filter(
+            (item) =>
+              item.expiry_date !== null &&
+              item.days_until_expiry !== null &&
+              item.days_until_expiry >= 0 &&
+              item.days_until_expiry <= params.days
+          )
+          .sort((a, b) => (a.days_until_expiry ?? 0) - (b.days_until_expiry ?? 0))
+      : []
+
+    return successResponse(result)
   } catch (error) {
     return handleError(error)
   }

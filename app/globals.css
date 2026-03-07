@@ -38,11 +38,14 @@
     --border: 210 12% 16%;
     --input: 210 12% 16%;
     --ring: 142 71% 45%;
+    --location-icon-fallback: #64748b;
+    --location-bg-fallback: #e5e7eb;
     
     /* Custom shadows with mint glow */
     --shadow-soft: 0 2px 8px -2px hsl(210 20% 3% / 0.3), 0 4px 16px -4px hsl(210 20% 3% / 0.4);
     --shadow-medium: 0 4px 12px -2px hsl(210 20% 3% / 0.4), 0 8px 24px -4px hsl(210 20% 3% / 0.5);
     --shadow-glow: 0 0 20px hsl(142 71% 45% / 0.3);
+    --shadow-glow-strong: 0 0 30px hsl(142 71% 45% / 0.5);
   }
 
   * {

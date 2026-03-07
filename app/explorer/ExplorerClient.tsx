@@ -5,13 +5,12 @@ import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import {
   Home,
   ChevronRight,
-  ArrowLeft,
   Search,
   SlidersHorizontal,
 } from "lucide-react";
 import { QuickAddButton } from "@/components/features/QuickAddButton";
 import { BottomNav } from "@/components/layout/BottomNav";
-import { Badge } from "@/components/ui/Badge";
+import { ItemListRowCard } from "@/components/features/ItemListRowCard";
 import {
   LocationCardSkeleton,
   ListItemSkeleton,
@@ -133,7 +132,7 @@ export default function ExplorerClient() {
   const breadcrumbItems: (
     | { id: string; name: string; isHome?: boolean }
     | Location
-  )[] = [{ id: "root", name: "Home", isHome: true }, ...breadcrumbPath];
+  )[] = [{ id: "root", name: "홈", isHome: true }, ...breadcrumbPath];
 
   const displayLocations = selectedLocationId
     ? subLocations
@@ -154,7 +153,7 @@ export default function ExplorerClient() {
           {displayLocations.length > 0 && (
             <div className="flex items-center justify-between mb-3 px-1">
               <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                {selectedLocationId ? "Sub-Locations" : "Locations"}
+                {selectedLocationId ? "하위 위치" : "위치"}
               </h2>
             </div>
           )}
@@ -181,7 +180,7 @@ export default function ExplorerClient() {
                         {location.name}
                       </h3>
                       <p className="text-xs text-muted-foreground">
-                        {location.itemCount || 0} items
+                        물품 {location.itemCount || 0}개
                       </p>
                     </div>
                   </button>
@@ -228,7 +227,7 @@ export default function ExplorerClient() {
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
             <input
               type="text"
-              placeholder="Search items..."
+              placeholder="물품 검색..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full h-10 pl-9 pr-4 rounded-xl bg-secondary/50 border-none text-sm placeholder:text-muted-foreground focus:ring-1 focus:ring-primary transition-all focus:bg-background"
@@ -247,13 +246,13 @@ export default function ExplorerClient() {
           <div className="pb-20">
             <div className="flex items-center justify-between mb-3 px-1">
               <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                Items in{" "}
+                물품 목록{" "}
                 {breadcrumbPath.length > 0
                   ? breadcrumbPath[breadcrumbPath.length - 1].name
-                  : "Current Location"}
+                  : "현재 위치"}
               </h2>
               <button className="flex items-center gap-1 text-xs font-medium text-muted-foreground hover:text-foreground">
-                Sort: Expiry <ChevronRight className="w-3 h-3 rotate-90" />
+                정렬: 유통기한순 <ChevronRight className="w-3 h-3 rotate-90" />
               </button>
             </div>
 
@@ -269,92 +268,23 @@ export default function ExplorerClient() {
                   <div className="text-2xl">📦</div>
                 </div>
                 <p className="text-sm text-muted-foreground font-medium">
-                  No items here yet
+                  아직 등록된 물품이 없어요
                 </p>
               </div>
             ) : (
               <div className="space-y-2">
                 {filteredItems.map((item: Item) => {
-                  const daysUntilExpiry = item.days_until_expiry;
-                  const isExpired =
-                    daysUntilExpiry !== null &&
-                    daysUntilExpiry !== undefined &&
-                    daysUntilExpiry < 0;
-                  const isExpiring =
-                    daysUntilExpiry !== null &&
-                    daysUntilExpiry !== undefined &&
-                    daysUntilExpiry <= 7 &&
-                    daysUntilExpiry >= 0;
-
                   return (
-                    <button
+                    <ItemListRowCard
                       key={item.id}
-                      type="button"
+                      title={item.item_name}
+                      type={item.type}
+                      imageUrl={item.image_url}
+                      locationText={item.location_path}
+                      tags={item.tags || []}
+                      daysUntilExpiry={item.days_until_expiry}
                       onClick={() => setActiveItemId(item.id)}
-                      className="w-full card hover-lift group p-3 sm:p-4 bg-card border border-border block text-left"
-                    >
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-lg bg-secondary/30 flex items-center justify-center text-xl shrink-0">
-                          {item.type === "FOOD"
-                            ? "🍽️"
-                            : item.type === "COSMETIC"
-                              ? "💄"
-                              : item.type === "MEDICINE"
-                                ? "💊"
-                                : "📦"}
-                        </div>
-                        <div className="flex-1 text-left min-w-0">
-                          <div className="flex items-center gap-2 mb-0.5">
-                            <h3 className="font-semibold text-foreground truncate text-sm">
-                              {item.item_name}
-                            </h3>
-                            {isExpired && (
-                              <Badge
-                                variant="danger"
-                                size="sm"
-                                className="h-5 px-1.5 text-[10px]"
-                              >
-                                Expired
-                              </Badge>
-                            )}
-                            {isExpiring && (
-                              <Badge
-                                variant="warning"
-                                size="sm"
-                                className="h-5 px-1.5 text-[10px]"
-                              >
-                                Expiring
-                              </Badge>
-                            )}
-                          </div>
-                          <div className="flex items-center gap-2">
-                            {item.tags && item.tags.length > 0 && (
-                              <div className="flex gap-1">
-                                {item.tags.slice(0, 2).map((tag: string) => (
-                                  <span
-                                    key={tag}
-                                    className="text-[10px] px-1.5 py-0.5 rounded bg-secondary text-muted-foreground"
-                                  >
-                                    #{tag}
-                                  </span>
-                                ))}
-                                {item.tags.length > 2 && (
-                                  <span className="text-[10px] text-muted-foreground">
-                                    +{item.tags.length - 2}
-                                  </span>
-                                )}
-                              </div>
-                            )}
-                            {(!item.tags || item.tags.length === 0) && (
-                              <p className="text-xs text-muted-foreground truncate">
-                                {item.type}
-                              </p>
-                            )}
-                          </div>
-                        </div>
-                        <ChevronRight className="w-4 h-4 text-muted-foreground/50 group-hover:text-muted-foreground transition-colors" />
-                      </div>
-                    </button>
+                    />
                   );
                 })}
               </div>

@@ -8,7 +8,7 @@ import { EmptyState } from '@/components/ui/EmptyState'
 
 export default function ItemNotFound() {
   return (
-    <div className="min-h-screen bg-secondary-50">
+    <div className="min-h-screen bg-secondary/10">
       <Header />
       
       <main className="pb-24 pt-16">

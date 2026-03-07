@@ -27,9 +27,9 @@ export const ItemMetadataSchema = z.object({
 
 // Item Form Data Schema
 export const ItemFormDataSchema = z.object({
-  name: z.string().min(1, 'Name is required').max(200),
+  name: z.string().min(1, '이름은 필수입니다').max(200),
   type: ItemTypeSchema,
-  location_id: z.string().uuid('Invalid location ID'),
+  location_id: z.string().uuid('위치 ID 형식이 올바르지 않습니다'),
   quantity: z.number().int().min(0).default(1),
   barcode: z.string().max(100).optional(),
   image_url: z.string().url().optional().or(z.literal('')),
@@ -42,7 +42,7 @@ export const ItemUpdateSchema = ItemFormDataSchema.partial()
 
 // Location Form Data Schema
 export const LocationFormDataSchema = z.object({
-  name: z.string().min(1, 'Name is required').max(100),
+  name: z.string().min(1, '이름은 필수입니다').max(100),
   level: z.number().int().min(1).max(10),
   parent_id: z.string().uuid().optional().nullable(),
   icon: z.string().max(50).optional().nullable(),

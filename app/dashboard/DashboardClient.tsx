@@ -2,11 +2,12 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Package, CheckCircle, Plus, ChevronRight } from "lucide-react";
+import { Package, CheckCircle, Plus } from "lucide-react";
 import { BottomNav } from "@/components/layout/BottomNav";
 import { Button } from "@/components/ui/Button";
 import { Alert } from "@/components/ui/Alert";
 import { QuickAddButton } from "@/components/features/QuickAddButton";
+import { ItemListRowCard } from "@/components/features/ItemListRowCard";
 import { LocationDetailPanel } from "@/components/ui/LocationDetailPanel";
 import { BottomSheet } from "@/components/ui/BottomSheet";
 import { ItemAddClient } from "@/app/items/add/ItemAddClient";
@@ -44,8 +45,6 @@ export function DashboardClient() {
   // React Query hooks
   const {
     data: stats,
-    isLoading: isStatsLoading,
-    error: statsError,
   } = useDashboardStats();
   const {
     data: expiringItems = [],
@@ -275,32 +274,16 @@ export function DashboardClient() {
           ) : (
             <div className="space-y-2 stagger-children">
               {recentItems.slice(0, 5).map((item) => (
-                <button
+                <ItemListRowCard
                   key={item.id}
+                  title={item.item_name}
+                  type={item.type}
+                  imageUrl={item.image_url}
+                  locationText={item.location_path}
+                  tags={item.tags || []}
+                  daysUntilExpiry={item.days_until_expiry}
                   onClick={() => handleItemClick(item)}
-                  className="w-full card hover-lift group"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="text-3xl flex-shrink-0">
-                      {item.type === "FOOD"
-                        ? "🍽️"
-                        : item.type === "COSMETIC"
-                          ? "💄"
-                          : item.type === "MEDICINE"
-                            ? "💊"
-                            : "📦"}
-                    </div>
-                    <div className="flex-1 text-left min-w-0">
-                      <h3 className="font-semibold text-foreground mb-0.5 truncate">
-                        {item.item_name}
-                      </h3>
-                      <p className="text-xs text-muted-foreground truncate">
-                        {item.location_path || "위치 미지정"}
-                      </p>
-                    </div>
-                    <ChevronRight className="w-5 h-5 text-muted-foreground flex-shrink-0" />
-                  </div>
-                </button>
+                />
               ))}
             </div>
           )}

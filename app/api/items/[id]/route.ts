@@ -1,40 +1,45 @@
-import { NextRequest } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
-import { ItemUpdateSchema } from '@/lib/validations/schemas'
+import { NextRequest } from "next/server";
+import { ItemUpdateSchema } from "@/lib/validations/schemas";
 import {
   successResponse,
   errorResponse,
   handleError,
   CORS_HEADERS,
-} from '@/lib/api/utils'
+} from "@/lib/api/utils";
+import { getAuthenticatedClient } from "@/lib/api/auth";
 
-// Keep API execution close to Supabase region on Vercel.
 export const preferredRegion = "icn1";
 
 /**
  * GET /api/items/[id]
  * Fetch a single item by ID with location information
- * 
+ *
  * @param id - Item UUID
  */
 export async function GET(
   _request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
-    const { id } = await params
-    
+    const { id } = await params;
+
     // Validate UUID format
-    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+    const uuidRegex =
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
     if (!uuidRegex.test(id)) {
-      return errorResponse('INVALID_ID', undefined, 400)
+      return errorResponse("INVALID_ID", undefined, 400);
     }
-    
-    const supabase = await createClient()
-    
+
+    const { supabase, user } = await getAuthenticatedClient();
+
+    if (!user) {
+      return errorResponse("UNAUTHORIZED", undefined, 401);
+    }
+
     const { data, error } = await supabase
-      .from('items')
-      .select(`
+      .from("items")
+      .select(
+        `
         id,
         name,
         type,
@@ -60,89 +65,88 @@ export async function GET(
           updated_at,
           user_id
         )
-      `)
-      .eq('id', id)
-      .single()
-    
+      `,
+      )
+      .eq("id", id)
+      .eq("user_id", user.id)
+      .single();
+
     if (error) {
-      if (error.code === 'PGRST116') {
-        return errorResponse('ITEM_NOT_FOUND', undefined, 404)
+      if (error.code === "PGRST116") {
+        return errorResponse("ITEM_NOT_FOUND", undefined, 404);
       }
-      console.error('Database error:', error)
-      return errorResponse('QUERY_ERROR', { message: error.message }, 500)
+      console.error("Database error:", error);
+      return errorResponse("QUERY_ERROR", { message: error.message }, 500);
     }
-    
-    return successResponse(data)
+
+    return successResponse(data);
   } catch (error) {
-    return handleError(error)
+    return handleError(error);
   }
 }
 
 /**
  * PATCH /api/items/[id]
  * Update an existing item
- * 
- * @param id - Item UUID
- * 
- * Request Body (all fields optional):
- * {
- *   name?: string
- *   type?: 'FOOD' | 'COSMETIC' | 'MEDICINE' | 'GENERAL'
- *   location_id?: string (UUID)
- *   quantity?: number
- *   barcode?: string
- *   image_url?: string
- *   tags?: string[]
- *   metadata?: object
- * }
  */
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
-    const { id } = await params
-    
+    const { id } = await params;
+
     // Validate UUID format
-    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+    const uuidRegex =
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
     if (!uuidRegex.test(id)) {
-      return errorResponse('INVALID_ID', undefined, 400)
+      return errorResponse("INVALID_ID", undefined, 400);
     }
-    
-    const body = await request.json()
-    
+
+    const body = await request.json();
+
     // Validate request body (partial update)
-    const validatedData = ItemUpdateSchema.parse(body)
-    
+    const validatedData = ItemUpdateSchema.parse(body);
+
     // Check if update data is empty
     if (Object.keys(validatedData).length === 0) {
-      return errorResponse('VALIDATION_ERROR', { message: 'No fields to update' }, 400)
+      return errorResponse(
+        "VALIDATION_ERROR",
+        { message: "업데이트할 필드가 없습니다" },
+        400,
+      );
     }
-    
-    const supabase = await createClient()
-    
-    // If location_id is being updated, verify it exists
+
+    const { supabase, user } = await getAuthenticatedClient();
+
+    if (!user) {
+      return errorResponse("UNAUTHORIZED", undefined, 401);
+    }
+
+    // If location_id is being updated, verify it exists and belongs to user
     if (validatedData.location_id) {
       const { data: location, error: locationError } = await supabase
-        .from('locations')
-        .select('id')
-        .eq('id', validatedData.location_id)
-        .single()
-      
+        .from("locations")
+        .select("id")
+        .eq("id", validatedData.location_id)
+        .eq("user_id", user.id)
+        .single();
+
       if (locationError || !location) {
-        return errorResponse('LOCATION_NOT_FOUND', undefined, 404)
+        return errorResponse("LOCATION_NOT_FOUND", undefined, 404);
       }
     }
-    
+
     // Update item
-    const { data, error } = await (supabase
-      .from('items') as any)
+    const { data, error } = await (supabase.from("items") as any)
       .update({
         ...validatedData,
         updated_at: new Date().toISOString(),
       })
-      .eq('id', id)
-      .select(`
+      .eq("id", id)
+      .eq("user_id", user.id)
+      .select(
+        `
         id,
         name,
         type,
@@ -168,60 +172,71 @@ export async function PATCH(
           updated_at,
           user_id
         )
-      `)
-      .single()
-    
+      `,
+      )
+      .single();
+
     if (error) {
-      if (error.code === 'PGRST116') {
-        return errorResponse('ITEM_NOT_FOUND', undefined, 404)
+      if (error.code === "PGRST116") {
+        return errorResponse("ITEM_NOT_FOUND", undefined, 404);
       }
-      console.error('Database error:', error)
-      return errorResponse('DATABASE_ERROR', { message: error.message }, 500)
+      console.error("Database error:", error);
+      return errorResponse("DATABASE_ERROR", { message: error.message }, 500);
     }
-    
-    return successResponse(data)
+
+    return successResponse(data);
   } catch (error) {
-    return handleError(error)
+    return handleError(error);
   }
 }
 
 /**
  * DELETE /api/items/[id]
  * Delete an item by ID
- * 
+ *
  * @param id - Item UUID
  */
 export async function DELETE(
   _request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
-    const { id } = await params
-    
+    const { id } = await params;
+
     // Validate UUID format
-    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+    const uuidRegex =
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
     if (!uuidRegex.test(id)) {
-      return errorResponse('INVALID_ID', undefined, 400)
+      return errorResponse("INVALID_ID", undefined, 400);
     }
-    
-    const supabase = await createClient()
-    
+
+    const { supabase, user } = await getAuthenticatedClient();
+
+    if (!user) {
+      return errorResponse("UNAUTHORIZED", undefined, 401);
+    }
+
     const { error } = await supabase
-      .from('items')
+      .from("items")
       .delete()
-      .eq('id', id)
-    
+      .eq("id", id)
+      .eq("user_id", user.id);
+
     if (error) {
-      if (error.code === 'PGRST116') {
-        return errorResponse('ITEM_NOT_FOUND', undefined, 404)
+      if (error.code === "PGRST116") {
+        return errorResponse("ITEM_NOT_FOUND", undefined, 404);
       }
-      console.error('Database error:', error)
-      return errorResponse('DATABASE_ERROR', { message: error.message }, 500)
+      console.error("Database error:", error);
+      return errorResponse("DATABASE_ERROR", { message: error.message }, 500);
     }
-    
-    return successResponse({ message: 'Item deleted successfully' }, undefined, 200)
+
+    return successResponse(
+      { message: "물품을 성공적으로 삭제했습니다" },
+      undefined,
+      200,
+    );
   } catch (error) {
-    return handleError(error)
+    return handleError(error);
   }
 }
 
@@ -232,5 +247,5 @@ export async function OPTIONS() {
   return new Response(null, {
     status: 204,
     headers: CORS_HEADERS,
-  })
+  });
 }

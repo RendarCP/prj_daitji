@@ -6,6 +6,7 @@ import { SidePanel } from './SidePanel'
 import { Badge } from './Badge'
 import { Spinner } from './Spinner'
 import { cn } from '@/lib/utils/cn'
+import { FALLBACK_COLORS } from '@/lib/constants/colors'
 
 interface Location {
   id: string
@@ -114,7 +115,7 @@ export function LocationDetailPanel({
         <div className="text-center">
           <div
             className="w-20 h-20 rounded-2xl mx-auto mb-4 flex items-center justify-center"
-            style={{ backgroundColor: location.color || '#E5E7EB' }}
+            style={{ backgroundColor: location.color || FALLBACK_COLORS.locationBackground }}
           >
             <span className="text-5xl">{location.icon || '📦'}</span>
           </div>
@@ -148,7 +149,7 @@ export function LocationDetailPanel({
                       <div className="flex flex-col items-center text-center">
                         <div
                           className="w-12 h-12 rounded-xl mb-2 flex items-center justify-center"
-                          style={{ backgroundColor: subLoc.color || '#E5E7EB' }}
+                          style={{ backgroundColor: subLoc.color || FALLBACK_COLORS.locationBackground }}
                         >
                           <span className="text-2xl">{subLoc.icon || '📦'}</span>
                         </div>

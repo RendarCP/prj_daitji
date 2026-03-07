@@ -94,7 +94,7 @@ export function ItemList({
       {/* Toolbar */}
       <div className="flex items-center justify-between gap-4 flex-wrap">
         <div className="flex items-center gap-2">
-          <span className="text-sm text-secondary-600 font-medium">
+          <span className="text-sm text-muted-foreground font-medium">
             총 {items.length}개
           </span>
         </div>
@@ -111,7 +111,7 @@ export function ItemList({
           />
 
           {/* View Mode Toggle */}
-          <div className="flex items-center bg-secondary-100 rounded-lg p-1">
+          <div className="flex items-center bg-secondary/20 rounded-lg p-1">
             <Button
               size="sm"
               variant={currentViewMode === 'grid' ? 'secondary' : 'ghost'}

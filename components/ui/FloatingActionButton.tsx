@@ -23,7 +23,7 @@ export function FloatingActionButton({
         'fixed bottom-20 right-6 md:bottom-8 md:right-8',
         'w-14 h-14 rounded-full',
         'bg-primary text-primary-foreground',
-        'shadow-glow hover:shadow-[0_0_30px_hsl(142_71%_45%/0.5)]',
+        'shadow-glow hover:shadow-glow-strong',
         'flex items-center justify-center',
         'transition-all duration-200',
         'hover:scale-110 active:scale-95',

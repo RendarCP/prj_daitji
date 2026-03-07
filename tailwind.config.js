@@ -50,6 +50,7 @@ module.exports = {
         soft: 'var(--shadow-soft)',
         medium: 'var(--shadow-medium)',
         glow: 'var(--shadow-glow)',
+        'glow-strong': 'var(--shadow-glow-strong)',
       },
       fontFamily: {
         sans: ['var(--font-geist-sans)', 'ui-sans-serif', 'system-ui', 'sans-serif'],

@@ -1,5 +1,4 @@
 import { NextRequest } from "next/server";
-import { createClient } from "@/lib/supabase/server";
 import {
   ItemFormDataSchema,
   ItemsQuerySchema,
@@ -16,24 +15,93 @@ import {
   getPaginationMeta,
   CORS_HEADERS,
 } from "@/lib/api/utils";
+import { getAuthenticatedClient } from "@/lib/api/auth";
+import { computeItemExpiryDate, getDaysUntilExpiry } from "@/lib/utils/expiry";
 
-// Keep API execution close to Supabase region on Vercel.
 export const preferredRegion = "icn1";
+
+function mapItemRowToResponse(row: Record<string, any>) {
+  const computedExpiryDate = computeItemExpiryDate(
+    row.type as "FOOD" | "COSMETIC" | "MEDICINE" | "GENERAL",
+    row.metadata,
+  );
+  const daysUntilExpiry = getDaysUntilExpiry(computedExpiryDate);
+
+  return {
+    id: row.id,
+    item_name: row.name,
+    type: row.type,
+    status: row.status,
+    quantity: row.quantity,
+    barcode: row.barcode,
+    image_url: row.image_url,
+    tags: row.tags,
+    metadata: row.metadata,
+    computed_expiry_date: computedExpiryDate,
+    days_until_expiry: daysUntilExpiry,
+    location_id: row.location_id,
+    location_name: row.location?.name ?? null,
+    location_level: row.location?.level ?? null,
+    location_path: null,
+    created_at: row.created_at,
+    updated_at: row.updated_at,
+  };
+}
+
+async function getUserLocationSubtreeIds(
+  supabase: any,
+  userId: string,
+  rootLocationId: string,
+): Promise<string[]> {
+  const { data: locations, error } = await supabase
+    .from("locations")
+    .select("id, parent_id")
+    .eq("user_id", userId);
+
+  if (error || !Array.isArray(locations)) {
+    return [];
+  }
+
+  const byParent = new Map<string, string[]>();
+  let rootExists = false;
+
+  for (const location of locations) {
+    if (location.id === rootLocationId) {
+      rootExists = true;
+    }
+
+    if (!location.parent_id) {
+      continue;
+    }
+
+    const children = byParent.get(location.parent_id) ?? [];
+    children.push(location.id);
+    byParent.set(location.parent_id, children);
+  }
+
+  if (!rootExists) {
+    return [];
+  }
+
+  const result: string[] = [];
+  const queue: string[] = [rootLocationId];
+
+  while (queue.length > 0) {
+    const currentId = queue.shift()!;
+    result.push(currentId);
+
+    const children = byParent.get(currentId) ?? [];
+    for (const childId of children) {
+      queue.push(childId);
+    }
+  }
+
+  return result;
+}
 
 /**
  * GET /api/items
  * Fetch items with filtering, sorting, and pagination
- *
- * Query Parameters:
- * - type: Filter by item type (comma-separated)
- * - status: Filter by item status (comma-separated)
- * - location_id: Filter by location UUID (includes items in that location and all descendant locations)
- * - search: Search by item name (case-insensitive)
- * - expiring_within_days: Filter items expiring within N days
- * - page: Page number (default: 1)
- * - per_page: Items per page (default: 20, max: 100)
- * - sort_by: Sort field (default: created_at)
- * - sort_dir: Sort direction (asc/desc, default: desc)
  */
 export async function GET(request: NextRequest) {
   try {
@@ -43,54 +111,67 @@ export async function GET(request: NextRequest) {
     // Validate query parameters
     const params = ItemsQuerySchema.parse(rawParams);
 
-    const supabase = await createClient();
+    const { supabase, user } = await getAuthenticatedClient();
 
-    // location_id가 있으면 해당 위치 + 하위 전체 id로 변환 (주방 선택 시 냉장실 아이템도 포함)
+    if (!user) {
+      return errorResponse("UNAUTHORIZED", undefined, 401);
+    }
+
     const resolvedParams: ItemsQueryInput & { location_ids?: string[] } = {
       ...params,
     };
 
     if (params.location_id) {
-      const { data: rawSubtree } = await (supabase.rpc as any)(
-        "get_location_ids_in_subtree",
-        {
-          location_uuid: params.location_id,
-        },
+      const subtreeIds = await getUserLocationSubtreeIds(
+        supabase,
+        user.id,
+        params.location_id,
       );
-      const subtreeIds = Array.isArray(rawSubtree)
-        ? (rawSubtree as any[])
-            .map((row: string | { get_location_ids_in_subtree: string }) =>
-              typeof row === "string" ? row : row?.get_location_ids_in_subtree,
-            )
-            .filter(Boolean)
-        : [];
-      if (subtreeIds.length) {
-        resolvedParams.location_ids = subtreeIds;
-        delete resolvedParams.location_id;
+
+      if (subtreeIds.length === 0) {
+        const meta = getPaginationMeta(0, params.page, params.per_page);
+        return successResponse([], meta);
       }
+
+      resolvedParams.location_ids = subtreeIds;
+      delete resolvedParams.location_id;
     }
 
-    // Use view for better performance with location data
     let query = supabase
-      .from("v_active_items_with_location")
-      .select("*", { count: "exact" });
+      .from("items")
+      .select(
+        `
+        id,
+        name,
+        type,
+        status,
+        quantity,
+        barcode,
+        image_url,
+        tags,
+        metadata,
+        location_id,
+        created_at,
+        updated_at,
+        location:locations(id, name, level)
+      `,
+        { count: "exact" },
+      )
+      .eq("user_id", user.id);
 
     // Apply filters
     query = applyFilters(query, resolvedParams);
 
-    // Apply expiry filter if provided
-    if (params.expiring_within_days !== undefined) {
-      query = query
-        .not("days_until_expiry", "is", null)
-        .lte("days_until_expiry", params.expiring_within_days)
-        .gte("days_until_expiry", 0);
-    }
+    // Allow view field aliases for backwards compatibility
+    const sortBy = params.sort_by === "item_name" ? "name" : params.sort_by;
 
     // Apply sorting
-    query = applySorting(query, params.sort_by, params.sort_dir);
+    query = applySorting(query, sortBy, params.sort_dir);
 
-    // Apply pagination
-    query = applyPagination(query, params.page, params.per_page);
+    // expiring_within_days는 앱 로직으로 계산하기 위해 전체 후보를 가져온 뒤 필터링
+    if (params.expiring_within_days === undefined) {
+      query = applyPagination(query, params.page, params.per_page);
+    }
 
     const { data, error, count } = await query;
 
@@ -99,10 +180,29 @@ export async function GET(request: NextRequest) {
       return errorResponse("QUERY_ERROR", { message: error.message }, 500);
     }
 
-    // Calculate pagination metadata
-    const meta = getPaginationMeta(count || 0, params.page, params.per_page);
+    let mappedData = Array.isArray(data)
+      ? data.map((row) => mapItemRowToResponse(row as Record<string, any>))
+      : [];
 
-    return successResponse(data || [], meta);
+    let totalCount = count || 0;
+
+    if (params.expiring_within_days !== undefined) {
+      mappedData = mappedData.filter((item) => {
+        const days = item.days_until_expiry;
+        return days !== null && days >= 0 && days <= params.expiring_within_days!;
+      });
+
+      totalCount = mappedData.length;
+
+      const from = (params.page - 1) * params.per_page;
+      const to = from + params.per_page;
+      mappedData = mappedData.slice(from, to);
+    }
+
+    // Calculate pagination metadata
+    const meta = getPaginationMeta(totalCount, params.page, params.per_page);
+
+    return successResponse(mappedData, meta);
   } catch (error) {
     return handleError(error);
   }
@@ -111,18 +211,6 @@ export async function GET(request: NextRequest) {
 /**
  * POST /api/items
  * Create a new item
- *
- * Request Body:
- * {
- *   name: string (required)
- *   type: 'FOOD' | 'COSMETIC' | 'MEDICINE' | 'GENERAL' (required)
- *   location_id: string (required, UUID)
- *   quantity: number (default: 1)
- *   barcode?: string
- *   image_url?: string
- *   tags?: string[]
- *   metadata?: object
- * }
  */
 export async function POST(request: NextRequest) {
   try {
@@ -131,13 +219,18 @@ export async function POST(request: NextRequest) {
     // Validate request body
     const validatedData = ItemFormDataSchema.parse(body);
 
-    const supabase = await createClient();
+    const { supabase, user } = await getAuthenticatedClient();
 
-    // Verify location exists
+    if (!user) {
+      return errorResponse("UNAUTHORIZED", undefined, 401);
+    }
+
+    // Verify location exists and belongs to authenticated user
     const { data: location, error: locationError } = await supabase
       .from("locations")
       .select("id")
       .eq("id", validatedData.location_id)
+      .eq("user_id", user.id)
       .single();
 
     if (locationError || !location) {
@@ -156,6 +249,7 @@ export async function POST(request: NextRequest) {
         image_url: validatedData.image_url || null,
         tags: validatedData.tags,
         metadata: validatedData.metadata,
+        user_id: user.id,
       } as any)
       .select(
         `

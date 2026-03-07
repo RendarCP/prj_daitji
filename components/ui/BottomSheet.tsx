@@ -1,23 +1,23 @@
-'use client'
+"use client";
 
-import { ReactNode, useEffect, useCallback, useRef, useState } from 'react'
-import { X } from 'lucide-react'
-import { cn } from '@/lib/utils/cn'
+import { ReactNode, useEffect, useCallback, useRef, useState } from "react";
+import { X } from "lucide-react";
+import { cn } from "@/lib/utils/cn";
 
 export interface BottomSheetProps {
-  isOpen: boolean
-  onClose: () => void
-  title?: string
-  children: ReactNode
-  closeOnOverlayClick?: boolean
-  closeOnEscape?: boolean
-  showDragHandle?: boolean
-  currentStep?: number
-  totalSteps?: number
-  maxHeight?: string
+  isOpen: boolean;
+  onClose: () => void;
+  title?: string;
+  children: ReactNode;
+  closeOnOverlayClick?: boolean;
+  closeOnEscape?: boolean;
+  showDragHandle?: boolean;
+  currentStep?: number;
+  totalSteps?: number;
+  maxHeight?: string;
 }
 
-const SHEET_ANIMATION_MS = 300
+const SHEET_ANIMATION_MS = 300;
 
 export function BottomSheet({
   isOpen,
@@ -29,86 +29,121 @@ export function BottomSheet({
   showDragHandle = true,
   currentStep,
   totalSteps,
-  maxHeight = 'max-h-[80vh]',
+  maxHeight = "max-h-[80vh]",
 }: BottomSheetProps) {
-  const [shouldRender, setShouldRender] = useState(isOpen)
-  const [isClosing, setIsClosing] = useState(false)
-  const closeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const [shouldRender, setShouldRender] = useState(isOpen);
+  const [isClosing, setIsClosing] = useState(false);
+  const unmountTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const closeCallbackTimerRef = useRef<ReturnType<typeof setTimeout> | null>(
+    null,
+  );
+
+  const requestClose = useCallback(() => {
+    if (isClosing) return;
+
+    setIsClosing(true);
+
+    if (closeCallbackTimerRef.current) {
+      clearTimeout(closeCallbackTimerRef.current);
+    }
+
+    closeCallbackTimerRef.current = setTimeout(() => {
+      onClose();
+    }, SHEET_ANIMATION_MS);
+  }, [isClosing, onClose]);
 
   const handleEscape = useCallback(
     (e: KeyboardEvent) => {
-      if (closeOnEscape && e.key === 'Escape') {
-        onClose()
+      if (closeOnEscape && e.key === "Escape") {
+        requestClose();
       }
     },
-    [closeOnEscape, onClose]
-  )
+    [closeOnEscape, requestClose],
+  );
 
   useEffect(() => {
     if (isOpen) {
-      setShouldRender(true)
-      setIsClosing(false)
-      if (closeTimerRef.current) {
-        clearTimeout(closeTimerRef.current)
-        closeTimerRef.current = null
+      setShouldRender(true);
+      setIsClosing(false);
+      if (unmountTimerRef.current) {
+        clearTimeout(unmountTimerRef.current);
+        unmountTimerRef.current = null;
       }
-      return
+      if (closeCallbackTimerRef.current) {
+        clearTimeout(closeCallbackTimerRef.current);
+        closeCallbackTimerRef.current = null;
+      }
+      return;
     }
 
-    if (!shouldRender) return
+    if (!shouldRender) return;
 
-    setIsClosing(true)
-    closeTimerRef.current = setTimeout(() => {
-      setShouldRender(false)
-      setIsClosing(false)
-    }, SHEET_ANIMATION_MS)
+    setIsClosing(true);
+    unmountTimerRef.current = setTimeout(() => {
+      setShouldRender(false);
+      setIsClosing(false);
+    }, SHEET_ANIMATION_MS);
 
     return () => {
-      if (closeTimerRef.current) {
-        clearTimeout(closeTimerRef.current)
+      if (unmountTimerRef.current) {
+        clearTimeout(unmountTimerRef.current);
       }
-    }
-  }, [isOpen, shouldRender])
+      if (closeCallbackTimerRef.current) {
+        clearTimeout(closeCallbackTimerRef.current);
+      }
+    };
+  }, [isOpen, shouldRender]);
+
+  useEffect(() => {
+    return () => {
+      if (unmountTimerRef.current) {
+        clearTimeout(unmountTimerRef.current);
+      }
+      if (closeCallbackTimerRef.current) {
+        clearTimeout(closeCallbackTimerRef.current);
+      }
+    };
+  }, []);
 
   useEffect(() => {
     if (shouldRender) {
-      document.body.style.overflow = 'hidden'
-      document.addEventListener('keydown', handleEscape)
+      document.body.style.overflow = "hidden";
+      document.addEventListener("keydown", handleEscape);
     }
 
     return () => {
-      document.body.style.overflow = 'unset'
-      document.removeEventListener('keydown', handleEscape)
-    }
-  }, [shouldRender, handleEscape])
+      document.body.style.overflow = "unset";
+      document.removeEventListener("keydown", handleEscape);
+    };
+  }, [shouldRender, handleEscape]);
 
-  if (!shouldRender) return null
+  if (!shouldRender) return null;
 
   return (
-    <div 
+    <div
       className="fixed inset-0 z-50 flex items-end justify-center"
       role="dialog"
       aria-modal="true"
-      aria-labelledby={title ? 'bottom-sheet-title' : undefined}
+      aria-labelledby={title ? "bottom-sheet-title" : undefined}
     >
       {/* Overlay */}
-      <div 
+      <div
         className={cn(
-          'absolute inset-0 bg-black/60 backdrop-blur-sm transition-opacity duration-300',
-          isClosing ? 'opacity-0' : 'opacity-100'
+          "absolute inset-0 bg-black/60 backdrop-blur-sm transition-opacity duration-300",
+          isClosing ? "opacity-0" : "opacity-100",
         )}
-        onClick={closeOnOverlayClick ? onClose : undefined}
+        onClick={closeOnOverlayClick ? requestClose : undefined}
         aria-hidden="true"
       />
-      
+
       {/* Sheet Content */}
-      <div 
+      <div
         className={cn(
-          'relative bg-card w-full rounded-t-3xl',
-          'flex flex-col overflow-hidden',
-          isClosing ? 'animate-slide-down-sheet' : 'animate-slide-up-sheet',
-          'shadow-2xl',
-          maxHeight
+          "relative bg-card w-full rounded-t-3xl",
+          "flex flex-col overflow-hidden",
+          isClosing ? "animate-slide-down-sheet" : "animate-slide-up-sheet",
+          "shadow-2xl",
+          maxHeight,
         )}
       >
         {/* Drag Handle */}
@@ -122,7 +157,10 @@ export function BottomSheet({
         <div className="flex items-center justify-between px-6 py-4 border-b border-border">
           <div className="flex-1">
             {title && (
-              <h2 id="bottom-sheet-title" className="text-xl font-bold text-foreground">
+              <h2
+                id="bottom-sheet-title"
+                className="text-xl font-bold text-foreground"
+              >
                 {title}
               </h2>
             )}
@@ -133,12 +171,12 @@ export function BottomSheet({
                     <div
                       key={index}
                       className={cn(
-                        'h-1 flex-1 rounded-full transition-colors',
+                        "h-1 flex-1 rounded-full transition-colors",
                         index < currentStep
-                          ? 'bg-primary'
+                          ? "bg-primary"
                           : index === currentStep
-                          ? 'bg-primary/60'
-                          : 'bg-muted'
+                            ? "bg-primary/60"
+                            : "bg-muted",
                       )}
                     />
                   ))}
@@ -149,9 +187,9 @@ export function BottomSheet({
               </div>
             )}
           </div>
-          
+
           <button
-            onClick={onClose}
+            onClick={requestClose}
             className="p-2 hover:bg-secondary rounded-lg transition-colors ml-4"
             aria-label="닫기"
           >
@@ -160,10 +198,8 @@ export function BottomSheet({
         </div>
 
         {/* Body */}
-        <div className="flex-1 overflow-y-auto px-6 py-4">
-          {children}
-        </div>
+        <div className="flex-1 overflow-y-auto">{children}</div>
       </div>
     </div>
-  )
+  );
 }

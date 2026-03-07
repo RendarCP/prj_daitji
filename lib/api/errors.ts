@@ -6,59 +6,63 @@ export const API_ERRORS = {
   // Validation errors
   VALIDATION_ERROR: {
     code: 'VALIDATION_ERROR',
-    message: 'Invalid request data',
+    message: '요청 데이터가 올바르지 않습니다',
   },
   INVALID_ID: {
     code: 'INVALID_ID',
-    message: 'Invalid ID format',
+    message: 'ID 형식이 올바르지 않습니다',
   },
 
   // Resource errors
   NOT_FOUND: {
     code: 'NOT_FOUND',
-    message: 'Resource not found',
+    message: '요청한 리소스를 찾을 수 없습니다',
   },
   ITEM_NOT_FOUND: {
     code: 'ITEM_NOT_FOUND',
-    message: 'Item not found',
+    message: '물품을 찾을 수 없습니다',
   },
   LOCATION_NOT_FOUND: {
     code: 'LOCATION_NOT_FOUND',
-    message: 'Location not found',
+    message: '위치를 찾을 수 없습니다',
   },
 
   // Business logic errors
   LOCATION_HAS_ITEMS: {
     code: 'LOCATION_HAS_ITEMS',
-    message: 'Cannot delete location with items',
+    message: '물품이 있는 위치는 삭제할 수 없습니다',
   },
   LOCATION_HAS_CHILDREN: {
     code: 'LOCATION_HAS_CHILDREN',
-    message: 'Cannot delete location with child locations',
+    message: '하위 위치가 있는 위치는 삭제할 수 없습니다',
   },
   INVALID_PARENT: {
     code: 'INVALID_PARENT',
-    message: 'Invalid parent location',
+    message: '부모 위치가 올바르지 않습니다',
   },
 
   // Database errors
   DATABASE_ERROR: {
     code: 'DATABASE_ERROR',
-    message: 'Database operation failed',
+    message: '데이터베이스 작업에 실패했습니다',
   },
   QUERY_ERROR: {
     code: 'QUERY_ERROR',
-    message: 'Failed to execute query',
+    message: '쿼리 실행에 실패했습니다',
+  },
+  UNAUTHORIZED: {
+    code: 'UNAUTHORIZED',
+    message: '로그인이 필요합니다',
   },
 
   // Server errors
   INTERNAL_ERROR: {
     code: 'INTERNAL_ERROR',
-    message: 'Internal server error',
+    message: '서버 내부 오류가 발생했습니다',
   },
   UNKNOWN_ERROR: {
     code: 'UNKNOWN_ERROR',
-    message: 'An unexpected error occurred',
+    message: '예상치 못한 오류가 발생했습니다',
   },
 } as const
 

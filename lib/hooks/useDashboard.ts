@@ -8,7 +8,7 @@ async function fetchDashboardStats(): Promise<DashboardStats> {
   const result = await response.json()
 
   if (!result.success) {
-    throw new Error(result.error?.message || 'Failed to fetch dashboard stats')
+    throw new Error(result.error?.message || '대시보드 통계를 불러오지 못했습니다')
   }
 
   return result.data
@@ -26,7 +26,7 @@ async function fetchRecentItems(): Promise<Item[]> {
   const result = await response.json()
 
   if (!result.success) {
-    throw new Error(result.error?.message || 'Failed to fetch recent items')
+    throw new Error(result.error?.message || '최근 물품을 불러오지 못했습니다')
   }
 
   return result.data || []
@@ -44,7 +44,7 @@ async function fetchLocationSummary(): Promise<Location[]> {
   const result = await response.json()
 
   if (!result.success) {
-    throw new Error(result.error?.message || 'Failed to fetch location summary')
+    throw new Error(result.error?.message || '위치 요약 정보를 불러오지 못했습니다')
   }
 
   return result.data || []

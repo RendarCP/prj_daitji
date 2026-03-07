@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { Heart, Edit, MapPin, Plus, Calendar } from "lucide-react";
+import { useEffect, useState } from "react";
+import { Edit, MapPin, Calendar } from "lucide-react";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { cn } from "@/lib/utils/cn";
@@ -64,8 +64,6 @@ export function ItemDetailContent({ item, onEdit }: ItemDetailContentProps) {
     if (item) setDisplayItem(item);
   }, [item]);
 
-  const [newTag, setNewTag] = useState("");
-
   if (!displayItem) return null;
 
   const itemName = displayItem.item_name || displayItem.name || "이름 없음";
@@ -73,20 +71,13 @@ export function ItemDetailContent({ item, onEdit }: ItemDetailContentProps) {
   const emoji = getEmojiByType(itemType);
   const locationPath =
     displayItem.location_path || displayItem.location_name || "위치 미지정";
-  const tags = displayItem.tags || [];
+  const tags: string[] = displayItem.tags || [];
   const quantity = displayItem.quantity ?? null;
   const expiryDate =
     displayItem.computed_expiry_date || displayItem.expiry_date;
   const createdAt = displayItem.created_at;
   const daysUntilExpiry = displayItem.days_until_expiry;
   const expiryStatus = getExpiryStatus(daysUntilExpiry);
-
-  const handleAddTag = () => {
-    if (newTag.trim()) {
-      // TODO: Implement tag addition API call
-      setNewTag("");
-    }
-  };
 
   return (
     <div className="flex flex-col h-full bg-background no-scrollbar relative">
@@ -140,9 +131,9 @@ export function ItemDetailContent({ item, onEdit }: ItemDetailContentProps) {
           <label className="text-xs font-bold text-muted-foreground uppercase tracking-widest pl-1">
             Location
           </label>
-          <div className="bg-secondary/10 rounded-2xl p-5 border border-white/5 hover:border-white/10 transition-colors">
+          <div className="bg-secondary/10 rounded-2xl p-5 border border-border/50 hover:border-border/70 transition-colors">
             <div className="flex items-center gap-3">
-              <MapPin className="w-5 h-5 text-red-400 flex-shrink-0" />
+              <MapPin className="w-5 h-5 text-destructive flex-shrink-0" />
               <p className="text-foreground/90 font-medium text-lg leading-relaxed">
                 {locationPath.replace(/\s>\s/g, " , ")}
               </p>
@@ -157,7 +148,7 @@ export function ItemDetailContent({ item, onEdit }: ItemDetailContentProps) {
           </label>
           <div className="grid grid-cols-2 gap-4">
             {/* 갯수 */}
-            <div className="bg-secondary/10 rounded-2xl p-5 border border-white/5 hover:border-white/10 transition-colors flex flex-col justify-between h-32">
+            <div className="bg-secondary/10 rounded-2xl p-5 border border-border/50 hover:border-border/70 transition-colors flex flex-col justify-between h-32">
               <span className="text-sm font-medium text-muted-foreground">
                 갯수
               </span>
@@ -175,8 +166,8 @@ export function ItemDetailContent({ item, onEdit }: ItemDetailContentProps) {
               className={cn(
                 "rounded-2xl p-5 border transition-colors flex flex-col justify-between h-32 relative overflow-hidden group",
                 expiryStatus === "expired"
-                  ? "bg-red-500/10 border-red-500/20"
-                  : "bg-secondary/10 border-white/5 hover:border-white/10",
+                  ? "status-expired"
+                  : "bg-secondary/10 border-border/50 hover:border-border/70",
               )}
             >
               <div className="flex justify-between items-start">
@@ -184,7 +175,7 @@ export function ItemDetailContent({ item, onEdit }: ItemDetailContentProps) {
                   className={cn(
                     "text-sm font-medium",
                     expiryStatus === "expired"
-                      ? "text-red-400"
+                      ? "text-destructive"
                       : "text-muted-foreground",
                   )}
                 >
@@ -194,7 +185,7 @@ export function ItemDetailContent({ item, onEdit }: ItemDetailContentProps) {
                   className={cn(
                     "w-5 h-5",
                     expiryStatus === "expired"
-                      ? "text-red-400"
+                      ? "text-destructive"
                       : "text-muted-foreground/50",
                   )}
                 />
@@ -207,7 +198,7 @@ export function ItemDetailContent({ item, onEdit }: ItemDetailContentProps) {
                       className={cn(
                         "text-lg font-bold mb-1",
                         expiryStatus === "expired"
-                          ? "text-red-400"
+                          ? "text-destructive"
                           : "text-foreground",
                       )}
                     >
@@ -223,8 +214,8 @@ export function ItemDetailContent({ item, onEdit }: ItemDetailContentProps) {
                           className={cn(
                             "text-sm font-medium",
                             expiryStatus === "expired"
-                              ? "text-red-400"
-                              : "text-amber-500",
+                              ? "text-destructive"
+                              : "text-warning",
                           )}
                         >
                           {daysUntilExpiry < 0
@@ -240,7 +231,7 @@ export function ItemDetailContent({ item, onEdit }: ItemDetailContentProps) {
             </div>
 
             {/* Date Added */}
-            <div className="bg-secondary/10 rounded-2xl p-5 border border-white/5 hover:border-white/10 transition-colors flex flex-col justify-between h-32">
+            <div className="bg-secondary/10 rounded-2xl p-5 border border-border/50 hover:border-border/70 transition-colors flex flex-col justify-between h-32">
               <span className="text-sm font-medium text-muted-foreground">
                 추가일
               </span>
@@ -268,7 +259,7 @@ export function ItemDetailContent({ item, onEdit }: ItemDetailContentProps) {
             {tags.map((tag, idx) => (
               <div
                 key={idx}
-                className="px-4 py-2 rounded-full border border-white/10 bg-secondary/5 text-sm font-medium text-foreground/80 hover:bg-secondary/10 transition-colors cursor-default"
+                className="px-4 py-2 rounded-full border border-border/70 bg-secondary/5 text-sm font-medium text-foreground/80 hover:bg-secondary/10 transition-colors cursor-default"
               >
                 {tag}
               </div>
@@ -278,7 +269,7 @@ export function ItemDetailContent({ item, onEdit }: ItemDetailContentProps) {
       </div>
 
       {/* Bottom Action Bar */}
-      <div className="z-10 absolute bottom-0 left-0 right-0 p-4 border-t border-white/10 bg-card/95 backdrop-blur-md">
+      <div className="z-10 absolute bottom-0 left-0 right-0 p-4 border-t border-border/70 bg-card/95 backdrop-blur-md">
         <Button
           onClick={onEdit}
           className="w-full text-lg h-14 font-bold rounded-xl shadow-lg hover:shadow-primary/20 transition-all hover:-translate-y-0.5"

@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
 import { Plus, Package, MapPin } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 import { FloatingActionButton } from "../ui/FloatingActionButton";

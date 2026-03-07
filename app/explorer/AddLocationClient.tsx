@@ -2,22 +2,20 @@
 
 import { useState, FormEvent } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Save, X, MapPin, Box, Home, FolderOpen } from "lucide-react";
+import { Save, MapPin, Box, Home } from "lucide-react";
 import { BottomNav } from "@/components/layout/BottomNav";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Select, SelectOption } from "@/components/ui/Select";
 import { Alert } from "@/components/ui/Alert";
+import { CascadingLocationSelect } from "@/components/features/CascadingLocationSelect";
+import type { Location } from "@/lib/types";
+import {
+  findLocationPath,
+  getSelectedParentId,
+} from "@/lib/utils/location-selection";
 import { cn } from "@/lib/utils/cn";
-
-type Location = {
-  id: string;
-  name: string;
-  level: number;
-  parent_id?: string | null;
-  icon?: string | null;
-};
 
 interface AddLocationClientProps {
   locations: Location[];
@@ -25,11 +23,11 @@ interface AddLocationClientProps {
 }
 
 const LOCATION_TYPE_OPTIONS: SelectOption[] = [
-  { value: "ROOM", label: "Room (방)" },
-  { value: "FURNITURE", label: "Furniture (가구)" },
-  { value: "BOX", label: "Box (상자)" },
-  { value: "SHELF", label: "Shelf (선반)" },
-  { value: "OTHER", label: "Other (기타)" },
+  { value: "ROOM", label: "방" },
+  { value: "FURNITURE", label: "가구" },
+  { value: "BOX", label: "상자" },
+  { value: "SHELF", label: "선반" },
+  { value: "OTHER", label: "기타" },
 ];
 
 const SUGGESTED_ICONS = [
@@ -56,47 +54,13 @@ export function AddLocationClient({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Pre-process locations into a map for children lookup
-  // Key: parent_id (or 'root'), Value: Location[]
-  const locationMap = locations.reduce(
-    (acc, loc) => {
-      const parentId = loc.parent_id || "root";
-      if (!acc[parentId]) {
-        acc[parentId] = [];
-      }
-      acc[parentId].push(loc);
-      return acc;
-    },
-    {} as Record<string, Location[]>,
+  // Initialize selection path
+  const [selectionPath, setSelectionPath] = useState<string[]>(() =>
+    parentIdParam ? findLocationPath(locations, parentIdParam) : [],
   );
 
-  // Find path to a location (for auto-fill)
-  const findPathToLocation = (targetId: string): string[] => {
-    const path: string[] = [];
-    let currentId: string | null | undefined = targetId;
-
-    // Safety break to prevent infinite loops in cyclic data (though shouldn't happen)
-    let depth = 0;
-    while (currentId && depth < 20) {
-      const loc = locations.find((l) => l.id === currentId);
-      if (loc) {
-        path.unshift(loc.id);
-        currentId = loc.parent_id;
-      } else {
-        break;
-      }
-      depth++;
-    }
-    return path;
-  };
-
-  // Initialize selection path
-  const initialPath = parentIdParam ? findPathToLocation(parentIdParam) : [];
-  const [selectionPath, setSelectionPath] = useState<string[]>(initialPath);
-
   // Sync formData.parent_id with selectionPath
-  const currentParentId =
-    selectionPath.length > 0 ? selectionPath[selectionPath.length - 1] : "";
+  const currentParentId = getSelectedParentId(selectionPath);
 
   // Form state
   // We don't store parent_id in formData anymore, we derive it from selectionPath
@@ -107,28 +71,17 @@ export function AddLocationClient({
     description: "",
   });
 
-  // Update selection path when user changes a dropdown
-  // levelIndex: 0 for root, 1 for child of root, etc.
-  // selectedId: the ID selected at this level
-  const handleLocationChange = (levelIndex: number, selectedId: string) => {
-    const newPath = selectionPath.slice(0, levelIndex);
-    if (selectedId) {
-      newPath.push(selectedId);
-    }
-    setSelectionPath(newPath);
-  };
-
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   const validateForm = (): boolean => {
     const newErrors: Record<string, string> = {};
 
     if (!formData.name.trim()) {
-      newErrors.name = "Location name is required";
+      newErrors.name = "위치 이름을 입력해주세요";
     }
 
     if (!formData.type) {
-      newErrors.type = "Type is required";
+      newErrors.type = "유형을 선택해주세요";
     }
 
     setErrors(newErrors);
@@ -139,7 +92,7 @@ export function AddLocationClient({
     e.preventDefault();
 
     if (!validateForm()) {
-      setError("Please check your input");
+      setError("입력 내용을 확인해주세요");
       return;
     }
 
@@ -176,14 +129,18 @@ export function AddLocationClient({
       const result = await response.json();
 
       if (!response.ok) {
-        throw new Error(result.error?.message || "Failed to add location");
+        throw new Error(result.error?.message || "위치를 추가하지 못했습니다");
       }
 
       // Navigate back to explorer, focusing on the new location or its parent
       if (mode === "modal") {
-        window.location.href = currentParentId
-          ? `/explorer?location_id=${currentParentId}`
-          : "/explorer";
+        const returnTo = searchParams.get("return_to");
+        if (returnTo) {
+          router.push(returnTo);
+        } else {
+          router.back();
+        }
+        router.refresh();
       } else {
         if (currentParentId) {
           router.push(`/explorer?location_id=${currentParentId}`);
@@ -194,92 +151,11 @@ export function AddLocationClient({
       }
     } catch (err) {
       setError(
-        err instanceof Error ? err.message : "An unknown error occurred",
+        err instanceof Error ? err.message : "알 수 없는 오류가 발생했습니다",
       );
     } finally {
       setIsSubmitting(false);
     }
-  };
-
-  const handleCancel = () => {
-    router.back();
-  };
-
-  // Render location selects
-  const renderLocationSelects = () => {
-    const selects = [];
-
-    // Always show root level
-    // Id of the parent for this level's options
-    // For level 0, parent is 'root'
-    // For level 1, parent is selectionPath[0]
-
-    // We iterate up to selectionPath.length + 1 to show the next available level
-    // But only if the last selected item has children
-
-    // Actually, simpler logic:
-    // Starts with parentId = 'root'
-    // Loop:
-    // 1. Get options for parentId.
-    // 2. If no options, break.
-    // 3. Render select.
-    // 4. Get selectedId from selectionPath at current index.
-    // 5. If selectedId exists, set parentId = selectedId and continue.
-    // 6. Else break.
-
-    let currentLevelParentId = "root";
-    let levelIndex = 0;
-
-    while (true) {
-      const options = locationMap[currentLevelParentId] || [];
-
-      if (options.length === 0 && levelIndex > 0) {
-        break;
-      }
-
-      const selectedId = selectionPath[levelIndex] || "";
-
-      const selectOptions: SelectOption[] = [
-        {
-          value: "",
-          label: levelIndex === 0 ? "루트 (최상위)" : "선택...",
-        },
-        ...options.map((loc) => ({
-          value: loc.id,
-          label: `${loc.icon ? loc.icon + " " : ""}${loc.name}`,
-        })),
-      ];
-
-      // Capture current index for closure
-      const index = levelIndex;
-
-      selects.push(
-        <div key={index} className="mb-2 last:mb-0">
-          <Select
-            label={index === 0 ? "Parent Location" : undefined}
-            options={selectOptions}
-            value={selectedId}
-            onChange={(e) => handleLocationChange(index, e.target.value)}
-            leftIcon={
-              index === 0 ? <FolderOpen className="w-4 h-4" /> : undefined
-            }
-            placeholder={index === 0 ? "루트 (최상위)" : "하위 위치 선택..."}
-            // className={
-            //   index > 0 ? "ml-8 border-l-2 border-l-secondary-200 pl-4" : ""
-            // }
-          />
-        </div>,
-      );
-
-      if (!selectedId) {
-        break;
-      }
-
-      currentLevelParentId = selectedId;
-      levelIndex++;
-    }
-
-    return selects;
   };
 
   const isModal = mode === "modal";
@@ -288,7 +164,7 @@ export function AddLocationClient({
     <div
       className={cn(
         "flex flex-col min-h-0",
-        isModal ? "bg-background h-full" : "bg-secondary-50 flex-1",
+        isModal ? "bg-background h-full" : "bg-secondary/10 flex-1",
       )}
     >
       <main className={cn("flex-1 overflow-y-auto", "pb-20")}>
@@ -306,16 +182,16 @@ export function AddLocationClient({
 
           <form onSubmit={handleSubmit} className="space-y-6">
             <Card>
-              <h2 className="text-xl font-bold text-secondary-900 mb-4 flex items-center gap-2">
+              <h2 className="text-xl font-bold text-foreground mb-4 flex items-center gap-2">
                 <MapPin className="w-5 h-5" />
-                Location Details
+                위치 정보
               </h2>
 
               <div className="space-y-4">
                 {/* Icon Selection */}
                 <div>
-                  <label className="block text-sm font-medium text-secondary-700 mb-2">
-                    Icon
+                  <label className="block text-sm font-medium text-foreground mb-2">
+                    아이콘
                   </label>
                   <div className="flex gap-2 flex-wrap mb-2">
                     {SUGGESTED_ICONS.map((icon) => (
@@ -325,8 +201,8 @@ export function AddLocationClient({
                         onClick={() => setFormData({ ...formData, icon })}
                         className={`w-10 h-10 flex items-center justify-center rounded-lg text-xl border transition-colors ${
                           formData.icon === icon
-                            ? "bg-primary-50 border-primary-500 ring-2 ring-primary-200"
-                            : "bg-white border-secondary-200 hover:bg-secondary-50"
+                            ? "bg-primary/10 border-primary ring-2 ring-primary/30"
+                            : "bg-white border-border hover:bg-secondary/10"
                         }`}
                       >
                         {icon}
@@ -335,7 +211,7 @@ export function AddLocationClient({
                   </div>
                   <div className="flex gap-2">
                     <Input
-                      placeholder="Or type an emoji..."
+                      placeholder="직접 이모지를 입력하세요"
                       value={formData.icon || ""}
                       onChange={(e) =>
                         setFormData({ ...formData, icon: e.target.value })
@@ -343,9 +219,8 @@ export function AddLocationClient({
                       maxLength={2}
                       className="w-20 text-center text-2xl"
                     />
-                    <div className="text-xs text-secondary-500 flex items-center">
-                      Select an icon or type your own emoji to represent this
-                      location.
+                    <div className="text-xs text-muted-foreground flex items-center">
+                      아이콘을 선택하거나 이 위치를 나타낼 이모지를 직접 입력하세요.
                     </div>
                   </div>
                 </div>
@@ -363,7 +238,7 @@ export function AddLocationClient({
                 />
 
                 <Select
-                  label="Type"
+                  label="유형"
                   options={LOCATION_TYPE_OPTIONS}
                   value={formData.type}
                   onChange={(e) =>
@@ -376,21 +251,30 @@ export function AddLocationClient({
 
                 {/* Cascading Location Selection */}
                 <div className="space-y-2">
-                  {renderLocationSelects()}
-                  <p className="text-xs text-secondary-500 mt-1 whitespace-pre-wrap">
+                  <CascadingLocationSelect
+                    locations={locations}
+                    selectionPath={selectionPath}
+                    onSelectionPathChange={setSelectionPath}
+                    topLabel="부모 위치"
+                    showRootOption
+                    rootOptionLabel="루트 (최상위)"
+                    topPlaceholder="루트 (최상위)"
+                    childPlaceholder="하위 위치 선택..."
+                  />
+                  <p className="text-xs text-muted-foreground mt-1 whitespace-pre-wrap">
                     {`부모 위치를 선택하여 이 항목을 중첩하세요.
                     "루트"로두면 최상위 위치가 됩니다.`}
                   </p>
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-secondary-700 mb-1">
-                    Description (Optional)
+                  <label className="block text-sm font-medium text-foreground mb-1">
+                    설명 (선택)
                   </label>
                   <textarea
-                    className="w-full px-4 py-2 border border-secondary-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none transition-all"
+                    className="w-full px-4 py-2 border border-border rounded-lg focus:ring-2 focus:ring-ring focus:border-transparent outline-none transition-all"
                     rows={3}
-                    placeholder="Add details about this location..."
+                    placeholder="위치에 대한 추가 설명을 입력하세요..."
                     value={formData.description}
                     onChange={(e) =>
                       setFormData({ ...formData, description: e.target.value })
@@ -403,7 +287,7 @@ export function AddLocationClient({
             {/* Action Buttons - 모달/페이지 동일 스타일 (하단 바, 페이지에서는 BottomNav 위에 고정) */}
             <div
               className={cn(
-                "py-4 p-4 border-t border-border bg-card/95 backdrop-blur-md",
+                "py-3 px-4 border-t border-border bg-card/95 backdrop-blur-md",
                 isModal
                   ? "z-10 absolute bottom-0 left-0 right-0"
                   : "fixed left-0 right-0 z-40 bottom-0",
@@ -412,15 +296,15 @@ export function AddLocationClient({
               <Button
                 type="submit"
                 className={cn(
-                  "w-full font-bold transition-all shadow-lg hover:shadow-primary/20",
-                  "text-lg h-14 rounded-xl hover:-translate-y-0.5",
+                  "w-full font-semibold transition-all shadow-md hover:shadow-primary/15",
+                  "text-base h-12 rounded-lg",
                 )}
-                size="lg"
+                size="md"
                 variant="primary"
-                leftIcon={<Save className="w-5 h-5 mr-2" />}
+                leftIcon={<Save className="w-4 h-4 mr-1.5" />}
                 isLoading={isSubmitting}
               >
-                위치 저장하기
+                위치 저장
               </Button>
             </div>
           </form>

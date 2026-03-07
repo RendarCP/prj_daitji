@@ -28,7 +28,7 @@ export function LocationBreadcrumb({ path, onNavigate, className }: LocationBrea
       {/* Home Icon */}
       <button
         onClick={() => onNavigate?.(path[0].id)}
-        className="flex items-center gap-1 px-2 py-1 rounded-md text-sm text-secondary-600 hover:text-primary-600 hover:bg-primary-50 transition-colors flex-shrink-0"
+        className="flex items-center gap-1 px-2 py-1 rounded-md text-sm text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors flex-shrink-0"
         aria-label="홈으로"
       >
         <Home className="w-4 h-4" />
@@ -40,10 +40,10 @@ export function LocationBreadcrumb({ path, onNavigate, className }: LocationBrea
         
         return (
           <div key={item.id} className="flex items-center gap-1 flex-shrink-0">
-            <ChevronRight className="w-4 h-4 text-secondary-400" />
+            <ChevronRight className="w-4 h-4 text-muted-foreground" />
             
             {isLast ? (
-              <span className="px-2 py-1 text-sm font-medium text-secondary-900 truncate max-w-[200px]">
+              <span className="px-2 py-1 text-sm font-medium text-foreground truncate max-w-[200px]">
                 {item.icon && (
                   <span className="mr-1" role="img" aria-hidden="true">
                     {item.icon}
@@ -54,7 +54,7 @@ export function LocationBreadcrumb({ path, onNavigate, className }: LocationBrea
             ) : (
               <button
                 onClick={() => onNavigate?.(item.id)}
-                className="px-2 py-1 rounded-md text-sm text-secondary-600 hover:text-primary-600 hover:bg-primary-50 transition-colors truncate max-w-[200px]"
+                className="px-2 py-1 rounded-md text-sm text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors truncate max-w-[200px]"
               >
                 {item.icon && (
                   <span className="mr-1" role="img" aria-hidden="true">

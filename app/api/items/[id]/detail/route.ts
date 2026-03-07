@@ -1,7 +1,9 @@
 import { NextRequest } from "next/server";
-import { createClient } from "@/lib/supabase/server";
 import { errorResponse, successResponse, handleError } from "@/lib/api/utils";
 import type { Database } from "@/lib/types/database.types";
+import { getAuthenticatedClient } from "@/lib/api/auth";
+
+export const preferredRegion = "icn1";
 
 type ItemRow = Database["public"]["Tables"]["items"]["Row"];
 type ItemWithLocationRow = ItemRow & {
@@ -16,16 +18,13 @@ type ItemWithLocationRow = ItemRow & {
 const UUID_REGEX =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-// Keep API execution close to Supabase region on Vercel.
-export const preferredRegion = "icn1";
-
 /**
  * GET /api/items/[id]/detail
  * 단일 물품 + 위치 정보 반환
  */
 export async function GET(
   _request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
     const { id } = await params;
@@ -34,7 +33,11 @@ export async function GET(
       return errorResponse("INVALID_ID", undefined, 400);
     }
 
-    const supabase = await createClient();
+    const { supabase, user } = await getAuthenticatedClient();
+
+    if (!user) {
+      return errorResponse("UNAUTHORIZED", undefined, 401);
+    }
 
     const { data, error: itemError } = await supabase
       .from("items")
@@ -52,6 +55,7 @@ export async function GET(
         `,
       )
       .eq("id", id)
+      .eq("user_id", user.id)
       .single<ItemWithLocationRow>();
 
     const item = data;

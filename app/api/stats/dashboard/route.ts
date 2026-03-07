@@ -1,5 +1,4 @@
 import { NextRequest } from "next/server";
-import { createClient } from "@/lib/supabase/server";
 import { DashboardStats } from "@/lib/types";
 import {
   successResponse,
@@ -7,63 +6,53 @@ import {
   handleError,
   CORS_HEADERS,
 } from "@/lib/api/utils";
+import { getAuthenticatedClient } from "@/lib/api/auth";
+import { computeItemExpiryDate, getDaysUntilExpiry } from "@/lib/utils/expiry";
 
 /**
  * GET /api/stats/dashboard
  * Fetch dashboard statistics
- *
- * Returns:
- * {
- *   total_items: number - Total number of items
- *   active_items: number - Number of active items
- *   expiring_soon: number - Items expiring within 7 days
- *   expired: number - Already expired items
- *   locations_count: number - Total number of locations
- * }
  */
 export async function GET(_request: NextRequest) {
   try {
-    const supabase = await createClient();
+    const { supabase, user } = await getAuthenticatedClient();
+
+    if (!user) {
+      return errorResponse("UNAUTHORIZED", undefined, 401);
+    }
 
     // Run all queries in parallel for better performance
     const [
       totalItemsResult,
       activeItemsResult,
-      expiringSoonResult,
-      expiredResult,
+      activeItemsForExpiryResult,
       locationsResult,
     ] = await Promise.all([
       // Total items count
-      supabase.from("items").select("*", { count: "exact", head: true }),
+      supabase
+        .from("items")
+        .select("*", { count: "exact", head: true })
+        .eq("user_id", user.id),
 
       // Active items count
       supabase
         .from("items")
         .select("*", { count: "exact", head: true })
+        .eq("user_id", user.id)
         .eq("status", "ACTIVE"),
 
-      // Expiring soon (within 7 days)
+      // Expiry 계산 대상 active items
       supabase
-        .from("v_active_items_with_location")
-        .select("*", { count: "exact", head: true })
-        .not("computed_expiry_date", "is", null)
-        .gte("computed_expiry_date", new Date().toISOString().split("T")[0])
-        .lte(
-          "computed_expiry_date",
-          new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
-            .toISOString()
-            .split("T")[0]
-        ),
+        .from("items")
+        .select("type, metadata")
+        .eq("user_id", user.id)
+        .eq("status", "ACTIVE"),
 
-      // Expired items
+      // Total locations count
       supabase
-        .from("v_active_items_with_location")
+        .from("locations")
         .select("*", { count: "exact", head: true })
-        .not("computed_expiry_date", "is", null)
-        .lt("computed_expiry_date", new Date().toISOString().split("T")[0]),
-
-      // Total locations count (using hierarchical stats view)
-      supabase.from("v_location_stats").select("*", { count: "exact", head: true }),
+        .eq("user_id", user.id),
     ]);
 
     // Check for errors
@@ -72,7 +61,7 @@ export async function GET(_request: NextRequest) {
       return errorResponse(
         "QUERY_ERROR",
         { message: totalItemsResult.error.message },
-        500
+        500,
       );
     }
 
@@ -81,25 +70,16 @@ export async function GET(_request: NextRequest) {
       return errorResponse(
         "QUERY_ERROR",
         { message: activeItemsResult.error.message },
-        500
+        500,
       );
     }
 
-    if (expiringSoonResult.error) {
-      console.error("Error counting expiring items:", expiringSoonResult.error);
+    if (activeItemsForExpiryResult.error) {
+      console.error("Error fetching items for expiry calc:", activeItemsForExpiryResult.error);
       return errorResponse(
         "QUERY_ERROR",
-        { message: expiringSoonResult.error.message },
-        500
-      );
-    }
-
-    if (expiredResult.error) {
-      console.error("Error counting expired items:", expiredResult.error);
-      return errorResponse(
-        "QUERY_ERROR",
-        { message: expiredResult.error.message },
-        500
+        { message: activeItemsForExpiryResult.error.message },
+        500,
       );
     }
 
@@ -108,16 +88,33 @@ export async function GET(_request: NextRequest) {
       return errorResponse(
         "QUERY_ERROR",
         { message: locationsResult.error.message },
-        500
+        500,
       );
     }
+
+    const expiryRows = Array.isArray(activeItemsForExpiryResult.data)
+      ? (activeItemsForExpiryResult.data as Array<{
+          type: "FOOD" | "COSMETIC" | "MEDICINE" | "GENERAL";
+          metadata: unknown;
+        }>)
+      : [];
+
+    const expiryDays = expiryRows
+      .map((item) => {
+        const expiryDate = computeItemExpiryDate(item.type, item.metadata);
+        return getDaysUntilExpiry(expiryDate);
+      })
+      .filter((days): days is number => days !== null);
+
+    const expiringSoonCount = expiryDays.filter((days) => days >= 0 && days <= 7).length;
+    const expiredCount = expiryDays.filter((days) => days < 0).length;
 
     // Build stats object
     const stats: DashboardStats = {
       total_items: totalItemsResult.count || 0,
       active_items: activeItemsResult.count || 0,
-      expiring_soon: expiringSoonResult.count || 0,
-      expired: expiredResult.count || 0,
+      expiring_soon: expiringSoonCount,
+      expired: expiredCount,
       locations_count: locationsResult.count || 0,
     };
 

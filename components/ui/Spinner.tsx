@@ -23,8 +23,8 @@ export function Spinner({
   }
 
   const variants = {
-    primary: 'text-primary-500',
-    secondary: 'text-secondary-500',
+    primary: 'text-primary',
+    secondary: 'text-muted-foreground',
     white: 'text-white',
   }
 

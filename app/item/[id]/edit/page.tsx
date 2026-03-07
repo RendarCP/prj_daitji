@@ -13,11 +13,11 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
   try {
     const supabase = await createClient();
-    const { data: item } = await supabase
+    const { data: item } = (await supabase
       .from("items")
       .select("name")
       .eq("id", id)
-      .single();
+      .single()) as { data: { name: string } | null };
 
     return {
       title: item ? `${item.name} - 물품 수정` : "물품 수정 - DAITJI",

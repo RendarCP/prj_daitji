@@ -23,7 +23,7 @@ async function fetchItems(params: ItemsParams = {}): Promise<Item[]> {
   const result = await response.json()
 
   if (!result.success) {
-    throw new Error(result.error?.message || 'Failed to fetch items')
+    throw new Error(result.error?.message || '물품 목록을 불러오지 못했습니다')
   }
 
   return result.data || []
@@ -41,7 +41,7 @@ async function fetchExpiringItems(): Promise<ExpiringItem[]> {
   const result = await response.json()
 
   if (!result.success) {
-    throw new Error(result.error?.message || 'Failed to fetch expiring items')
+    throw new Error(result.error?.message || '유통기한 임박 물품을 불러오지 못했습니다')
   }
 
   return result.data || []

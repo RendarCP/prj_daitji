@@ -1,12 +1,19 @@
-import { HTMLAttributes, forwardRef, isValidElement, ReactNode } from 'react'
-import { AlertCircle, CheckCircle, Info, XCircle, X } from 'lucide-react'
+import {
+  HTMLAttributes,
+  createElement,
+  forwardRef,
+  isValidElement,
+  ReactNode,
+  ElementType,
+} from 'react'
+import { AlertCircle, CheckCircle, Info, XCircle, X, LucideIcon } from 'lucide-react'
 import { cn } from '@/lib/utils/cn'
 
 export interface AlertProps extends HTMLAttributes<HTMLDivElement> {
   variant?: 'info' | 'success' | 'warning' | 'danger'
   title?: string
   onClose?: () => void
-  icon?: ReactNode
+  icon?: ReactNode | LucideIcon | ElementType
 }
 
 const alertIcons = {
@@ -19,20 +26,28 @@ const alertIcons = {
 export const Alert = forwardRef<HTMLDivElement, AlertProps>(
   ({ className, variant = 'info', title, onClose, icon, children, ...props }, ref) => {
     const variants = {
-      info: 'bg-primary-50 border-primary-200 text-primary-900',
-      success: 'bg-success-50 border-success-200 text-success-900',
-      warning: 'bg-warning-50 border-warning-200 text-warning-900',
-      danger: 'bg-danger-50 border-danger-200 text-danger-900',
+      info: 'bg-primary/10 border-primary/20 text-primary',
+      success: 'bg-success/10 border-success/20 text-success',
+      warning: 'bg-warning/10 border-warning/20 text-warning',
+      danger: 'bg-destructive/10 border-destructive/20 text-destructive',
     }
 
     const iconColors = {
-      info: 'text-primary-600',
-      success: 'text-success-600',
-      warning: 'text-warning-600',
-      danger: 'text-danger-600',
+      info: 'text-primary',
+      success: 'text-success',
+      warning: 'text-warning',
+      danger: 'text-destructive',
     }
 
     const Icon = icon || alertIcons[variant]
+
+    const renderedIcon = isValidElement(Icon)
+      ? Icon
+      : typeof Icon === 'string'
+        ? Icon
+        : Icon
+          ? createElement(Icon as ElementType, { className: 'w-5 h-5' })
+          : null
 
     return (
       <div
@@ -47,18 +62,7 @@ export const Alert = forwardRef<HTMLDivElement, AlertProps>(
       >
         {Icon && (
           <div className={cn('flex-shrink-0 mt-0.5', iconColors[variant])}>
-            {isValidElement(Icon)
-              ? Icon
-              : typeof Icon === 'function' ||
-                  (typeof Icon === 'object' &&
-                    Icon !== null &&
-                    '$$typeof' in (Icon as object))
-                ? (
-                    <Icon className="w-5 h-5" />
-                  )
-                : (
-                    Icon
-                  )}
+            {renderedIcon}
           </div>
         )}
         

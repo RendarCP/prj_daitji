@@ -14,22 +14,22 @@ interface NavItem {
 const navItems: NavItem[] = [
   {
     href: "/dashboard",
-    label: "Dashboard",
+    label: "대시보드",
     icon: Home,
   },
   {
     href: "/explorer",
-    label: "Browse",
+    label: "탐색",
     icon: Search,
   },
   {
     href: "/items",
-    label: "Items",
+    label: "물품",
     icon: LayoutGrid,
   },
   {
     href: "/settings",
-    label: "Settings",
+    label: "설정",
     icon: BarChart3,
   },
 ];
@@ -47,7 +47,9 @@ export function BottomNav() {
         {navItems.map((item) => {
           const Icon = item.icon;
           const isActive =
-            pathname === item.href || pathname.startsWith(`${item.href}/`);
+            pathname === item.href ||
+            pathname.startsWith(`${item.href}/`) ||
+            (item.href === "/explorer" && pathname.startsWith("/explorer-v2"));
 
           return (
             <Link

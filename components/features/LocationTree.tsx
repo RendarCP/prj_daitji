@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { ChevronRight, ChevronDown, Folder, FolderOpen } from 'lucide-react'
 import { Badge } from '@/components/ui/Badge'
+import { FALLBACK_COLORS } from '@/lib/constants/colors'
 
 interface LocationTreeNode {
   id: string
@@ -38,7 +39,7 @@ export function LocationTree({
     onSelect?.(location)
   }
 
-  const iconColor = location.color || '#64748b'
+  const iconColor = location.color || FALLBACK_COLORS.locationIcon
   const iconEmoji = location.icon || '📁'
 
   return (
@@ -49,8 +50,8 @@ export function LocationTree({
           w-full flex items-center gap-2 px-3 py-2.5 rounded-lg text-left transition-all duration-200
           group touch-manipulation
           ${isSelected 
-            ? 'bg-primary-100 text-primary-700 shadow-sm' 
-            : 'hover:bg-secondary-100 text-secondary-700 active:bg-secondary-200'
+            ? 'bg-primary/15 text-primary shadow-sm' 
+            : 'hover:bg-secondary/20 text-foreground active:bg-secondary/30'
           }
         `}
         aria-expanded={isExpanded}
@@ -103,7 +104,7 @@ export function LocationTree({
 
       {/* Children */}
       {isExpanded && hasChildren && (
-        <div className="ml-6 mt-1 space-y-1 border-l-2 border-secondary-200 pl-2">
+        <div className="ml-6 mt-1 space-y-1 border-l-2 border-border pl-2">
           {location.children!.map((child) => (
             <LocationTree
               key={child.id}

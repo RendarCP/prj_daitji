@@ -2,7 +2,7 @@ import { CardSkeleton } from '@/components/ui/Skeleton'
 
 export default function ItemAddLoading() {
   return (
-    <div className="min-h-screen bg-secondary-50 pb-24">
+    <div className="min-h-screen bg-secondary/10 pb-24">
       <div className="container mx-auto px-4 py-6 max-w-4xl">
         {/* Header Skeleton */}
         <div className="mb-6">
