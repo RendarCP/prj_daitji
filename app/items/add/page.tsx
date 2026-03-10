@@ -8,12 +8,20 @@ export const metadata: Metadata = {
   description: "새로운 물품을 등록하세요",
 };
 
-export default async function ItemAddPage() {
+interface ItemAddPageProps {
+  searchParams: Promise<{
+    barcode?: string | string[];
+  }>;
+}
+
+export default async function ItemAddPage({ searchParams }: ItemAddPageProps) {
   await createClient();
+  const { barcode } = await searchParams;
+  const initialBarcode = Array.isArray(barcode) ? barcode[0] ?? "" : barcode ?? "";
 
   return (
     <FormPageLayout title="물품 추가">
-      <ItemAddClient mode="page" />
+      <ItemAddClient mode="page" initialBarcode={initialBarcode} />
     </FormPageLayout>
   );
 }

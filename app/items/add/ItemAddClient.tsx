@@ -1,7 +1,7 @@
 "use client";
 
 import { ChangeEvent, useEffect, useRef, useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { useQueryClient } from "@tanstack/react-query";
 import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -65,6 +65,7 @@ interface ItemAddClientProps {
   isEditMode?: boolean;
   itemId?: string;
   onSuccess?: (targetId: string) => void;
+  initialBarcode?: string;
 }
 
 export function ItemAddClient({
@@ -72,9 +73,9 @@ export function ItemAddClient({
   isEditMode = false,
   itemId,
   onSuccess,
+  initialBarcode = "",
 }: ItemAddClientProps) {
   const router = useRouter();
-  const searchParams = useSearchParams();
   const queryClient = useQueryClient();
   const [error, setError] = useState<string | null>(null);
   const [isLoadingItem, setIsLoadingItem] = useState(isEditMode && !!itemId);
@@ -120,7 +121,7 @@ export function ItemAddClient({
       return;
     }
 
-    const scannedBarcode = searchParams.get("barcode")?.trim();
+    const scannedBarcode = initialBarcode.trim();
 
     if (!scannedBarcode || barcodeValue.trim()) {
       return;
@@ -131,7 +132,7 @@ export function ItemAddClient({
       shouldTouch: true,
       shouldValidate: true,
     });
-  }, [barcodeValue, isEditMode, searchParams, setValue]);
+  }, [barcodeValue, initialBarcode, isEditMode, setValue]);
 
   useEffect(() => {
     if (!isEditMode || !itemId) {
