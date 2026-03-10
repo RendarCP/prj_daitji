@@ -2,8 +2,8 @@ import { ListItemSkeleton } from '@/components/ui/Skeleton'
 
 export default function ItemsLoading() {
   return (
-    <div className="min-h-screen bg-background pb-20">
-      <div className="container mx-auto px-4 py-6 max-w-3xl">
+    <div className="flex min-h-[calc(100dvh-3.5rem)] flex-col bg-background sm:min-h-[calc(100dvh-4rem)]">
+      <div className="container mx-auto max-w-3xl flex-1 px-4 py-6 pb-[calc(5rem+env(safe-area-inset-bottom))]">
         {/* Title Skeleton */}
         <div className="h-8 w-32 bg-secondary/30 rounded animate-pulse mb-6" />
 

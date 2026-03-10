@@ -2,25 +2,22 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Package, CheckCircle, Plus } from "lucide-react";
+import { CheckCircle } from "lucide-react";
 import { BottomNav } from "@/components/layout/BottomNav";
-import { Button } from "@/components/ui/Button";
 import { Alert } from "@/components/ui/Alert";
 import { QuickAddButton } from "@/components/features/QuickAddButton";
-import { ItemListRowCard } from "@/components/features/ItemListRowCard";
 import { LocationDetailPanel } from "@/components/ui/LocationDetailPanel";
 import { BottomSheet } from "@/components/ui/BottomSheet";
 import { ItemAddClient } from "@/app/items/add/ItemAddClient";
+import { EmptyState } from "@/components/ui/EmptyState";
 import { useItemDetail } from "@/lib/hooks/useItemDetail";
 import { ItemDetailPanelFromData } from "@/components/features/ItemDetailPanelFromData";
 import {
   ExpiryItemSkeleton,
-  ListItemSkeleton,
   LocationCardSkeleton,
 } from "@/components/ui/Skeleton";
 import {
   useDashboardStats,
-  useRecentItems,
   useLocationSummary,
 } from "@/lib/hooks/useDashboard";
 import { useExpiringItems } from "@/lib/hooks/useItems";
@@ -43,19 +40,12 @@ export function DashboardClient() {
   );
 
   // React Query hooks
-  const {
-    data: stats,
-  } = useDashboardStats();
+  const { data: stats } = useDashboardStats();
   const {
     data: expiringItems = [],
     isLoading: isExpiringLoading,
     error: expiringError,
   } = useExpiringItems();
-  const {
-    data: recentItems = [],
-    isLoading: isRecentLoading,
-    error: recentError,
-  } = useRecentItems();
   const {
     data: locationSummary = [],
     isLoading: isLocationLoading,
@@ -98,8 +88,8 @@ export function DashboardClient() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-background pb-20 md:pb-6">
-      <div className="container mx-auto px-4 py-6 max-w-3xl">
+    <div className="flex min-h-[calc(100dvh-3.5rem)] flex-col bg-background sm:min-h-[calc(100dvh-4rem)]">
+      <div className="container mx-auto max-w-3xl flex-1 px-4 py-6 pb-[calc(5rem+env(safe-area-inset-bottom))]">
         {/* Quick Stats - Hidden, data used for sections below */}
         <div className="hidden">
           {stats && (
@@ -237,7 +227,7 @@ export function DashboardClient() {
         </section>
 
         {/* Recent Items Section */}
-        <section
+        {/* <section
           className="mb-6 animate-fade-in"
           style={{ animationDelay: "300ms" }}
         >
@@ -279,7 +269,7 @@ export function DashboardClient() {
                   title={item.item_name}
                   type={item.type}
                   imageUrl={item.image_url}
-                  locationText={item.location_path}
+                  locationText={item.location_path || item.location_name}
                   tags={item.tags || []}
                   daysUntilExpiry={item.days_until_expiry}
                   onClick={() => handleItemClick(item)}
@@ -287,7 +277,7 @@ export function DashboardClient() {
               ))}
             </div>
           )}
-        </section>
+        </section> */}
 
         {/* Quick Zones Section */}
         <section
@@ -308,7 +298,20 @@ export function DashboardClient() {
                 <LocationCardSkeleton key={i} />
               ))}
             </div>
-          ) : locationSummary.length === 0 ? null : (
+          ) : locationSummary.length === 0 ? (
+            <div className="card">
+              <EmptyState
+                size="sm"
+                title="등록된 위치가 없습니다"
+                description="첫 위치를 추가해서 빠르게 탐색해보세요"
+                action={{
+                  label: "위치 추가",
+                  onClick: handleAddLocation,
+                }}
+                className="py-10"
+              />
+            </div>
+          ) : (
             <div className="grid grid-cols-2 gap-3">
               {locationSummary.slice(0, 4).map((location: Location) => (
                 <button

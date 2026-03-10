@@ -1,29 +1,29 @@
-import { Metadata } from 'next'
-import { Suspense } from 'react'
-import ExplorerClient from './ExplorerClient'
-import { Spinner } from '@/components/ui/Spinner'
-import { Header } from '@/components/layout/Header'
+import { Metadata } from "next";
+import { Suspense } from "react";
+import { Header } from "@/components/layout/Header";
+import { Spinner } from "@/components/ui/Spinner";
+import ExplorerV2Client from "@/app/explorer-v2/ExplorerV2Client";
 
 export const metadata: Metadata = {
-  title: '물건 탐색',
-  description: '위치별로 물건을 탐색하고 찾아보세요',
-}
+  title: "우리집 위치구조",
+  description: "우리집 위치 구조를 정리하고 관리하세요",
+};
 
-function ExplorerFallback() {
+function ExplorerV2Fallback() {
   return (
-    <div className="min-h-screen flex items-center justify-center">
+    <div className="flex min-h-[calc(100dvh-3.5rem)] items-center justify-center sm:min-h-[calc(100dvh-4rem)]">
       <Spinner size="lg" />
     </div>
-  )
+  );
 }
 
 export default function ExplorerPage() {
   return (
     <>
       <Header />
-      <Suspense fallback={<ExplorerFallback />}>
-        <ExplorerClient />
+      <Suspense fallback={<ExplorerV2Fallback />}>
+        <ExplorerV2Client />
       </Suspense>
     </>
-  )
+  );
 }

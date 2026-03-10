@@ -69,7 +69,7 @@ export async function GET(request: NextRequest) {
 
     let query = db
       .from('locations')
-      .select('id, name, level, parent_id, icon, color, sort_order')
+      .select('id, name, level, parent_id, icon, color, description, sort_order')
       .eq('user_id', user.id)
       .order('level', { ascending: true })
       .order('sort_order', { ascending: true })
@@ -118,6 +118,7 @@ export async function GET(request: NextRequest) {
       parent_id: (row.parent_id as string | null | undefined) ?? null,
       icon: (row.icon as string | null | undefined) ?? null,
       color: (row.color as string | null | undefined) ?? null,
+      description: (row.description as string | null | undefined) ?? null,
       item_count: activeItemCountByLocation.get(String(row.id)) ?? 0,
       itemCount: activeItemCountByLocation.get(String(row.id)) ?? 0,
       sort_order: Number(row.sort_order ?? 0),
@@ -191,6 +192,7 @@ export async function POST(request: NextRequest) {
         parent_id: validatedData.parent_id || null,
         icon: validatedData.icon || null,
         color: validatedData.color || null,
+        description: validatedData.description || null,
         sort_order: validatedData.sort_order || 0,
         user_id: user.id,
       })

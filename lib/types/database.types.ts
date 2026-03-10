@@ -88,6 +88,7 @@ export type Database = {
         Row: {
           color: string | null;
           created_at: string | null;
+          description: string | null;
           icon: string | null;
           id: string;
           level: number;
@@ -100,6 +101,7 @@ export type Database = {
         Insert: {
           color?: string | null;
           created_at?: string | null;
+          description?: string | null;
           icon?: string | null;
           id?: string;
           level: number;
@@ -112,6 +114,7 @@ export type Database = {
         Update: {
           color?: string | null;
           created_at?: string | null;
+          description?: string | null;
           icon?: string | null;
           id?: string;
           level?: number;

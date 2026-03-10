@@ -38,6 +38,8 @@ interface LocationDetailPanelProps {
   location: Location | null
   onSubLocationClick?: (location: Location) => void
   onItemClick?: (item: Item) => void
+  onEdit?: (location: Location) => void
+  onAddSubLocation?: (parentId: string) => void
 }
 
 const getEmojiByType = (type: string) => {
@@ -62,6 +64,8 @@ export function LocationDetailPanel({
   location,
   onSubLocationClick,
   onItemClick,
+  onEdit,
+  onAddSubLocation,
 }: LocationDetailPanelProps) {
   const [subLocations, setSubLocations] = useState<Location[]>([])
   const [items, setItems] = useState<Item[]>([])
@@ -109,6 +113,8 @@ export function LocationDetailPanel({
       onBack={onBack}
       title={location.name}
       showBackButton
+      showEditButton={!!onEdit}
+      onEdit={() => onEdit?.(location)}
     >
       <div className="p-6 space-y-6">
         {/* Location Header */}
@@ -133,6 +139,35 @@ export function LocationDetailPanel({
           </div>
         ) : (
           <>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="rounded-2xl border border-border bg-secondary/20 px-4 py-3">
+                <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                  위치 레벨
+                </p>
+                <p className="mt-1 text-lg font-semibold text-foreground">
+                  {location.level}
+                </p>
+              </div>
+              <div className="rounded-2xl border border-border bg-secondary/20 px-4 py-3">
+                <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                  하위 위치
+                </p>
+                <p className="mt-1 text-lg font-semibold text-foreground">
+                  {subLocations.length}
+                </p>
+              </div>
+            </div>
+
+            {onAddSubLocation && (
+              <button
+                type="button"
+                onClick={() => onAddSubLocation(location.id)}
+                className="w-full rounded-2xl border border-dashed border-border px-4 py-3 text-sm font-medium text-foreground hover:bg-secondary/20 transition-colors"
+              >
+                이 위치 아래에 하위 위치 추가
+              </button>
+            )}
+
             {/* Sub-locations */}
             {subLocations.length > 0 && (
               <div>

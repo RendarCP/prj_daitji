@@ -1,170 +1,211 @@
-'use client'
+"use client";
 
-import type { ActivityComponentType } from '@stackflow/react'
-import { stackflow, useActivity } from '@stackflow/react'
-import { basicRendererPlugin } from '@stackflow/plugin-renderer-basic'
-import { useState } from 'react'
-import type { ReactNode } from 'react'
-import { useRouter } from 'next/navigation'
+import type { ActivityComponentType } from "@stackflow/react";
+import { stackflow, useActivity } from "@stackflow/react";
+import { basicRendererPlugin } from "@stackflow/plugin-renderer-basic";
+import { useState } from "react";
+import { useRouter } from "next/navigation";
 import {
   User,
   Bell,
-  Palette,
-  Database,
-  HelpCircle,
   LogOut,
   ChevronRight,
   ArrowLeft,
-} from 'lucide-react'
-import { BottomNav } from '@/components/layout/BottomNav'
-import { Header } from '@/components/layout/Header'
-import { createClient } from '@/lib/supabase/client'
-import NotificationsSettingsClient from '@/app/settings/notifications/NotificationsSettingsClient'
+} from "lucide-react";
+import type { LucideIcon } from "lucide-react";
+import { BottomNav } from "@/components/layout/BottomNav";
+import { Header } from "@/components/layout/Header";
+import { createClient } from "@/lib/supabase/client";
+import NotificationsSettingsClient from "@/app/settings/notifications/NotificationsSettingsClient";
 
-interface SettingItem {
-  id: string
-  icon: ReactNode
-  title: string
-  description: string
-  href?: string
-  onClick?: () => void
+type SettingAction =
+  | {
+      type: "route";
+      href: string;
+    }
+  | {
+      type: "activity";
+      activity: "NotificationSettingsActivity";
+    }
+  | {
+      type: "logout";
+    };
+
+interface SettingItemConfig {
+  id: string;
+  icon: LucideIcon;
+  title: string;
+  description: string;
+  action: SettingAction;
 }
 
+interface SettingSection {
+  id: string;
+  title: string;
+  items: SettingItemConfig[];
+}
+
+const settingSections: SettingSection[] = [
+  {
+    id: "account",
+    title: "ACCOUNT",
+    items: [
+      {
+        id: "profile",
+        icon: User,
+        title: "프로필 설정",
+        description: "Edit your profile",
+        action: {
+          type: "route",
+          href: "/settings/profile",
+        },
+      },
+      {
+        id: "notifications",
+        icon: Bell,
+        title: "알림 설정",
+        description: "Manage notifications",
+        action: {
+          type: "activity",
+          activity: "NotificationSettingsActivity",
+        },
+      },
+    ],
+  },
+  // {
+  //   id: "preferences",
+  //   title: "PREFERENCES",
+  //   items: [
+  //     {
+  //       id: "theme",
+  //       icon: Palette,
+  //       title: "테마 설정",
+  //       description: "Appearance & display",
+  //       action: {
+  //         type: "route",
+  //         href: "/settings/theme",
+  //       },
+  //     },
+  //     {
+  //       id: "data",
+  //       icon: Database,
+  //       title: "데이터 & 백업",
+  //       description: "Data management",
+  //       action: {
+  //         type: "route",
+  //         href: "/settings/data",
+  //       },
+  //     },
+  //   ],
+  // },
+  {
+    id: "support",
+    title: "SUPPORT",
+    items: [
+      // {
+      //   id: "help",
+      //   icon: HelpCircle,
+      //   title: "도움말",
+      //   description: "FAQs & support",
+      //   action: {
+      //     type: "route",
+      //     href: "/settings/help",
+      //   },
+      // },
+      {
+        id: "logout",
+        icon: LogOut,
+        title: "로그아웃",
+        description: "Sign out of your account",
+        action: {
+          type: "logout",
+        },
+      },
+    ],
+  },
+];
+
 const SettingsListActivity: ActivityComponentType = () => {
-  const { push } = useFlow()
-  const router = useRouter()
-  const supabase = createClient()
-  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false)
-  const [isLoggingOut, setIsLoggingOut] = useState(false)
-  const [logoutError, setLogoutError] = useState<string | null>(null)
+  const { push } = useFlow();
+  const router = useRouter();
+  const supabase = createClient();
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const [logoutError, setLogoutError] = useState<string | null>(null);
 
-  const accountSettings: SettingItem[] = [
-    {
-      id: 'profile',
-      icon: <User className="h-5 w-5" />,
-      title: '프로필 설정',
-      description: 'Edit your profile',
-      href: '/settings/profile',
-    },
-    {
-      id: 'notifications',
-      icon: <Bell className="h-5 w-5" />,
-      title: '알림 설정',
-      description: 'Manage notifications',
-      onClick: () => push('NotificationSettingsActivity', {}),
-    },
-  ]
-
-  const preferenceSettings: SettingItem[] = [
-    {
-      id: 'theme',
-      icon: <Palette className="h-5 w-5" />,
-      title: '테마 설정',
-      description: 'Appearance & display',
-      href: '/settings/theme',
-    },
-    {
-      id: 'data',
-      icon: <Database className="h-5 w-5" />,
-      title: '데이터 & 백업',
-      description: 'Data management',
-      href: '/settings/data',
-    },
-  ]
-
-  const supportSettings: SettingItem[] = [
-    {
-      id: 'help',
-      icon: <HelpCircle className="h-5 w-5" />,
-      title: '도움말',
-      description: 'FAQs & support',
-      href: '/settings/help',
-    },
-    {
-      id: 'logout',
-      icon: <LogOut className="h-5 w-5" />,
-      title: '로그아웃',
-      description: 'Sign out of your account',
-      onClick: () => setShowLogoutConfirm(true),
-    },
-  ]
-
-  const handleItemClick = (item: SettingItem) => {
-    setLogoutError(null)
-    if (item.onClick) {
-      item.onClick()
-      return
+  const handleItemClick = (item: SettingItemConfig) => {
+    setLogoutError(null);
+    switch (item.action.type) {
+      case "route":
+        router.push(item.action.href);
+        return;
+      case "activity":
+        push(item.action.activity, {});
+        return;
+      case "logout":
+        setShowLogoutConfirm(true);
+        return;
     }
-
-    if (item.href) {
-      router.push(item.href)
-    }
-  }
+  };
 
   const handleLogout = async () => {
-    setLogoutError(null)
-    setIsLoggingOut(true)
+    setLogoutError(null);
+    setIsLoggingOut(true);
 
-    const { error } = await supabase.auth.signOut()
-    setIsLoggingOut(false)
+    const { error } = await supabase.auth.signOut();
+    setIsLoggingOut(false);
 
     if (error) {
-      setLogoutError(error.message || '로그아웃 중 오류가 발생했습니다.')
-      return
+      setLogoutError(error.message || "로그아웃 중 오류가 발생했습니다.");
+      return;
     }
 
-    setShowLogoutConfirm(false)
-    router.replace('/login')
-    router.refresh()
-  }
+    setShowLogoutConfirm(false);
+    router.replace("/login");
+    router.refresh();
+  };
 
-  const renderSettingItem = (item: SettingItem) => (
-    <button
-      key={item.id}
-      onClick={() => handleItemClick(item)}
-      className="group w-full card hover-lift"
-    >
-      <div className="flex items-center gap-4">
-        <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-secondary/50 text-foreground">
-          {item.icon}
+  const renderSettingItem = (item: SettingItemConfig) => {
+    const Icon = item.icon;
+
+    return (
+      <button
+        key={item.id}
+        onClick={() => handleItemClick(item)}
+        className="group w-full card hover-lift"
+      >
+        <div className="flex items-center gap-4">
+          <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-secondary/50 text-foreground">
+            <Icon className="h-5 w-5" />
+          </div>
+          <div className="min-w-0 flex-1 text-left">
+            <h3 className="font-semibold text-foreground">{item.title}</h3>
+            <p className="text-sm text-muted-foreground">{item.description}</p>
+          </div>
+          <ChevronRight className="h-5 w-5 flex-shrink-0 text-muted-foreground" />
         </div>
-        <div className="min-w-0 flex-1 text-left">
-          <h3 className="font-semibold text-foreground">{item.title}</h3>
-          <p className="text-sm text-muted-foreground">{item.description}</p>
-        </div>
-        <ChevronRight className="h-5 w-5 flex-shrink-0 text-muted-foreground" />
-      </div>
-    </button>
-  )
+      </button>
+    );
+  };
 
   return (
-    <div className="min-h-screen bg-background pb-20 md:pb-6">
+    <div className="flex min-h-[calc(100dvh-3.5rem)] flex-col bg-background sm:min-h-[calc(100dvh-4rem)]">
       <Header />
-      <div className="container mx-auto max-w-3xl px-4 py-6">
+      <div className="container mx-auto max-w-3xl flex-1 px-4 py-6 pb-[calc(5rem+env(safe-area-inset-bottom))]">
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-foreground">Settings</h1>
         </div>
 
-        <div className="mb-8">
-          <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-muted-foreground">
-            ACCOUNT
-          </h2>
-          <div className="space-y-2">{accountSettings.map(renderSettingItem)}</div>
-        </div>
-
-        <div className="mb-8">
-          <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-muted-foreground">
-            PREFERENCES
-          </h2>
-          <div className="space-y-2">{preferenceSettings.map(renderSettingItem)}</div>
-        </div>
-
-        <div className="mb-8">
-          <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-muted-foreground">
-            SUPPORT
-          </h2>
-          <div className="space-y-2">{supportSettings.map(renderSettingItem)}</div>
-        </div>
+        {settingSections.map((section) => (
+          <section key={section.id} className="mb-8">
+            <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+              {section.title}
+            </h2>
+            <div className="space-y-2">
+              {section.items.map(renderSettingItem)}
+            </div>
+          </section>
+        ))}
 
         <div className="mt-12 text-center text-sm text-muted-foreground">
           <p>DAITJI v1.0.0</p>
@@ -175,8 +216,12 @@ const SettingsListActivity: ActivityComponentType = () => {
       {showLogoutConfirm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
           <div className="card w-full max-w-sm animate-scale-in p-6">
-            <h3 className="mb-2 text-xl font-bold text-foreground">로그아웃 하시겠습니까?</h3>
-            <p className="mb-6 text-muted-foreground">다시 로그인하려면 계정 정보가 필요합니다.</p>
+            <h3 className="mb-2 text-xl font-bold text-foreground">
+              로그아웃 하시겠습니까?
+            </h3>
+            <p className="mb-6 text-muted-foreground">
+              다시 로그인하려면 계정 정보가 필요합니다.
+            </p>
             {logoutError && (
               <p className="mb-4 rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
                 {logoutError}
@@ -195,7 +240,7 @@ const SettingsListActivity: ActivityComponentType = () => {
                 disabled={isLoggingOut}
                 className="flex-1 rounded-lg bg-destructive px-5 py-2.5 font-semibold text-destructive-foreground transition-all duration-200 hover:bg-destructive/90"
               >
-                {isLoggingOut ? '로그아웃 중...' : '로그아웃'}
+                {isLoggingOut ? "로그아웃 중..." : "로그아웃"}
               </button>
             </div>
           </div>
@@ -204,25 +249,25 @@ const SettingsListActivity: ActivityComponentType = () => {
 
       <BottomNav />
     </div>
-  )
-}
+  );
+};
 
 const NotificationSettingsActivity: ActivityComponentType = () => {
-  const { pop } = useFlow()
-  const activity = useActivity()
-  const isVisible = activity.transitionState !== 'exit-done'
+  const { pop } = useFlow();
+  const activity = useActivity();
+  const isVisible = activity.transitionState !== "exit-done";
 
   const transitionClass =
-    activity.transitionState === 'enter-active'
-      ? 'animate-slide-in-from-right'
-      : activity.transitionState === 'exit-active'
-        ? 'animate-slide-out-to-right'
-        : ''
+    activity.transitionState === "enter-active"
+      ? "animate-slide-in-from-right"
+      : activity.transitionState === "exit-active"
+        ? "animate-slide-out-to-right"
+        : "";
 
   return (
     <div
-      className={`absolute inset-0 z-[60] bg-background pb-20 md:pb-6 ${
-        isVisible ? transitionClass : 'pointer-events-none'
+      className={`absolute inset-0 z-[60] bg-background ${
+        isVisible ? transitionClass : "pointer-events-none"
       }`}
     >
       <div className="sticky top-0 z-[61] border-b border-border bg-background/95 backdrop-blur">
@@ -236,18 +281,20 @@ const NotificationSettingsActivity: ActivityComponentType = () => {
             >
               <ArrowLeft className="h-5 w-5" />
             </button>
-            <h1 className="text-center text-base font-semibold text-foreground">알림 설정</h1>
+            <h1 className="text-center text-base font-semibold text-foreground">
+              알림 설정
+            </h1>
             <span aria-hidden="true" />
           </div>
         </div>
       </div>
 
-      <div className="container mx-auto max-w-3xl px-4 py-4">
+      <div className="container mx-auto max-w-3xl px-4 py-4 pb-[calc(5rem+env(safe-area-inset-bottom))]">
         <NotificationsSettingsClient showTitle={false} />
       </div>
     </div>
-  )
-}
+  );
+};
 
 export const { Stack, useFlow } = stackflow({
   transitionDuration: 280,
@@ -256,5 +303,5 @@ export const { Stack, useFlow } = stackflow({
     NotificationSettingsActivity,
   },
   plugins: [basicRendererPlugin()],
-  initialActivity: () => 'SettingsListActivity',
-})
+  initialActivity: () => "SettingsListActivity",
+});

@@ -5,7 +5,8 @@ export interface Item {
   type: "FOOD" | "COSMETIC" | "MEDICINE" | "GENERAL";
   location_id: string;
   image_url?: string | null;
-  location_path?: string;
+  location_name?: string | null;
+  location_path?: string | null;
   quantity: number;
   expiry_date?: string;
   computed_expiry_date?: string;
@@ -31,7 +32,6 @@ export interface ExpiringItem {
 export interface Location {
   id: string;
   name: string;
-  type?: string;
   parent_id?: string | null;
   level: number;
   path?: string;
@@ -39,6 +39,8 @@ export interface Location {
   item_count?: number;
   icon?: string | null;
   color?: string | null;
+  description?: string | null;
+  sort_order?: number;
   children?: Location[];
 }
 

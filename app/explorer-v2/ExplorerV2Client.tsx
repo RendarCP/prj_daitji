@@ -1,7 +1,8 @@
 "use client";
 
-import { CSSProperties, useCallback, useEffect, useState } from "react";
+import { CSSProperties, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { useQueryClient } from "@tanstack/react-query";
 import {
   DndContext,
   DragEndEvent,
@@ -20,18 +21,21 @@ import {
   ChevronDown,
   ChevronRight,
   GripVertical,
-  Plus,
   FolderPlus,
   RefreshCw,
   ArrowDownToLine,
 } from "lucide-react";
 import { BottomNav } from "@/components/layout/BottomNav";
+import { FloatingActionButton } from "@/components/ui/FloatingActionButton";
 import { Badge } from "@/components/ui/Badge";
-import { Button } from "@/components/ui/Button";
 import { Alert } from "@/components/ui/Alert";
+import { EmptyState } from "@/components/ui/EmptyState";
 import { useLocations } from "@/lib/hooks/useLocations";
 import { cn } from "@/lib/utils/cn";
 import type { Location } from "@/lib/types";
+import { LocationDetailPanel } from "@/components/ui/LocationDetailPanel";
+import { BottomSheet } from "@/components/ui/BottomSheet";
+import { AddLocationClient } from "@/app/explorer/AddLocationClient";
 
 type TreeLocation = Omit<Location, "children"> & { children: TreeLocation[] };
 
@@ -98,6 +102,54 @@ function ensureTree(nodes: Location[]): TreeLocation[] {
     ...node,
     children: ensureTree(node.children || []),
   }));
+}
+
+function areTreesEqual(a: TreeLocation[], b: TreeLocation[]): boolean {
+  if (a.length !== b.length) {
+    return false;
+  }
+
+  for (let i = 0; i < a.length; i += 1) {
+    const left = a[i];
+    const right = b[i];
+    if (
+      left.id !== right.id ||
+      left.name !== right.name ||
+      left.level !== right.level ||
+      (left.parent_id ?? null) !== (right.parent_id ?? null) ||
+      (left.itemCount ?? left.item_count ?? 0) !== (right.itemCount ?? right.item_count ?? 0) ||
+      (left.icon ?? null) !== (right.icon ?? null)
+    ) {
+      return false;
+    }
+
+    if (!areTreesEqual(left.children, right.children)) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
+function areSetsEqual(a: Set<string>, b: Set<string>): boolean {
+  if (a.size !== b.size) {
+    return false;
+  }
+
+  for (const value of a) {
+    if (!b.has(value)) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
+function collectTreeIds(nodes: TreeLocation[], output: Set<string>): void {
+  nodes.forEach((node) => {
+    output.add(node.id);
+    collectTreeIds(node.children, output);
+  });
 }
 
 function hasNodeInSubtree(node: TreeLocation, nodeId: string): boolean {
@@ -190,6 +242,25 @@ function flattenPositions(
   });
 }
 
+function flattenTreeLocations(nodes: TreeLocation[]): Location[] {
+  return nodes.flatMap((node) => [
+    {
+      id: node.id,
+      name: node.name,
+      parent_id: node.parent_id,
+      level: node.level,
+      path: node.path,
+      itemCount: node.itemCount,
+      item_count: node.item_count,
+      icon: node.icon,
+      color: node.color,
+      description: node.description,
+      sort_order: node.sort_order,
+    },
+    ...flattenTreeLocations(node.children),
+  ]);
+}
+
 async function patchLocationPosition(position: LocationPosition): Promise<void> {
   const response = await fetch(`/api/locations/${position.id}`, {
     method: "PATCH",
@@ -256,6 +327,7 @@ interface TreeNodeProps {
   isDragging: boolean;
   onToggle: (id: string) => void;
   onOpenAdd: (parentId: string | null) => void;
+  onOpenDetail: (location: TreeLocation) => void;
 }
 
 function TreeNode({
@@ -265,6 +337,7 @@ function TreeNode({
   isDragging,
   onToggle,
   onOpenAdd,
+  onOpenDetail,
 }: TreeNodeProps) {
   const isExpanded = expanded.has(node.id);
   const hasChildren = node.children.length > 0;
@@ -360,16 +433,22 @@ function TreeNode({
               )}
             </button>
 
-            <div className="w-10 h-10 rounded-xl bg-secondary/70 flex items-center justify-center text-xl">
-              {node.icon || "📁"}
-            </div>
+            <button
+              type="button"
+              onClick={() => onOpenDetail(node)}
+              className="min-w-0 flex flex-1 items-center gap-3 text-left"
+            >
+              <div className="w-10 h-10 rounded-xl bg-secondary/70 flex items-center justify-center text-xl">
+                {node.icon || "📁"}
+              </div>
 
-            <div className="min-w-0 flex-1">
-              <p className="text-base font-semibold truncate">{node.name}</p>
-              <p className="text-xs text-muted-foreground">
-                레벨 {node.level} · 물품 {node.itemCount || node.item_count || 0}개
-              </p>
-            </div>
+              <div className="min-w-0 flex-1">
+                <p className="text-base font-semibold truncate">{node.name}</p>
+                <p className="text-xs text-muted-foreground">
+                  레벨 {node.level} · 물품 {node.itemCount || node.item_count || 0}개
+                </p>
+              </div>
+            </button>
 
             <Badge
               size="sm"
@@ -402,6 +481,7 @@ function TreeNode({
               isDragging={isDragging}
               onToggle={onToggle}
               onOpenAdd={onOpenAdd}
+              onOpenDetail={onOpenDetail}
             />
           ))}
         </div>
@@ -434,9 +514,11 @@ function DragPreview({ node }: DragPreviewProps) {
 }
 
 export default function ExplorerV2Client() {
+  const SHEET_EXIT_MS = 300;
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  const queryClient = useQueryClient();
 
   const {
     data: treeResponse = [],
@@ -462,6 +544,11 @@ export default function ExplorerV2Client() {
   const [activeDragId, setActiveDragId] = useState<string | null>(null);
   const [isPersisting, setIsPersisting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [selectedLocation, setSelectedLocation] = useState<Location | null>(null);
+  const [locationStack, setLocationStack] = useState<Location[]>([]);
+  const [editingLocationId, setEditingLocationId] = useState<string | null>(null);
+  const [isEditSheetOpen, setIsEditSheetOpen] = useState(false);
+  const editSheetCloseTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const { setNodeRef: setRootDropRef, isOver: isOverRoot } = useDroppable({
     id: makeDropId(ROOT_ID, "inside"),
@@ -469,16 +556,48 @@ export default function ExplorerV2Client() {
 
   useEffect(() => {
     const normalized = ensureTree(treeResponse);
-    setTree(normalized);
+    setTree((prev) => (areTreesEqual(prev, normalized) ? prev : normalized));
 
-    const initialExpanded = new Set<string>();
+    const allIds = new Set<string>();
+    collectTreeIds(normalized, allIds);
+    const topLevelIds = new Set<string>();
     normalized.forEach((node) => {
-      initialExpanded.add(node.id);
+      topLevelIds.add(node.id);
     });
-    setExpanded(initialExpanded);
+
+    setExpanded((prev) => {
+      const next = new Set<string>();
+      let changed = false;
+
+      for (const id of prev) {
+        if (allIds.has(id)) {
+          next.add(id);
+        } else {
+          changed = true;
+        }
+      }
+
+      for (const id of topLevelIds) {
+        if (!next.has(id)) {
+          next.add(id);
+          changed = true;
+        }
+      }
+
+      return changed || !areSetsEqual(prev, next) ? next : prev;
+    });
   }, [treeResponse]);
 
+  useEffect(() => {
+    return () => {
+      if (editSheetCloseTimerRef.current) {
+        clearTimeout(editSheetCloseTimerRef.current);
+      }
+    };
+  }, []);
+
   const activeNode = activeDragId ? findNode(tree, activeDragId) : null;
+  const flatLocations = useMemo(() => flattenTreeLocations(tree), [tree]);
 
   const persistMovedTree = useCallback(
     async (prevTree: TreeLocation[], nextTree: TreeLocation[]) => {
@@ -523,6 +642,18 @@ export default function ExplorerV2Client() {
     params.set("return_to", returnTo);
 
     router.push(`/explorer/add?${params.toString()}`);
+  };
+
+  const openEditSheet = (location: Location) => {
+    setEditingLocationId(location.id);
+    setIsEditSheetOpen(true);
+  };
+
+  const closeEditSheetWithAnimation = () => {
+    setIsEditSheetOpen(false);
+    editSheetCloseTimerRef.current = setTimeout(() => {
+      setEditingLocationId(null);
+    }, SHEET_EXIT_MS);
   };
 
   const handleToggle = (id: string) => {
@@ -606,16 +737,9 @@ export default function ExplorerV2Client() {
   };
 
   return (
-    <div className="min-h-screen bg-background pb-24">
-      <div className="mx-auto max-w-3xl px-4 pt-5 space-y-4">
-        <section className="card p-4">
-          <h1 className="text-xl font-extrabold tracking-wide text-primary uppercase">
-            위치 계층 미리보기 V2
-          </h1>
-          <p className="mt-2 text-sm text-muted-foreground">
-            드래그 핸들로 위치 순서/중첩을 바꾸고, 추가 버튼으로 하단 팝업을 열어 위치를 생성하세요.
-          </p>
-        </section>
+    <div className="flex min-h-[calc(100dvh-3.5rem)] flex-col bg-background sm:min-h-[calc(100dvh-4rem)]">
+      <div className="container mx-auto max-w-3xl flex-1 space-y-4 px-4 py-6 pb-[calc(5rem+env(safe-area-inset-bottom))]">
+        <h1 className="text-2xl font-bold text-foreground">우리집 위치구조</h1>
 
         {errorMessage && <Alert variant="danger">{errorMessage}</Alert>}
 
@@ -661,8 +785,17 @@ export default function ExplorerV2Client() {
             )}
 
             {!isLoading && !isError && tree.length === 0 && (
-              <div className="rounded-xl border border-border bg-card p-4 text-muted-foreground">
-                등록된 위치가 없습니다. 아래에서 첫 위치를 추가하세요.
+              <div className="flex min-h-[50vh] items-center justify-center">
+                <EmptyState
+                  size="sm"
+                  title="등록된 위치가 없습니다"
+                  description="플로팅 버튼으로 첫 위치를 추가해보세요"
+                  action={{
+                    label: "위치 추가",
+                    onClick: () => openAddModal(null),
+                  }}
+                  className="py-0"
+                />
               </div>
             )}
 
@@ -677,6 +810,10 @@ export default function ExplorerV2Client() {
                     isDragging={!!activeDragId}
                     onToggle={handleToggle}
                     onOpenAdd={openAddModal}
+                    onOpenDetail={(location) => {
+                      setLocationStack([]);
+                      setSelectedLocation(location);
+                    }}
                   />
                 ))}
               </div>
@@ -688,28 +825,67 @@ export default function ExplorerV2Client() {
           </DragOverlay>
         </DndContext>
 
-        <section className="card p-4 space-y-3">
-          <div className="flex items-center justify-between gap-2">
-            <h2 className="text-lg font-semibold text-foreground">위치 관리</h2>
-            <Button
-              type="button"
-              variant="primary"
-              size="sm"
-              onClick={() => openAddModal(null)}
-            >
-              <Plus className="w-4 h-4 mr-1" />
-              위치 추가
-            </Button>
-          </div>
-          <p className="text-sm text-muted-foreground">
-            트리에서 노드의 폴더+ 버튼을 누르면 해당 위치가 부모로 자동 선택됩니다.
-          </p>
-        </section>
-
         {isPersisting && (
           <p className="text-xs text-muted-foreground">위치 변경사항 저장 중...</p>
         )}
       </div>
+
+      <FloatingActionButton onClick={() => openAddModal(null)} label="위치 추가" />
+
+      <LocationDetailPanel
+        isOpen={!!selectedLocation}
+        onClose={() => {
+          setSelectedLocation(null);
+          setLocationStack([]);
+        }}
+        onBack={() => {
+          if (locationStack.length > 0) {
+            const parentLocation = locationStack[locationStack.length - 1];
+            setLocationStack((prev) => prev.slice(0, -1));
+            setSelectedLocation(parentLocation);
+            return;
+          }
+
+          setSelectedLocation(null);
+        }}
+        location={selectedLocation}
+        onSubLocationClick={(location) => {
+          if (selectedLocation) {
+            setLocationStack((prev) => [...prev, selectedLocation]);
+          }
+          setSelectedLocation(location);
+        }}
+        onEdit={(location) => openEditSheet(location)}
+        onAddSubLocation={(parentId) => openAddModal(parentId)}
+      />
+
+      {editingLocationId && (
+        <BottomSheet
+          isOpen={isEditSheetOpen}
+          onClose={closeEditSheetWithAnimation}
+          title="위치 수정"
+          maxHeight="max-h-[95vh]"
+          closeOnOverlayClick={false}
+        >
+          <div className="-mx-6 -my-4">
+            <AddLocationClient
+              locations={flatLocations}
+              mode="modal"
+              isEditMode
+              locationId={editingLocationId}
+              onSuccess={async (_targetId, location) => {
+                await queryClient.invalidateQueries({ queryKey: ["locations"] });
+
+                if (location) {
+                  setSelectedLocation(location);
+                }
+
+                closeEditSheetWithAnimation();
+              }}
+            />
+          </div>
+        </BottomSheet>
+      )}
 
       <BottomNav />
     </div>

@@ -112,20 +112,20 @@ export default function NotificationsSettingsClient({
       setIsLoading(true)
       setErrorMessage(null)
 
-      const response = await fetch('/api/settings/notifications', {
+      const settingsResponse = await fetch('/api/settings/notifications', {
         method: 'GET',
         cache: 'no-store',
       })
 
-      if (response.status === 401) {
+      if (settingsResponse.status === 401) {
         setIsLoading(false)
         router.replace('/login?next=/settings/notifications')
         return
       }
 
-      const result = (await response.json()) as ApiResponse<NotificationSettings>
+      const result = (await settingsResponse.json()) as ApiResponse<NotificationSettings>
 
-      if (!response.ok || !result.success || !result.data) {
+      if (!settingsResponse.ok || !result.success || !result.data) {
         const message = result.error?.details?.message || result.error?.message || '알림 설정을 불러오지 못했습니다.'
         setErrorMessage(message)
         setIsLoading(false)
@@ -302,6 +302,9 @@ export default function NotificationsSettingsClient({
 
         <Button onClick={handleSave} isLoading={isSaving} loadingText="저장 중..." leftIcon={<Save className="h-4 w-4" />}>
           저장
+        </Button>
+        <Button variant="outline" onClick={() => router.push('/settings/notifications/test')}>
+          알림 테스트 페이지
         </Button>
       </div>
     </div>

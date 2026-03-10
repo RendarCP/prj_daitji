@@ -47,6 +47,7 @@ export const LocationFormDataSchema = z.object({
   parent_id: z.string().uuid().optional().nullable(),
   icon: z.string().max(50).optional().nullable(),
   color: z.string().regex(/^#[0-9A-Fa-f]{6}$/).optional().nullable(),
+  description: z.string().max(500).optional().nullable(),
   sort_order: z.number().int().min(0).optional(),
 })
 

@@ -2,7 +2,7 @@ import { LocationCardSkeleton, ListItemSkeleton } from '@/components/ui/Skeleton
 
 export default function ExplorerLoading() {
   return (
-    <div className="min-h-screen bg-background pb-20">
+    <div className="flex min-h-[calc(100dvh-3.5rem)] flex-col bg-background sm:min-h-[calc(100dvh-4rem)]">
       {/* Page Title */}
       <div className="pt-6 pb-2 text-center relative px-4">
         <div className="h-7 w-48 bg-secondary/30 rounded animate-pulse mx-auto" />
@@ -13,7 +13,7 @@ export default function ExplorerLoading() {
         <div className="h-8 w-20 bg-secondary/30 rounded-full animate-pulse" />
       </div>
 
-      <div className="container mx-auto px-4 max-w-3xl space-y-6">
+      <div className="container mx-auto max-w-3xl flex-1 space-y-6 px-4 pb-[calc(5rem+env(safe-area-inset-bottom))]">
         {/* Locations Section */}
         <div>
           <div className="flex items-center justify-between mb-3 px-1">

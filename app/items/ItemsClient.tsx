@@ -8,7 +8,7 @@ import { Stack } from "./stackflow/itemsStack";
  */
 export function ItemsClient() {
   return (
-    <div className="min-h-screen overflow-hidden">
+    <div className="relative">
       <Stack />
     </div>
   );

@@ -7,7 +7,7 @@ export default async function AddLocationModalPage() {
   // Fetch all locations for the hierarchical dropdown
   const { data: locations } = await supabase
     .from("locations")
-    .select("id, name, level, parent_id, icon")
+    .select("id, name, level, parent_id, icon, color, description")
     .order("level", { ascending: true })
     .order("sort_order", { ascending: true });
 

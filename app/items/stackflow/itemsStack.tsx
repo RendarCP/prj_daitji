@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/Button";
 import { Alert } from "@/components/ui/Alert";
 import { ListItemSkeleton } from "@/components/ui/Skeleton";
 import { ItemListRowCard } from "@/components/features/ItemListRowCard";
+import { EmptyState } from "@/components/ui/EmptyState";
 import { useItems } from "@/lib/hooks/useItems";
 import { useItemDetail } from "@/lib/hooks/useItemDetail";
 import { ItemDetailPanelFromData } from "@/components/features/ItemDetailPanelFromData";
@@ -39,6 +40,8 @@ const ItemsListActivity: ActivityComponentType = () => {
         item.tags.some((tag: string) => tag.toLowerCase().includes(lowerQuery)))
     );
   });
+  const isGlobalEmpty =
+    !isLoading && !error && items.length === 0 && !searchQuery.trim();
 
   useEffect(() => {
     if (openedFromQueryRef.current) return;
@@ -61,28 +64,34 @@ const ItemsListActivity: ActivityComponentType = () => {
   }, [push]);
 
   return (
-    <div className="min-h-screen bg-background pb-20">
-      <div className="container mx-auto px-4 py-6 max-w-3xl">
-        <h1 className="text-2xl font-bold text-foreground mb-6">전체 물품</h1>
+    <div className="flex min-h-[calc(100dvh-3.5rem)] flex-col bg-background sm:min-h-[calc(100dvh-4rem)]">
+      <div className="container mx-auto max-w-3xl flex-1 px-4 py-6 pb-[calc(5rem+env(safe-area-inset-bottom))]">
+        {!isGlobalEmpty && (
+          <>
+            <h1 className="text-2xl font-bold text-foreground mb-6">
+              전체 물품
+            </h1>
 
-        <div className="relative flex items-center gap-2 mb-6">
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-            <input
-              type="text"
-              placeholder="물품 검색..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full h-10 pl-9 pr-4 rounded-xl bg-secondary/50 border-none text-sm placeholder:text-muted-foreground focus:ring-1 focus:ring-primary transition-all focus:bg-background"
-            />
-          </div>
-          <button
-            onClick={() => setShowFilters(!showFilters)}
-            className="w-10 h-10 flex items-center justify-center rounded-xl bg-secondary/50 hover:bg-secondary transition-colors"
-          >
-            <SlidersHorizontal className="w-4 h-4 text-foreground" />
-          </button>
-        </div>
+            <div className="relative flex items-center gap-2 mb-6">
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <input
+                  type="text"
+                  placeholder="물품 검색..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full h-10 pl-9 pr-4 rounded-xl bg-secondary/50 border-none text-sm placeholder:text-muted-foreground focus:ring-1 focus:ring-primary transition-all focus:bg-background"
+                />
+              </div>
+              <button
+                onClick={() => setShowFilters(!showFilters)}
+                className="w-10 h-10 flex items-center justify-center rounded-xl bg-secondary/50 hover:bg-secondary transition-colors"
+              >
+                <SlidersHorizontal className="w-4 h-4 text-foreground" />
+              </button>
+            </div>
+          </>
+        )}
 
         {error ? (
           <Alert variant="danger">
@@ -96,15 +105,40 @@ const ItemsListActivity: ActivityComponentType = () => {
               <ListItemSkeleton key={i} />
             ))}
           </div>
-        ) : filteredItems.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-12 text-center">
-            <div className="w-12 h-12 rounded-full bg-secondary flex items-center justify-center mb-3">
-              <div className="text-2xl">📦</div>
-            </div>
-            <p className="text-sm text-muted-foreground font-medium">
-              {searchQuery ? "검색 결과가 없습니다" : "등록된 물품이 없습니다"}
-            </p>
+        ) : isGlobalEmpty ? (
+          <div className="flex min-h-[50vh] items-center justify-center">
+            <EmptyState
+              size="sm"
+              title="등록된 물품이 없습니다"
+              description="첫 물품을 추가해서 관리를 시작해보세요"
+              action={{
+                label: "물품 추가",
+                onClick: () => push("ItemCreateActivity", {}),
+              }}
+              className="py-0"
+            />
           </div>
+        ) : filteredItems.length === 0 ? (
+          <EmptyState
+            size="sm"
+            title={
+              searchQuery ? "검색 결과가 없습니다" : "등록된 물품이 없습니다"
+            }
+            description={
+              searchQuery
+                ? "검색어를 바꾸거나 필터를 확인해보세요"
+                : "첫 물품을 추가해서 관리를 시작해보세요"
+            }
+            action={
+              searchQuery
+                ? undefined
+                : {
+                    label: "물품 추가",
+                    onClick: () => push("ItemCreateActivity", {}),
+                  }
+            }
+            className="py-10"
+          />
         ) : (
           <div className="space-y-2">
             {filteredItems.map((item) => {
@@ -114,7 +148,7 @@ const ItemsListActivity: ActivityComponentType = () => {
                   title={item.item_name}
                   type={item.type}
                   imageUrl={item.image_url}
-                  locationText={item.location_path}
+                  locationText={item.location_path || item.location_name}
                   tags={item.tags || []}
                   daysUntilExpiry={item.days_until_expiry}
                   onClick={() => push("ItemDetailActivity", { id: item.id })}
@@ -141,7 +175,7 @@ const ItemDetailActivity: ActivityComponentType<{ id: string }> = ({
 
   if (isLoading || !data) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
+      <div className="flex min-h-[calc(100dvh-3.5rem)] items-center justify-center bg-background sm:min-h-[calc(100dvh-4rem)]">
         <div className="animate-pulse text-muted-foreground">로딩 중...</div>
       </div>
     );
@@ -149,7 +183,7 @@ const ItemDetailActivity: ActivityComponentType<{ id: string }> = ({
 
   if (error) {
     return (
-      <div className="min-h-screen bg-background flex flex-col items-center justify-center gap-4 p-4">
+      <div className="flex min-h-[calc(100dvh-3.5rem)] flex-col items-center justify-center gap-4 bg-background p-4 sm:min-h-[calc(100dvh-4rem)]">
         <p className="text-destructive">
           {error instanceof Error ? error.message : "물품을 불러올 수 없습니다"}
         </p>
@@ -159,7 +193,7 @@ const ItemDetailActivity: ActivityComponentType<{ id: string }> = ({
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-[calc(100dvh-3.5rem)] bg-background sm:min-h-[calc(100dvh-4rem)]">
       <ItemDetailPanelFromData
         item={data.item}
         location={data.location}
@@ -185,14 +219,18 @@ const ItemCreateActivity: ActivityComponentType = () => {
       <div className="-mx-6 -my-4">
         <ItemAddClient
           mode="modal"
-          onSuccess={(targetId) => replace("ItemDetailActivity", { id: targetId })}
+          onSuccess={(targetId) =>
+            replace("ItemDetailActivity", { id: targetId })
+          }
         />
       </div>
     </BottomSheet>
   );
 };
 
-const ItemEditActivity: ActivityComponentType<{ id: string }> = ({ params }) => {
+const ItemEditActivity: ActivityComponentType<{ id: string }> = ({
+  params,
+}) => {
   const { pop } = useFlow();
   const [isSheetOpen, setIsSheetOpen] = useState(true);
   const closeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
