@@ -36,6 +36,7 @@ import type { Location } from "@/lib/types";
 import { LocationDetailPanel } from "@/components/ui/LocationDetailPanel";
 import { BottomSheet } from "@/components/ui/BottomSheet";
 import { AddLocationClient } from "@/app/explorer/AddLocationClient";
+import { LocationThumbnail } from "@/components/features/LocationThumbnail";
 
 type TreeLocation = Omit<Location, "children"> & { children: TreeLocation[] };
 
@@ -438,9 +439,13 @@ function TreeNode({
               onClick={() => onOpenDetail(node)}
               className="min-w-0 flex flex-1 items-center gap-3 text-left"
             >
-              <div className="w-10 h-10 rounded-xl bg-secondary/70 flex items-center justify-center text-xl">
-                {node.icon || "📁"}
-              </div>
+              <LocationThumbnail
+                name={node.name}
+                icon={node.icon || "📁"}
+                className="h-10 w-10 rounded-xl"
+                emojiClassName="left-1 top-1 h-5 w-5 text-[10px]"
+                labelClassName="hidden"
+              />
 
               <div className="min-w-0 flex-1">
                 <p className="text-base font-semibold truncate">{node.name}</p>
@@ -502,9 +507,13 @@ function DragPreview({ node }: DragPreviewProps) {
   return (
     <div className="flex items-center gap-2 rounded-2xl border px-3 py-3 bg-card border-border text-card-foreground shadow-medium w-[280px]">
       <GripVertical className="w-4 h-4 text-muted-foreground" />
-      <div className="w-10 h-10 rounded-xl bg-secondary/70 flex items-center justify-center text-xl">
-        {node.icon || "📁"}
-      </div>
+      <LocationThumbnail
+        name={node.name}
+        icon={node.icon || "📁"}
+        className="h-10 w-10 rounded-xl"
+        emojiClassName="left-1 top-1 h-5 w-5 text-[10px]"
+        labelClassName="hidden"
+      />
       <div className="min-w-0 flex-1">
         <p className="text-base font-semibold truncate">{node.name}</p>
         <p className="text-xs text-muted-foreground">레벨 {node.level}</p>

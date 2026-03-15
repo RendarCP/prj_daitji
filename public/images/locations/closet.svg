@@ -1,0 +1,21 @@
+<svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="512" height="512" rx="56" fill="url(#bg)"/>
+  <rect x="56" y="84" width="400" height="344" rx="40" fill="#FFF7F3"/>
+  <rect x="56" y="300" width="400" height="128" rx="0" fill="#E8DCD6"/>
+  <rect x="116" y="110" width="280" height="278" rx="28" fill="#F0D0C3"/>
+  <rect x="138" y="134" width="114" height="230" rx="18" fill="#F7E5DD"/>
+  <rect x="260" y="134" width="114" height="230" rx="18" fill="#E7BAA8"/>
+  <rect x="162" y="154" width="66" height="14" rx="7" fill="#A46A4B"/>
+  <rect x="284" y="154" width="66" height="14" rx="7" fill="#A46A4B"/>
+  <circle cx="236" cy="252" r="8" fill="#A46A4B"/>
+  <circle cx="276" cy="252" r="8" fill="#FFF7F3"/>
+  <path d="M182 194L212 230H300L330 194" stroke="#A46A4B" stroke-width="14" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M214 166C214 153.85 223.85 144 236 144H256V194H214V166Z" fill="#F6E4A2"/>
+  <path d="M256 144H276C288.15 144 298 153.85 298 166V194H256V144Z" fill="#CFE6CA"/>
+  <defs>
+    <linearGradient id="bg" x1="72" y1="64" x2="442" y2="458" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFE8DD"/>
+      <stop offset="1" stop-color="#E4D6F9"/>
+    </linearGradient>
+  </defs>
+</svg>

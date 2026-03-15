@@ -10,12 +10,14 @@ import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Alert } from "@/components/ui/Alert";
 import { CascadingLocationSelect } from "@/components/features/CascadingLocationSelect";
+import { LocationThumbnail } from "@/components/features/LocationThumbnail";
 import type { Location } from "@/lib/types";
 import {
   findLocationPath,
   getSelectedParentId,
 } from "@/lib/utils/location-selection";
 import { cn } from "@/lib/utils/cn";
+import { getLocationImage } from "@/lib/utils/location-images";
 
 interface AddLocationClientProps {
   locations: Location[];
@@ -275,6 +277,7 @@ export function AddLocationClient({
   };
 
   const isModal = mode === "modal";
+  const previewImage = getLocationImage(formData.name);
 
   return (
     <div
@@ -358,6 +361,28 @@ export function AddLocationClient({
                   leftIcon={<Home className="w-4 h-4" />}
                   error={errors.name}
                 />
+
+                <div className="rounded-2xl border border-border bg-secondary/20 p-4">
+                  <div className="flex items-center gap-4">
+                    <LocationThumbnail
+                      name={formData.name}
+                      icon={formData.icon || "📦"}
+                      className="h-24 w-24 shrink-0"
+                      emojiClassName="h-8 w-8 text-base"
+                    />
+                    <div className="min-w-0">
+                      <p className="text-sm font-semibold text-foreground">
+                        기본 이미지 미리보기
+                      </p>
+                      <p className="mt-1 text-sm text-muted-foreground">
+                        현재 이름 기준으로 <span className="font-medium text-foreground">{previewImage.label}</span> 이미지가 자동 연결됩니다.
+                      </p>
+                      <p className="mt-1 text-xs text-muted-foreground">
+                        이름에 주방, 거실, 침실, 서재, 옷방이 포함되지 않으면 기본 방 이미지가 사용됩니다.
+                      </p>
+                    </div>
+                  </div>
+                </div>
 
                 <div className="space-y-3">
                   <label className="block text-sm font-medium text-foreground">

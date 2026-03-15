@@ -6,7 +6,7 @@ import { SidePanel } from './SidePanel'
 import { Badge } from './Badge'
 import { Spinner } from './Spinner'
 import { cn } from '@/lib/utils/cn'
-import { FALLBACK_COLORS } from '@/lib/constants/colors'
+import { LocationThumbnail } from '@/components/features/LocationThumbnail'
 
 interface Location {
   id: string
@@ -119,12 +119,13 @@ export function LocationDetailPanel({
       <div className="p-6 space-y-6">
         {/* Location Header */}
         <div className="text-center">
-          <div
-            className="w-20 h-20 rounded-2xl mx-auto mb-4 flex items-center justify-center"
-            style={{ backgroundColor: location.color || FALLBACK_COLORS.locationBackground }}
-          >
-            <span className="text-5xl">{location.icon || '📦'}</span>
-          </div>
+          <LocationThumbnail
+            name={location.name}
+            icon={location.icon || '📦'}
+            className="mx-auto mb-4 h-28 w-28"
+            emojiClassName="h-10 w-10 text-xl"
+            labelClassName="text-[10px]"
+          />
           <h2 className="text-2xl font-bold text-foreground mb-2">
             {location.name}
           </h2>
@@ -182,12 +183,13 @@ export function LocationDetailPanel({
                       className="card hover-lift p-4 transition-all duration-200"
                     >
                       <div className="flex flex-col items-center text-center">
-                        <div
-                          className="w-12 h-12 rounded-xl mb-2 flex items-center justify-center"
-                          style={{ backgroundColor: subLoc.color || FALLBACK_COLORS.locationBackground }}
-                        >
-                          <span className="text-2xl">{subLoc.icon || '📦'}</span>
-                        </div>
+                        <LocationThumbnail
+                          name={subLoc.name}
+                          icon={subLoc.icon || '📦'}
+                          className="mb-2 h-16 w-full max-w-[120px] rounded-xl"
+                          emojiClassName="h-7 w-7 text-sm"
+                          labelClassName="text-[10px]"
+                        />
                         <h4 className="font-semibold text-foreground text-sm mb-1">
                           {subLoc.name}
                         </h4>

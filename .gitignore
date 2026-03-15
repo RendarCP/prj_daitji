@@ -67,6 +67,7 @@ htmlcov/
 .coverage.*
 coverage.xml
 *.cover
+config.toml
 
 # Logs
 *.log

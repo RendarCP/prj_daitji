@@ -23,6 +23,7 @@ import {
 import { useExpiringItems } from "@/lib/hooks/useItems";
 import { cn } from "@/lib/utils/cn";
 import type { ExpiringItem, Item, Location } from "@/lib/types";
+import { LocationThumbnail } from "@/components/features/LocationThumbnail";
 
 export function DashboardClient() {
   const SHEET_EXIT_MS = 300;
@@ -320,9 +321,12 @@ export function DashboardClient() {
                   className="card hover-lift p-6 transition-all duration-200"
                 >
                   <div className="flex flex-col items-center text-center">
-                    <div className="w-16 h-16 rounded-2xl bg-secondary/50 flex items-center justify-center mb-3">
-                      <span className="text-4xl">{location.icon || "📦"}</span>
-                    </div>
+                    <LocationThumbnail
+                      name={location.name}
+                      icon={location.icon || "📦"}
+                      className="mb-3 h-24 w-full max-w-[168px]"
+                      emojiClassName="h-8 w-8 text-base"
+                    />
                     <h3 className="font-bold text-foreground mb-1">
                       {location.name}
                     </h3>

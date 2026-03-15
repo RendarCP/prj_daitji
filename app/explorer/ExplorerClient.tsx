@@ -19,6 +19,7 @@ import { ItemDetailPanelFromData } from "@/components/features/ItemDetailPanelFr
 import { BottomSheet } from "@/components/ui/BottomSheet";
 import { ItemAddClient } from "@/app/items/add/ItemAddClient";
 import { EmptyState } from "@/components/ui/EmptyState";
+import { LocationThumbnail } from "@/components/features/LocationThumbnail";
 
 export default function ExplorerClient() {
   const SHEET_EXIT_MS = 300;
@@ -187,9 +188,12 @@ export default function ExplorerClient() {
                           className="card hover-lift p-4 transition-all duration-200 bg-card border border-border"
                         >
                           <div className="flex flex-col items-center text-center">
-                            <div className="text-4xl mb-3">
-                              {location.icon || "📦"}
-                            </div>
+                            <LocationThumbnail
+                              name={location.name}
+                              icon={location.icon || "📦"}
+                              className="mb-3 h-24 w-full max-w-[160px]"
+                              emojiClassName="h-8 w-8 text-base"
+                            />
                             <h3 className="font-semibold text-foreground mb-1 text-sm">
                               {location.name}
                             </h3>
