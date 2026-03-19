@@ -3,6 +3,15 @@ import { z } from 'zod'
 import { createClient } from '@/lib/supabase/server'
 import { successResponse, errorResponse, handleError, CORS_HEADERS } from '@/lib/api/utils'
 
+function isValidTimeZone(value: string) {
+  try {
+    Intl.DateTimeFormat(undefined, { timeZone: value })
+    return true
+  } catch {
+    return false
+  }
+}
+
 const NotificationSettingsUpdateSchema = z.object({
   enabled: z.boolean().optional(),
   push_enabled: z.boolean().optional(),
@@ -13,7 +22,7 @@ const NotificationSettingsUpdateSchema = z.object({
   low_stock_threshold: z.coerce.number().int().min(0).max(9999).optional(),
   quiet_hours_start: z.string().regex(/^([01]\d|2[0-3]):([0-5]\d)$/).nullable().optional(),
   quiet_hours_end: z.string().regex(/^([01]\d|2[0-3]):([0-5]\d)$/).nullable().optional(),
-  timezone: z.string().min(1).max(100).optional(),
+  timezone: z.string().min(1).max(100).refine(isValidTimeZone, '유효한 시간대가 아닙니다.').optional(),
 })
 
 function normalizeExpiryDays(days?: number[]) {
@@ -22,6 +31,27 @@ function normalizeExpiryDays(days?: number[]) {
   }
 
   return Array.from(new Set(days)).sort((a, b) => b - a)
+}
+
+function normalizeNotificationSettingsUpdate(
+  parsed: z.infer<typeof NotificationSettingsUpdateSchema>
+) {
+  const updates = {
+    ...parsed,
+    expiry_days_before: normalizeExpiryDays(parsed.expiry_days_before),
+  }
+
+  if (parsed.enabled === false) {
+    return {
+      ...updates,
+      push_enabled: false,
+      in_app_enabled: false,
+      expiry_enabled: false,
+      low_stock_enabled: false,
+    }
+  }
+
+  return updates
 }
 
 async function getAuthenticatedUser() {
@@ -72,10 +102,7 @@ export async function PATCH(request: NextRequest) {
     const body = await request.json()
     const parsed = NotificationSettingsUpdateSchema.parse(body)
 
-    const updates = {
-      ...parsed,
-      expiry_days_before: normalizeExpiryDays(parsed.expiry_days_before),
-    }
+    const updates = normalizeNotificationSettingsUpdate(parsed)
 
     const { data, error } = await (supabase as any)
       .from('notification_settings')

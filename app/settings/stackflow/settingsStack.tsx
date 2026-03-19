@@ -1,12 +1,13 @@
 "use client";
 
+import type { ReactNode } from "react";
 import type { ActivityComponentType } from "@stackflow/react";
 import { stackflow, useActivity } from "@stackflow/react";
 import { basicRendererPlugin } from "@stackflow/plugin-renderer-basic";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
-  User,
+  ShieldCheck,
   Bell,
   LogOut,
   ChevronRight,
@@ -16,6 +17,7 @@ import type { LucideIcon } from "lucide-react";
 import { BottomNav } from "@/components/layout/BottomNav";
 import { Header } from "@/components/layout/Header";
 import { createClient } from "@/lib/supabase/client";
+import { AccountSecurityClient } from "@/app/settings/account/AccountSecurityClient";
 import NotificationsSettingsClient from "@/app/settings/notifications/NotificationsSettingsClient";
 
 type SettingAction =
@@ -25,7 +27,7 @@ type SettingAction =
     }
   | {
       type: "activity";
-      activity: "NotificationSettingsActivity";
+      activity: "AccountSecurityActivity" | "NotificationSettingsActivity";
     }
   | {
       type: "logout";
@@ -51,13 +53,13 @@ const settingSections: SettingSection[] = [
     title: "ACCOUNT",
     items: [
       {
-        id: "profile",
-        icon: User,
-        title: "프로필 설정",
-        description: "Edit your profile",
+        id: "account-security",
+        icon: ShieldCheck,
+        title: "계정 보안",
+        description: "로그인 수단과 비밀번호 관리",
         action: {
-          type: "route",
-          href: "/settings/profile",
+          type: "activity",
+          activity: "AccountSecurityActivity",
         },
       },
       {
@@ -252,21 +254,39 @@ const SettingsListActivity: ActivityComponentType = () => {
   );
 };
 
-const NotificationSettingsActivity: ActivityComponentType = () => {
-  const { pop } = useFlow();
-  const activity = useActivity();
-  const isVisible = activity.transitionState !== "exit-done";
+interface SettingsOverlayShellProps {
+  title: string;
+  transitionState: string;
+  onBack: () => void;
+  children: ReactNode;
+}
+
+function SettingsOverlayShell({
+  title,
+  transitionState,
+  onBack,
+  children,
+}: SettingsOverlayShellProps) {
+  const isVisible = transitionState !== "exit-done";
+
+  useEffect(() => {
+    document.body.style.overflow = "hidden";
+
+    return () => {
+      document.body.style.overflow = "unset";
+    };
+  }, []);
 
   const transitionClass =
-    activity.transitionState === "enter-active"
+    transitionState === "enter-active"
       ? "animate-slide-in-from-right"
-      : activity.transitionState === "exit-active"
+      : transitionState === "exit-active"
         ? "animate-slide-out-to-right"
         : "";
 
   return (
     <div
-      className={`absolute inset-0 z-[60] bg-background ${
+      className={`fixed inset-0 z-[60] overflow-y-auto bg-background ${
         isVisible ? transitionClass : "pointer-events-none"
       }`}
     >
@@ -275,24 +295,54 @@ const NotificationSettingsActivity: ActivityComponentType = () => {
           <div className="grid h-14 grid-cols-[40px_1fr_40px] items-center">
             <button
               type="button"
-              onClick={() => pop()}
+              onClick={onBack}
               className="inline-flex h-9 w-9 items-center justify-center rounded-full text-foreground transition-colors hover:bg-secondary"
               aria-label="뒤로가기"
             >
               <ArrowLeft className="h-5 w-5" />
             </button>
             <h1 className="text-center text-base font-semibold text-foreground">
-              알림 설정
+              {title}
             </h1>
             <span aria-hidden="true" />
           </div>
         </div>
       </div>
 
-      <div className="container mx-auto max-w-3xl px-4 py-4 pb-[calc(5rem+env(safe-area-inset-bottom))]">
-        <NotificationsSettingsClient showTitle={false} />
+      <div className="container mx-auto max-w-3xl px-4 py-4 pb-[calc(2rem+env(safe-area-inset-bottom))]">
+        {children}
       </div>
     </div>
+  );
+}
+
+const NotificationSettingsActivity: ActivityComponentType = () => {
+  const { pop } = useFlow();
+  const activity = useActivity();
+
+  return (
+    <SettingsOverlayShell
+      title="알림 설정"
+      transitionState={activity.transitionState}
+      onBack={() => pop()}
+    >
+      <NotificationsSettingsClient />
+    </SettingsOverlayShell>
+  );
+};
+
+const AccountSecurityActivity: ActivityComponentType = () => {
+  const { pop } = useFlow();
+  const activity = useActivity();
+
+  return (
+    <SettingsOverlayShell
+      title="계정 보안"
+      transitionState={activity.transitionState}
+      onBack={() => pop()}
+    >
+      <AccountSecurityClient />
+    </SettingsOverlayShell>
   );
 };
 
@@ -300,6 +350,7 @@ export const { Stack, useFlow } = stackflow({
   transitionDuration: 280,
   activities: {
     SettingsListActivity,
+    AccountSecurityActivity,
     NotificationSettingsActivity,
   },
   plugins: [basicRendererPlugin()],

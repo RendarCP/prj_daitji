@@ -41,7 +41,7 @@ function getExpiryBadge(daysUntilExpiry?: number | null): {
 
   if (daysUntilExpiry <= 7) {
     return {
-      label: "임박",
+      label: "만료 임박",
       className: "bg-warning/15 text-warning",
     };
   }

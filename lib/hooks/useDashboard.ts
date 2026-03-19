@@ -1,9 +1,9 @@
 'use client'
 
 import { useQuery } from '@tanstack/react-query'
-import type { DashboardStats, Item, Location } from '@/lib/types'
+import type { DashboardOverviewResponse, Item, Location } from '@/lib/types'
 
-async function fetchDashboardStats(): Promise<DashboardStats> {
+async function fetchDashboardStats(): Promise<DashboardOverviewResponse> {
   const response = await fetch('/api/stats/dashboard')
   const result = await response.json()
 

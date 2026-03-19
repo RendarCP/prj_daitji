@@ -1,6 +1,7 @@
 'use client'
 
-import { ReactNode, useEffect, useCallback } from 'react'
+import { ReactNode, useEffect, useCallback, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { X } from 'lucide-react'
 import { cn } from '@/lib/utils/cn'
 import { Button } from './Button'
@@ -30,6 +31,12 @@ export function Modal({
   showCloseButton = true,
   footer,
 }: ModalProps) {
+  const [isMounted, setIsMounted] = useState(false)
+
+  useEffect(() => {
+    setIsMounted(true)
+  }, [])
+
   const handleEscape = useCallback(
     (e: KeyboardEvent) => {
       if (closeOnEscape && e.key === 'Escape') {
@@ -51,7 +58,7 @@ export function Modal({
     }
   }, [isOpen, handleEscape])
 
-  if (!isOpen) return null
+  if (!isMounted || !isOpen) return null
 
   const sizes = {
     sm: 'max-w-md',
@@ -61,9 +68,9 @@ export function Modal({
     full: 'max-w-full m-4',
   }
 
-  return (
+  return createPortal(
     <div 
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 animate-fade-in"
+      className="fixed inset-0 z-[80] flex items-center justify-center p-4 animate-fade-in"
       role="dialog"
       aria-modal="true"
       aria-labelledby={title ? 'modal-title' : undefined}
@@ -79,17 +86,17 @@ export function Modal({
       {/* Modal Content */}
       <div 
         className={cn(
-          'relative bg-white rounded-2xl shadow-2xl w-full animate-slide-up',
+          'relative w-full rounded-[28px] bg-card text-card-foreground shadow-2xl animate-slide-up',
           'flex flex-col max-h-[90vh]',
           sizes[size]
         )}
       >
         {/* Header */}
         {(title || showCloseButton) && (
-          <div className="flex items-start justify-between p-6 border-b border-border">
+          <div className="flex items-start justify-between px-6 pt-6">
             <div className="flex-1">
               {title && (
-                <h2 id="modal-title" className="text-xl font-bold text-foreground">
+                <h2 id="modal-title" className="text-2xl font-bold text-foreground">
                   {title}
                 </h2>
               )}
@@ -104,7 +111,7 @@ export function Modal({
                 variant="ghost"
                 size="icon"
                 onClick={onClose}
-                className="ml-4 -mt-1 -mr-1"
+                className="ml-4 -mt-1 -mr-1 text-muted-foreground hover:bg-secondary hover:text-foreground"
                 aria-label="닫기"
               >
                 <X className="w-5 h-5" />
@@ -114,17 +121,17 @@ export function Modal({
         )}
 
         {/* Body */}
-        <div className="flex-1 overflow-y-auto p-6">
+        <div className="flex-1 overflow-y-auto px-6 py-5">
           {children}
         </div>
 
         {/* Footer */}
         {footer && (
-          <div className="flex items-center justify-end gap-2 p-6 border-t border-border">
+          <div className="flex items-center justify-end gap-2 px-6 pb-6 pt-1">
             {footer}
           </div>
         )}
       </div>
     </div>
-  )
+  , document.body)
 }

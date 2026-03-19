@@ -1,35 +1,38 @@
 import { NextRequest, NextResponse } from "next/server";
+import { sanitizeNextPath } from "@/lib/auth/utils";
 import { createClient } from "@/lib/supabase/server";
-
-function sanitizeNextPath(path: string | null) {
-  if (!path || !path.startsWith("/") || path.startsWith("//")) {
-    return "/dashboard";
-  }
-
-  return path;
-}
 
 export async function GET(request: NextRequest) {
   const requestUrl = new URL(request.url);
   const code = requestUrl.searchParams.get("code");
   const next = sanitizeNextPath(requestUrl.searchParams.get("next"));
-
+  const isPasswordRecovery = next === "/auth/reset-password";
   const redirectUrl = new URL(next, requestUrl.origin);
 
+  const getErrorRedirectUrl = (errorCode: string) => {
+    const errorTarget = new URL(
+      isPasswordRecovery ? "/auth/reset-password" : "/login",
+      requestUrl.origin,
+    );
+
+    errorTarget.searchParams.set("error", errorCode);
+
+    if (!isPasswordRecovery && next !== "/dashboard") {
+      errorTarget.searchParams.set("next", next);
+    }
+
+    return errorTarget;
+  };
+
   if (!code) {
-    const loginUrl = new URL("/login", requestUrl.origin);
-    loginUrl.searchParams.set("error", "missing_code");
-    return NextResponse.redirect(loginUrl);
+    return NextResponse.redirect(getErrorRedirectUrl("missing_code"));
   }
 
   const supabase = await createClient();
   const { error } = await supabase.auth.exchangeCodeForSession(code);
 
   if (error) {
-    const loginUrl = new URL("/login", requestUrl.origin);
-    loginUrl.searchParams.set("error", "oauth_exchange_failed");
-    loginUrl.searchParams.set("message", error.message);
-    return NextResponse.redirect(loginUrl);
+    return NextResponse.redirect(getErrorRedirectUrl("oauth_exchange_failed"));
   }
 
   return NextResponse.redirect(redirectUrl);

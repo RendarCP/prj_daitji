@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import {
   Camera,
@@ -99,14 +99,14 @@ export function ScanClient() {
   const [detectedCode, setDetectedCode] = useState<string | null>(null)
   const [detectedFormat, setDetectedFormat] = useState<string | null>(null)
 
-  const stopDetection = () => {
+  const stopDetection = useCallback(() => {
     if (detectIntervalRef.current) {
       clearInterval(detectIntervalRef.current)
       detectIntervalRef.current = null
     }
-  }
+  }, [])
 
-  const stopCamera = () => {
+  const stopCamera = useCallback(() => {
     stopDetection()
 
     if (streamRef.current) {
@@ -120,9 +120,9 @@ export function ScanClient() {
 
     setCameraReady(false)
     setIsScanning(false)
-  }
+  }, [stopDetection])
 
-  const syncPermissionState = async () => {
+  const syncPermissionState = useCallback(async () => {
     if (!('mediaDevices' in navigator) || !navigator.mediaDevices?.getUserMedia) {
       setPermissionState('unsupported')
       return
@@ -146,7 +146,7 @@ export function ScanClient() {
     } catch {
       setPermissionState((current) => (current === 'idle' ? 'prompt' : current))
     }
-  }
+  }, [])
 
   const startDetection = async () => {
     if (!videoRef.current || !window.BarcodeDetector) {
@@ -253,7 +253,7 @@ export function ScanClient() {
       }
       stopCamera()
     }
-  }, [])
+  }, [stopCamera, syncPermissionState])
 
   const permissionBadgeVariant =
     permissionState === 'granted'
@@ -274,7 +274,7 @@ export function ScanClient() {
               variant="outline"
               size="sm"
               leftIcon={<Keyboard className="h-4 w-4" />}
-              onClick={() => router.push('/items/add')}
+              onClick={() => router.push('/items/add', { scroll: false })}
             >
               수동 등록
             </Button>
@@ -304,7 +304,10 @@ export function ScanClient() {
                 size="sm"
                 variant="success"
                 onClick={() =>
-                  router.push(`/items/add?barcode=${encodeURIComponent(detectedCode)}`)
+                  router.push(
+                    `/items/add?barcode=${encodeURIComponent(detectedCode)}`,
+                    { scroll: false },
+                  )
                 }
               >
                 이 값으로 등록

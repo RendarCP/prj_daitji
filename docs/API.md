@@ -583,7 +583,7 @@ OPTIONS requests are supported for preflight checks.
 
 ## Notes
 
-1. **Authentication**: This is MVP v1, so authentication is not implemented. All endpoints are publicly accessible.
+1. **Authentication**: Authentication is now partially implemented with Supabase Auth. App pages and selected settings/item/location endpoints require an authenticated user session, while some MVP-era endpoints and docs may still be in transition.
 
 2. **Database Functions Used**:
    - `get_location_path(location_id)`: Returns hierarchical path string

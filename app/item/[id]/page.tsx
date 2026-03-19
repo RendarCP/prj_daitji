@@ -81,6 +81,7 @@ export default async function ItemDetailPage({ params }: Props) {
         id: item.id,
         name: item.name,
         type: item.type,
+        image_url: item.image_url,
         location_id: item.location_id,
         quantity: item.quantity,
         tags: item.tags,

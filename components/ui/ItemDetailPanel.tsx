@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { ReactNode } from "react";
 import { ItemDetailContent } from "@/components/features/ItemDetailContent";
 import { SidePanel } from "./SidePanel";
 
@@ -14,6 +14,7 @@ interface ItemDetailPanelProps {
     item_name?: string | null;
     type?: string | null;
     item_type?: string | null;
+    image_url?: string | null;
     quantity?: number | null;
     location_path?: string | null;
     location_name?: string | null;
@@ -26,6 +27,8 @@ interface ItemDetailPanelProps {
   } | null;
   onEdit?: () => void;
   onFavorite?: () => void;
+  headerActions?: ReactNode;
+  showCloseButton?: boolean;
 }
 
 export function ItemDetailPanel({
@@ -34,15 +37,10 @@ export function ItemDetailPanel({
   item,
   onEdit,
   onFavorite,
+  headerActions,
+  showCloseButton = true,
 }: ItemDetailPanelProps) {
-  // Persist item data for exit animation
-  const [displayItem, setDisplayItem] = useState(item);
-
-  useEffect(() => {
-    if (item) setDisplayItem(item);
-  }, [item]);
-
-  if (!displayItem) return null;
+  if (!item) return null;
 
   return (
     <SidePanel
@@ -50,13 +48,16 @@ export function ItemDetailPanel({
       onClose={onClose}
       title="" // Title hidden in header, shown in content
       showBackButton
-      showFavoriteButton={!!onFavorite}
+      // showFavoriteButton={!!onFavorite}
+      showFavoriteButton={false}
       showEditButton={false} // Hide header edit button, moved to bottom
       onFavorite={onFavorite}
       onEdit={onEdit}
+      headerActions={headerActions}
+      showCloseButton={showCloseButton}
       disableBodyScroll={true}
     >
-      <ItemDetailContent item={displayItem} onEdit={onEdit} />
+      <ItemDetailContent item={item} onEdit={onEdit} />
     </SidePanel>
   );
 }

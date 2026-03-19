@@ -1,6 +1,13 @@
 "use client";
 
-import { CSSProperties, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  CSSProperties,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useQueryClient } from "@tanstack/react-query";
 import {
@@ -25,14 +32,17 @@ import {
   RefreshCw,
   ArrowDownToLine,
 } from "lucide-react";
+import { Cell, Pie, PieChart, ResponsiveContainer, Tooltip } from "recharts";
 import { BottomNav } from "@/components/layout/BottomNav";
 import { FloatingActionButton } from "@/components/ui/FloatingActionButton";
 import { Badge } from "@/components/ui/Badge";
 import { Alert } from "@/components/ui/Alert";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { useLocations } from "@/lib/hooks/useLocations";
+import { useItemDetail } from "@/lib/hooks/useItemDetail";
 import { cn } from "@/lib/utils/cn";
 import type { Location } from "@/lib/types";
+import { ItemDetailPanelFromData } from "@/components/features/ItemDetailPanelFromData";
 import { LocationDetailPanel } from "@/components/ui/LocationDetailPanel";
 import { BottomSheet } from "@/components/ui/BottomSheet";
 import { AddLocationClient } from "@/app/explorer/AddLocationClient";
@@ -57,6 +67,13 @@ interface ParsedDropTarget {
 const ROOT_ID = "root";
 const DRAG_PREFIX = "drag:";
 const DROP_PREFIX = "drop:";
+const LOCATION_STRUCTURE_COLORS = [
+  "#38bdf8",
+  "#4ade80",
+  "#f59e0b",
+  "#f472b6",
+  "#a78bfa",
+];
 
 function makeDragId(locationId: string): string {
   return `${DRAG_PREFIX}${locationId}`;
@@ -81,7 +98,10 @@ function parseDropId(rawId: string): ParsedDropTarget | null {
   const payload = rawId.slice(DROP_PREFIX.length);
   const [targetId, position] = payload.split(":");
 
-  if (!targetId || (position !== "before" && position !== "after" && position !== "inside")) {
+  if (
+    !targetId ||
+    (position !== "before" && position !== "after" && position !== "inside")
+  ) {
     return null;
   }
 
@@ -118,7 +138,8 @@ function areTreesEqual(a: TreeLocation[], b: TreeLocation[]): boolean {
       left.name !== right.name ||
       left.level !== right.level ||
       (left.parent_id ?? null) !== (right.parent_id ?? null) ||
-      (left.itemCount ?? left.item_count ?? 0) !== (right.itemCount ?? right.item_count ?? 0) ||
+      (left.itemCount ?? left.item_count ?? 0) !==
+        (right.itemCount ?? right.item_count ?? 0) ||
       (left.icon ?? null) !== (right.icon ?? null)
     ) {
       return false;
@@ -161,7 +182,10 @@ function hasNodeInSubtree(node: TreeLocation, nodeId: string): boolean {
   return node.children.some((child) => hasNodeInSubtree(child, nodeId));
 }
 
-function detachNode(nodes: TreeLocation[], nodeId: string): TreeLocation | null {
+function detachNode(
+  nodes: TreeLocation[],
+  nodeId: string,
+): TreeLocation | null {
   const index = nodes.findIndex((node) => node.id === nodeId);
   if (index >= 0) {
     const [removed] = nodes.splice(index, 1);
@@ -262,7 +286,50 @@ function flattenTreeLocations(nodes: TreeLocation[]): Location[] {
   ]);
 }
 
-async function patchLocationPosition(position: LocationPosition): Promise<void> {
+function countSubtreeItems(node: TreeLocation): number {
+  const ownCount = node.itemCount ?? node.item_count ?? 0;
+  return (
+    ownCount +
+    node.children.reduce((sum, child) => sum + countSubtreeItems(child), 0)
+  );
+}
+
+function ExplorerLocationTooltip({
+  active,
+  payload,
+}: {
+  active?: boolean;
+  payload?: Array<{
+    name?: string;
+    value?: number;
+    color?: string;
+  }>;
+}) {
+  if (!active || !payload?.length) {
+    return null;
+  }
+
+  const entry = payload[0];
+
+  return (
+    <div className="rounded-2xl border border-border bg-card px-3 py-2 shadow-soft">
+      <div className="flex items-center gap-2 text-sm text-foreground">
+        <span
+          className="h-2.5 w-2.5 rounded-full"
+          style={{ backgroundColor: entry.color || "#94a3b8" }}
+        />
+        <span className="font-medium">{entry.name}</span>
+      </div>
+      <div className="mt-1 text-xs text-muted-foreground">
+        {entry.value ?? 0}개 보관
+      </div>
+    </div>
+  );
+}
+
+async function patchLocationPosition(
+  position: LocationPosition,
+): Promise<void> {
   const response = await fetch(`/api/locations/${position.id}`, {
     method: "PATCH",
     headers: { "Content-Type": "application/json" },
@@ -370,7 +437,10 @@ function TreeNode({
   };
 
   return (
-    <div className="relative space-y-2" style={{ paddingLeft: `${depth * 20}px` }}>
+    <div
+      className="relative space-y-2"
+      style={{ paddingLeft: `${depth * 20}px` }}
+    >
       <div className="relative">
         {isDragging && (
           <div
@@ -450,7 +520,8 @@ function TreeNode({
               <div className="min-w-0 flex-1">
                 <p className="text-base font-semibold truncate">{node.name}</p>
                 <p className="text-xs text-muted-foreground">
-                  레벨 {node.level} · 물품 {node.itemCount || node.item_count || 0}개
+                  레벨 {node.level} · 물품{" "}
+                  {node.itemCount || node.item_count || 0}개
                 </p>
               </div>
             </button>
@@ -528,6 +599,7 @@ export default function ExplorerV2Client() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const queryClient = useQueryClient();
+  const [activeItemId, setActiveItemId] = useState<string | null>(null);
 
   const {
     data: treeResponse = [],
@@ -535,6 +607,8 @@ export default function ExplorerV2Client() {
     isError,
     refetch,
   } = useLocations({ tree: true });
+  const { data: activeItemDetail, isLoading: isActiveItemLoading } =
+    useItemDetail(activeItemId);
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -553,11 +627,17 @@ export default function ExplorerV2Client() {
   const [activeDragId, setActiveDragId] = useState<string | null>(null);
   const [isPersisting, setIsPersisting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [selectedLocation, setSelectedLocation] = useState<Location | null>(null);
+  const [selectedLocation, setSelectedLocation] = useState<Location | null>(
+    null,
+  );
   const [locationStack, setLocationStack] = useState<Location[]>([]);
-  const [editingLocationId, setEditingLocationId] = useState<string | null>(null);
+  const [editingLocationId, setEditingLocationId] = useState<string | null>(
+    null,
+  );
   const [isEditSheetOpen, setIsEditSheetOpen] = useState(false);
-  const editSheetCloseTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const editSheetCloseTimerRef = useRef<ReturnType<typeof setTimeout> | null>(
+    null,
+  );
 
   const { setNodeRef: setRootDropRef, isOver: isOverRoot } = useDroppable({
     id: makeDropId(ROOT_ID, "inside"),
@@ -605,8 +685,63 @@ export default function ExplorerV2Client() {
     };
   }, []);
 
+  useEffect(() => {
+    const handleNavigationRetap = (event: Event) => {
+      const detail = (event as CustomEvent<{ href?: string }>).detail;
+      if (detail?.href !== "/explorer") {
+        return;
+      }
+
+      void refetch();
+    };
+
+    window.addEventListener("app:navigation-retap", handleNavigationRetap);
+    return () => {
+      window.removeEventListener("app:navigation-retap", handleNavigationRetap);
+    };
+  }, [refetch]);
+
   const activeNode = activeDragId ? findNode(tree, activeDragId) : null;
   const flatLocations = useMemo(() => flattenTreeLocations(tree), [tree]);
+  const rootLocationDistribution = useMemo(() => {
+    const sorted = tree
+      .map((node) => ({
+        id: node.id,
+        name: node.name,
+        value: countSubtreeItems(node),
+      }))
+      .filter((node) => node.value > 0)
+      .sort((a, b) => b.value - a.value);
+
+    const visible = sorted.slice(0, 4).map((node, index) => ({
+      ...node,
+      color:
+        LOCATION_STRUCTURE_COLORS[index % LOCATION_STRUCTURE_COLORS.length],
+    }));
+
+    if (sorted.length <= 4) {
+      return visible;
+    }
+
+    const othersValue = sorted
+      .slice(4)
+      .reduce((sum, node) => sum + node.value, 0);
+
+    return [
+      ...visible,
+      {
+        id: "others",
+        name: "기타",
+        value: othersValue,
+        color: LOCATION_STRUCTURE_COLORS[4],
+      },
+    ];
+  }, [tree]);
+  const totalStructuredItems = rootLocationDistribution.reduce(
+    (sum, location) => sum + location.value,
+    0,
+  );
+  const busiestStructuredLocation = rootLocationDistribution[0];
 
   const persistMovedTree = useCallback(
     async (prevTree: TreeLocation[], nextTree: TreeLocation[]) => {
@@ -715,7 +850,12 @@ export default function ExplorerV2Client() {
       normalizeTree(copied, null, 1);
       nextTree = copied;
     } else {
-      nextTree = moveNode(tree, dragId, parsedDrop.targetId, parsedDrop.position);
+      nextTree = moveNode(
+        tree,
+        dragId,
+        parsedDrop.targetId,
+        parsedDrop.position,
+      );
       if (parsedDrop.position === "inside") {
         setExpanded((prev) => {
           const next = new Set(prev);
@@ -738,7 +878,9 @@ export default function ExplorerV2Client() {
     } catch (error) {
       setTree(previousTree);
       setErrorMessage(
-        error instanceof Error ? error.message : "위치 이동 저장에 실패했습니다.",
+        error instanceof Error
+          ? error.message
+          : "위치 이동 저장에 실패했습니다.",
       );
     } finally {
       setIsPersisting(false);
@@ -748,6 +890,94 @@ export default function ExplorerV2Client() {
   return (
     <div className="flex min-h-[calc(100dvh-3.5rem)] flex-col bg-background sm:min-h-[calc(100dvh-4rem)]">
       <div className="container mx-auto max-w-3xl flex-1 space-y-4 px-4 py-6 pb-[calc(5rem+env(safe-area-inset-bottom))]">
+        {!isLoading && !isError && rootLocationDistribution.length > 0 && (
+          <section className="rounded-[28px] shadow-soft">
+            <div className="mb-4">
+              <h2 className="text-lg font-semibold text-foreground">
+                어디에 얼마나 있나
+              </h2>
+              <p className="mt-1 text-sm text-muted-foreground">
+                {busiestStructuredLocation
+                  ? `${busiestStructuredLocation.name} 쪽에 가장 많이 모여 있어요.`
+                  : "위치별 물품 분포를 보여줍니다."}
+              </p>
+            </div>
+
+            <div className="rounded-[24px] border border-border bg-background px-4 pb-4 pt-5">
+              <div className="relative h-[150px]">
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie
+                      data={rootLocationDistribution}
+                      dataKey="value"
+                      nameKey="name"
+                      startAngle={180}
+                      endAngle={0}
+                      cx="50%"
+                      cy="92%"
+                      innerRadius={74}
+                      outerRadius={104}
+                      paddingAngle={5}
+                      cornerRadius={10}
+                      stroke="rgba(15, 23, 42, 0.08)"
+                      strokeWidth={5}
+                    >
+                      {rootLocationDistribution.map((entry) => (
+                        <Cell key={entry.id} fill={entry.color} />
+                      ))}
+                    </Pie>
+                    <Tooltip content={<ExplorerLocationTooltip />} />
+                  </PieChart>
+                </ResponsiveContainer>
+
+                <div className="pointer-events-none absolute inset-x-0 bottom-5 flex flex-col items-center">
+                  <div className="text-sm text-muted-foreground">
+                    전체 보관 물품
+                  </div>
+                  <div className="mt-1 text-3xl font-semibold tracking-tight text-foreground">
+                    {totalStructuredItems}개
+                  </div>
+                </div>
+              </div>
+
+              <div className="mt-2 grid grid-cols-2 gap-3">
+                {rootLocationDistribution.map((location) => {
+                  const percent =
+                    totalStructuredItems > 0
+                      ? Math.round(
+                          (location.value / totalStructuredItems) * 100,
+                        )
+                      : 0;
+
+                  return (
+                    <div
+                      key={location.id}
+                      className="rounded-2xl border border-border bg-card px-4 py-3"
+                    >
+                      <div className="flex items-start gap-2.5">
+                        <span
+                          className="mt-1 h-2.5 w-2.5 rounded-full"
+                          style={{ backgroundColor: location.color }}
+                        />
+                        <div className="min-w-0 flex-1">
+                          <div className="truncate text-sm font-medium text-foreground">
+                            {location.name}
+                          </div>
+                          <div className="mt-1 text-sm text-muted-foreground">
+                            {location.value}개
+                          </div>
+                        </div>
+                        <div className="shrink-0 text-xs text-muted-foreground">
+                          {percent}%
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </section>
+        )}
         <h1 className="text-2xl font-bold text-foreground">우리집 위치구조</h1>
 
         {errorMessage && <Alert variant="danger">{errorMessage}</Alert>}
@@ -835,11 +1065,16 @@ export default function ExplorerV2Client() {
         </DndContext>
 
         {isPersisting && (
-          <p className="text-xs text-muted-foreground">위치 변경사항 저장 중...</p>
+          <p className="text-xs text-muted-foreground">
+            위치 변경사항 저장 중...
+          </p>
         )}
       </div>
 
-      <FloatingActionButton onClick={() => openAddModal(null)} label="위치 추가" />
+      <FloatingActionButton
+        onClick={() => openAddModal(null)}
+        label="위치 추가"
+      />
 
       <LocationDetailPanel
         isOpen={!!selectedLocation}
@@ -864,9 +1099,23 @@ export default function ExplorerV2Client() {
           }
           setSelectedLocation(location);
         }}
+        onItemClick={(item) => {
+          const id = "item_id" in item ? item.item_id : item.id;
+          if (!id) return;
+          setActiveItemId(id);
+        }}
         onEdit={(location) => openEditSheet(location)}
         onAddSubLocation={(parentId) => openAddModal(parentId)}
       />
+
+      {activeItemId && activeItemDetail && !isActiveItemLoading && (
+        <ItemDetailPanelFromData
+          item={activeItemDetail.item}
+          location={activeItemDetail.location}
+          locationPath={activeItemDetail.locationPath}
+          onCloseRequested={() => setActiveItemId(null)}
+        />
+      )}
 
       {editingLocationId && (
         <BottomSheet
@@ -883,7 +1132,9 @@ export default function ExplorerV2Client() {
               isEditMode
               locationId={editingLocationId}
               onSuccess={async (_targetId, location) => {
-                await queryClient.invalidateQueries({ queryKey: ["locations"] });
+                await queryClient.invalidateQueries({
+                  queryKey: ["locations"],
+                });
 
                 if (location) {
                   setSelectedLocation(location);

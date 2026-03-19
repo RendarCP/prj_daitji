@@ -3,7 +3,6 @@ import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { ArrowLeft } from 'lucide-react'
 import { Header } from '@/components/layout/Header'
-import { BottomNav } from '@/components/layout/BottomNav'
 import { createClient } from '@/lib/supabase/server'
 import NotificationsSettingsClient from './NotificationsSettingsClient'
 
@@ -25,7 +24,7 @@ export default async function NotificationSettingsPage() {
   return (
     <>
       <Header />
-      <div className="min-h-screen bg-background pb-20 md:pb-6">
+      <div className="min-h-screen bg-background pb-8">
         <div className="container mx-auto max-w-3xl px-4 py-6">
           <Link
             href="/settings"
@@ -35,11 +34,9 @@ export default async function NotificationSettingsPage() {
             <ArrowLeft className="h-4 w-4" />
             뒤로가기
           </Link>
-          <h1 className="mb-6 text-2xl font-bold text-foreground">알림 설정</h1>
           <NotificationsSettingsClient />
         </div>
       </div>
-      <BottomNav />
     </>
   )
 }

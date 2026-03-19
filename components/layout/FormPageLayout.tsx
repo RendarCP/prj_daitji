@@ -11,6 +11,10 @@ export interface FormPageLayoutProps {
   className?: string;
   /** 본문 스크롤 비활성화 (모달과 동일) */
   disableBodyScroll?: boolean;
+  leadingAction?: ReactNode;
+  trailingAction?: ReactNode;
+  showDefaultCloseButton?: boolean;
+  onDefaultClose?: () => void;
 }
 
 /**
@@ -22,10 +26,19 @@ export function FormPageLayout({
   children,
   className,
   disableBodyScroll = false,
+  leadingAction,
+  trailingAction,
+  showDefaultCloseButton = true,
+  onDefaultClose,
 }: FormPageLayoutProps) {
   const router = useRouter();
 
-  const handleClose = () => router.back();
+  const handleClose = () => {
+    onDefaultClose?.();
+    if (!onDefaultClose) {
+      router.back();
+    }
+  };
 
   return (
     <div
@@ -40,14 +53,17 @@ export function FormPageLayout({
         aria-label="페이지 헤더"
       >
         <div className="flex items-center gap-2">
-          <button
-            type="button"
-            onClick={handleClose}
-            className="p-2 hover:bg-secondary rounded-lg transition-colors"
-            aria-label="닫기"
-          >
-            <X className="w-5 h-5" />
-          </button>
+          {leadingAction ??
+            (showDefaultCloseButton && (
+              <button
+                type="button"
+                onClick={handleClose}
+                className="p-2 hover:bg-secondary rounded-lg transition-colors"
+                aria-label="닫기"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            ))}
           <h1
             id="form-page-title"
             className="text-lg font-semibold text-foreground"
@@ -55,7 +71,11 @@ export function FormPageLayout({
             {title}
           </h1>
         </div>
-        <div className="w-9" aria-hidden="true" />
+        {trailingAction ? (
+          <div className="flex items-center gap-2">{trailingAction}</div>
+        ) : (
+          <div className="w-9" aria-hidden="true" />
+        )}
       </header>
 
       {/* Body - 헤더 아래부터 스크롤 영역 (pt-14 = 헤더 높이) */}

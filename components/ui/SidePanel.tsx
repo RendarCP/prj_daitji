@@ -12,10 +12,12 @@ export interface SidePanelProps {
   showBackButton?: boolean
   showFavoriteButton?: boolean
   showEditButton?: boolean
+  showCloseButton?: boolean
   /** 뒤로가기 클릭 시 호출. 없으면 onClose 사용(기존 동작) */
   onBack?: () => void
   onFavorite?: () => void
   onEdit?: () => void
+  headerActions?: ReactNode
   closeOnOverlayClick?: boolean
   closeOnEscape?: boolean
   disableBodyScroll?: boolean
@@ -29,9 +31,11 @@ export function SidePanel({
   showBackButton = true,
   showFavoriteButton = false,
   showEditButton = false,
+  showCloseButton = true,
   onBack,
   onFavorite,
   onEdit,
+  headerActions,
   closeOnOverlayClick = true,
   closeOnEscape = true,
   disableBodyScroll = false,
@@ -140,13 +144,16 @@ export function SidePanel({
                 <Edit className="w-5 h-5" />
               </button>
             )}
-            <button
-              onClick={onClose}
-              className="p-2 hover:bg-secondary rounded-lg transition-colors"
-              aria-label="닫기"
-            >
-              <X className="w-5 h-5" />
-            </button>
+            {headerActions}
+            {showCloseButton && (
+              <button
+                onClick={onClose}
+                className="p-2 hover:bg-secondary rounded-lg transition-colors"
+                aria-label="닫기"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            )}
           </div>
         </div>
 

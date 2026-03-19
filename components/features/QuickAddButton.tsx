@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
 import { Plus, Package, MapPin } from "lucide-react";
+import { useDialog } from "@/lib/hooks/useDialog";
 import { cn } from "@/lib/utils/cn";
 import { FloatingActionButton } from "../ui/FloatingActionButton";
 
@@ -16,22 +16,22 @@ export function QuickAddButton({
   onAddLocation,
   className,
 }: QuickAddButtonProps) {
-  const [isOpen, setIsOpen] = useState(false);
+  const actionMenu = useDialog();
 
   const handleAction = (action?: () => void) => {
-    setIsOpen(false);
+    actionMenu.close();
     action?.();
   };
 
   return (
     <div className={cn("fixed bottom-20 right-4 z-40 md:bottom-6", className)}>
       {/* Action Menu */}
-      {isOpen && (
+      {actionMenu.isOpen && (
         <>
           {/* Backdrop */}
           <div
             className="fixed inset-0 -z-10"
-            onClick={() => setIsOpen(false)}
+            onClick={actionMenu.close}
             aria-hidden="true"
           />
 
@@ -73,12 +73,12 @@ export function QuickAddButton({
 
       {/* Main Button: Plus ↔ X (45° rotation) */}
       <FloatingActionButton
-        onClick={() => setIsOpen(!isOpen)}
+        onClick={actionMenu.toggle}
         icon={
           <Plus
             className={cn(
               "w-6 h-6 transition-transform duration-300 ease-out",
-              isOpen && "rotate-45",
+              actionMenu.isOpen && "rotate-45",
             )}
           />
         }

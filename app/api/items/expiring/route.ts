@@ -30,7 +30,7 @@ export async function GET(request: NextRequest) {
 
     const { data, error } = await (supabase as any)
       .from('items')
-      .select('id, name, type, metadata, location:locations(name)')
+      .select('id, name, type, image_url, metadata, location:locations(name)')
       .eq('user_id', user.id)
       .eq('status', 'ACTIVE')
       .order('created_at', { ascending: false })
@@ -50,6 +50,7 @@ export async function GET(request: NextRequest) {
               item_id: row.id,
               item_name: row.name,
               item_type: row.type,
+              image_url: row.image_url ?? null,
               expiry_date: expiryDate,
               days_until_expiry: daysUntil,
               location_name: row.location?.name ?? null,

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import Image from "next/image";
 import { Edit, MapPin, Calendar } from "lucide-react";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
@@ -14,6 +14,7 @@ interface ItemDetailContentProps {
     item_name?: string | null;
     type?: string | null;
     item_type?: string | null;
+    image_url?: string | null;
     quantity?: number | null;
     location_path?: string | null;
     location_name?: string | null;
@@ -56,36 +57,50 @@ const getExpiryStatus = (
 };
 
 export function ItemDetailContent({ item, onEdit }: ItemDetailContentProps) {
-  // Persist item data for exit animation if needed, but for Page we might not need this.
-  // However, keeping structure similar to SidePanel for consistency.
-  const [displayItem, setDisplayItem] = useState(item);
+  if (!item) return null;
 
-  useEffect(() => {
-    if (item) setDisplayItem(item);
-  }, [item]);
-
-  if (!displayItem) return null;
-
-  const itemName = displayItem.item_name || displayItem.name || "이름 없음";
-  const itemType = displayItem.item_type || displayItem.type || "GENERAL";
+  const itemName = item.item_name || item.name || "이름 없음";
+  const itemType = item.item_type || item.type || "GENERAL";
   const emoji = getEmojiByType(itemType);
   const locationPath =
-    displayItem.location_path || displayItem.location_name || "위치 미지정";
-  const tags: string[] = displayItem.tags || [];
-  const quantity = displayItem.quantity ?? null;
-  const expiryDate =
-    displayItem.computed_expiry_date || displayItem.expiry_date;
-  const createdAt = displayItem.created_at;
-  const daysUntilExpiry = displayItem.days_until_expiry;
+    item.location_path || item.location_name || "위치 미지정";
+  const tags: string[] = item.tags || [];
+  const quantity = item.quantity ?? null;
+  const expiryDate = item.computed_expiry_date || item.expiry_date;
+  const createdAt = item.created_at;
+  const daysUntilExpiry = item.days_until_expiry;
   const expiryStatus = getExpiryStatus(daysUntilExpiry);
+  const imageUrl = item.image_url;
 
   return (
     <div className="flex flex-col h-full bg-background no-scrollbar relative">
       <div className="flex-1 overflow-y-auto p-6 space-y-8 pb-24">
         {/* Hero Section */}
-        <div className="flex flex-col items-center justify-center pt-8 pb-4">
-          <div className="text-[100px] leading-none mb-8 drop-shadow-2xl filter hover:scale-110 transition-transform duration-300 cursor-default select-none">
-            {emoji}
+        <div className="flex flex-col items-center justify-center pb-4">
+          <div
+            className={cn(
+              "relative mb-8 overflow-hidden bg-secondary/20",
+              imageUrl
+                ? "-mx-6 -mt-6 aspect-square w-[calc(100%+3rem)] rounded-none border-b border-border/60 sm:aspect-[4/3]"
+                : "flex aspect-[4/3] w-full items-center justify-center rounded-[28px] border border-border/60 shadow-soft",
+            )}
+          >
+            {imageUrl ? (
+              <>
+                <Image
+                  src={imageUrl}
+                  alt={itemName}
+                  fill
+                  className="object-cover"
+                  sizes="(max-width: 640px) 100vw, (max-width: 1200px) calc(100vw - 3rem), 768px"
+                />
+                <div className="pointer-events-none absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-background/70 via-background/10 to-transparent" />
+              </>
+            ) : (
+              <div className="text-[100px] leading-none drop-shadow-2xl filter transition-transform duration-300 hover:scale-110 cursor-default select-none">
+                {emoji}
+              </div>
+            )}
           </div>
 
           <div className="flex items-center gap-3 mb-4 w-full justify-start">
@@ -97,7 +112,7 @@ export function ItemDetailContent({ item, onEdit }: ItemDetailContentProps) {
                   size="md"
                   className="rounded-full px-3 uppercase tracking-wider text-xs font-bold"
                 >
-                  ⚠️ Expired
+                  만료됨
                 </Badge>
               )}
             {expiryStatus === "expiring" &&
@@ -108,7 +123,7 @@ export function ItemDetailContent({ item, onEdit }: ItemDetailContentProps) {
                   size="md"
                   className="rounded-full px-3 uppercase tracking-wider text-xs font-bold"
                 >
-                  ⚠️ Expiring
+                  만료 임박
                 </Badge>
               )}
 

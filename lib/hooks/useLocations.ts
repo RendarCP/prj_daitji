@@ -33,6 +33,9 @@ export function useLocations(params: LocationsParams = {}) {
   return useQuery({
     queryKey: ['locations', params],
     queryFn: () => fetchLocations(params),
+    staleTime: 0,
+    refetchOnMount: 'always',
+    refetchOnWindowFocus: true,
   })
 }
 
@@ -52,5 +55,8 @@ export function useLocationPath(locationId: string | null) {
     queryKey: ['location-path', locationId],
     queryFn: () => fetchLocationPath(locationId!),
     enabled: !!locationId,
+    staleTime: 0,
+    refetchOnMount: 'always',
+    refetchOnWindowFocus: true,
   })
 }

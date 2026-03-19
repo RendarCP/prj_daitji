@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import './globals.css'
 import { ReactQueryProvider } from '@/lib/providers/ReactQueryProvider'
+import { ToastProvider } from '@/lib/providers/ToastProvider'
 
 export const metadata: Metadata = {
   title: {
@@ -54,8 +55,10 @@ export default function RootLayout({
     <html lang="ko" suppressHydrationWarning>
       <body className="min-h-screen bg-background text-foreground">
         <ReactQueryProvider>
-          {children}
-          {modal}
+          <ToastProvider>
+            {children}
+            {modal}
+          </ToastProvider>
         </ReactQueryProvider>
       </body>
     </html>

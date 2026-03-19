@@ -11,6 +11,7 @@ import {
   ListItemSkeleton,
 } from "@/components/ui/Skeleton";
 import { useLocations, useLocationPath } from "@/lib/hooks/useLocations";
+import { useDialog } from "@/lib/hooks/useDialog";
 import { useItems } from "@/lib/hooks/useItems";
 import { useItemDetail } from "@/lib/hooks/useItemDetail";
 import { cn } from "@/lib/utils/cn";
@@ -35,8 +36,7 @@ export default function ExplorerClient() {
   const [searchQuery, setSearchQuery] = useState("");
   const [showFilters, setShowFilters] = useState(false);
   const [activeItemId, setActiveItemId] = useState<string | null>(null);
-  const [editingItemId, setEditingItemId] = useState<string | null>(null);
-  const [isEditSheetOpen, setIsEditSheetOpen] = useState(false);
+  const editSheetDialog = useDialog<string>();
   const editSheetCloseTimerRef = useRef<ReturnType<typeof setTimeout> | null>(
     null,
   );
@@ -101,6 +101,7 @@ export default function ExplorerClient() {
   // Initialize from URL params
   useEffect(() => {
     if (locationIdParam) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setSelectedLocationId(locationIdParam);
     }
   }, [locationIdParam]);
@@ -114,14 +115,13 @@ export default function ExplorerClient() {
   }, []);
 
   const openEditSheet = (itemId: string) => {
-    setEditingItemId(itemId);
-    setIsEditSheetOpen(true);
+    editSheetDialog.open(itemId);
   };
 
   const closeEditSheetWithAnimation = () => {
-    setIsEditSheetOpen(false);
+    editSheetDialog.close();
     editSheetCloseTimerRef.current = setTimeout(() => {
-      setEditingItemId(null);
+      editSheetDialog.reset();
     }, SHEET_EXIT_MS);
   };
 
@@ -151,14 +151,15 @@ export default function ExplorerClient() {
           <div className="min-h-[calc(100vh-220px)] flex items-center justify-center">
             <EmptyState
               size="sm"
-              title="등록된 위치가 없습니다"
-              description="첫 위치를 추가해서 공간을 구성해보세요"
-              action={{
-                label: "위치 추가",
-                onClick: () => router.push("/explorer/add"),
-              }}
-              className="py-0"
-            />
+                title="등록된 위치가 없습니다"
+                description="첫 위치를 추가해서 공간을 구성해보세요"
+                action={{
+                  label: "위치 추가",
+                  onClick: () =>
+                    router.push("/explorer/add", { scroll: false }),
+                }}
+                className="py-0"
+              />
           </div>
         ) : (
           <>
@@ -223,6 +224,7 @@ export default function ExplorerClient() {
                         onClick: () =>
                           router.push(
                             `/explorer/add${selectedLocationId ? `?parent_id=${selectedLocationId}` : ""}`,
+                            { scroll: false },
                           ),
                       }}
                       className="py-8"
@@ -323,7 +325,8 @@ export default function ExplorerClient() {
                         ? undefined
                         : {
                             label: "물품 추가",
-                            onClick: () => router.push("/items/add"),
+                            onClick: () =>
+                              router.push("/items/add", { scroll: false }),
                           }
                     }
                     className="py-10 opacity-80"
@@ -356,10 +359,11 @@ export default function ExplorerClient() {
 
       {/* Quick Add Button */}
       <QuickAddButton
-        onAddItem={() => router.push("/items/add")}
+        onAddItem={() => router.push("/items/add", { scroll: false })}
         onAddLocation={() =>
           router.push(
             `/explorer/add${selectedLocationId ? `?parent_id=${selectedLocationId}` : ""}`,
+            { scroll: false },
           )
         }
       />
@@ -377,9 +381,9 @@ export default function ExplorerClient() {
         />
       )}
 
-      {editingItemId && (
+      {editSheetDialog.data && (
         <BottomSheet
-          isOpen={isEditSheetOpen}
+          isOpen={editSheetDialog.isOpen}
           onClose={closeEditSheetWithAnimation}
           title="물품 수정"
           maxHeight="max-h-[95vh]"
@@ -389,7 +393,7 @@ export default function ExplorerClient() {
             <ItemAddClient
               mode="modal"
               isEditMode
-              itemId={editingItemId}
+              itemId={editSheetDialog.data}
               onSuccess={() => closeEditSheetWithAnimation()}
             />
           </div>

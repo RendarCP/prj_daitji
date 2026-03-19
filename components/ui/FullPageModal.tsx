@@ -1,6 +1,13 @@
 "use client";
 
-import { ReactNode, useEffect, useCallback, useState, useRef } from "react";
+import {
+  ReactNode,
+  useEffect,
+  useCallback,
+  useState,
+  useRef,
+  useLayoutEffect,
+} from "react";
 import { X, ArrowLeft } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 
@@ -32,11 +39,25 @@ export function FullPageModal({
   const [isAnimating, setIsAnimating] = useState(false); // true = 열림 상태, false = 닫힘 애니 중
   const [isClosing, setIsClosing] = useState(false); // 닫기 애니메이션 진행 중 (이때는 onClose 지연)
   const onCloseRef = useRef(onClose);
-  onCloseRef.current = onClose;
+  const lockedScrollYRef = useRef(0);
+  const bodyStylesRef = useRef<{
+    overflow: string;
+    position: string;
+    top: string;
+    left: string;
+    right: string;
+    width: string;
+  } | null>(null);
+  const htmlOverflowRef = useRef<string>("");
+
+  useEffect(() => {
+    onCloseRef.current = onClose;
+  }, [onClose]);
 
   // 열림: 마운트 후 슬라이드 업
   useEffect(() => {
     if (isOpen && !isClosing) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setIsVisible(true);
       setIsClosing(false);
       requestAnimationFrame(() => setIsAnimating(true));
@@ -46,6 +67,7 @@ export function FullPageModal({
   // 부모에서 isOpen이 false로 바뀐 경우(예: 브라우저 뒤로가기)에도 슬라이드 다운 후 숨김
   useEffect(() => {
     if (!isOpen && isVisible) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setIsAnimating(false);
       const t = setTimeout(() => setIsVisible(false), CLOSE_DURATION_MS);
       return () => clearTimeout(t);
@@ -77,14 +99,52 @@ export function FullPageModal({
     [closeOnEscape, startClose],
   );
 
-  useEffect(() => {
-    if (isOpen) {
-      document.body.style.overflow = "hidden";
-      document.addEventListener("keydown", handleEscape);
-    }
+  useLayoutEffect(() => {
+    if (!isOpen) return;
+
+    const { body, documentElement } = document;
+    lockedScrollYRef.current = window.scrollY;
+    bodyStylesRef.current = {
+      overflow: body.style.overflow,
+      position: body.style.position,
+      top: body.style.top,
+      left: body.style.left,
+      right: body.style.right,
+      width: body.style.width,
+    };
+    htmlOverflowRef.current = documentElement.style.overflow;
+
+    body.style.overflow = "hidden";
+    body.style.position = "fixed";
+    body.style.top = `-${lockedScrollYRef.current}px`;
+    body.style.left = "0";
+    body.style.right = "0";
+    body.style.width = "100%";
+    documentElement.style.overflow = "hidden";
+    document.addEventListener("keydown", handleEscape);
 
     return () => {
-      document.body.style.overflow = "unset";
+      const { body, documentElement } = document;
+      const previousBodyStyles = bodyStylesRef.current;
+
+      if (previousBodyStyles) {
+        body.style.overflow = previousBodyStyles.overflow;
+        body.style.position = previousBodyStyles.position;
+        body.style.top = previousBodyStyles.top;
+        body.style.left = previousBodyStyles.left;
+        body.style.right = previousBodyStyles.right;
+        body.style.width = previousBodyStyles.width;
+      } else {
+        body.style.overflow = "";
+        body.style.position = "";
+        body.style.top = "";
+        body.style.left = "";
+        body.style.right = "";
+        body.style.width = "";
+      }
+
+      documentElement.style.overflow = htmlOverflowRef.current;
+      window.scrollTo({ top: lockedScrollYRef.current, behavior: "auto" });
       document.removeEventListener("keydown", handleEscape);
     };
   }, [isOpen, handleEscape]);

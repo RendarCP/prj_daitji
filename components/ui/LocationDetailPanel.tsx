@@ -1,12 +1,14 @@
 'use client'
 
-import { useEffect, useState } from 'react'
-import { MapPin, ChevronRight } from 'lucide-react'
+import { useCallback, useEffect, useState } from 'react'
+import { useQueryClient } from '@tanstack/react-query'
+import { MapPin } from 'lucide-react'
+import { EntityDeleteActions } from '@/components/features/EntityDeleteActions'
+import { ItemListRowCard } from '@/components/features/ItemListRowCard'
+import { LocationThumbnail } from '@/components/features/LocationThumbnail'
 import { SidePanel } from './SidePanel'
 import { Badge } from './Badge'
 import { Spinner } from './Spinner'
-import { cn } from '@/lib/utils/cn'
-import { LocationThumbnail } from '@/components/features/LocationThumbnail'
 
 interface Location {
   id: string
@@ -24,9 +26,12 @@ interface Item {
   item_id?: string | null
   name?: string | null
   item_name?: string | null
-  type?: string | null
-  item_type?: string | null
+  type?: 'FOOD' | 'COSMETIC' | 'MEDICINE' | 'GENERAL' | null
+  item_type?: 'FOOD' | 'COSMETIC' | 'MEDICINE' | 'GENERAL' | null
+  image_url?: string | null
+  location_name?: string | null
   location_path?: string | null
+  tags?: string[] | null
   days_until_expiry?: number | null
 }
 
@@ -42,21 +47,6 @@ interface LocationDetailPanelProps {
   onAddSubLocation?: (parentId: string) => void
 }
 
-const getEmojiByType = (type: string) => {
-  switch (type) {
-    case 'FOOD':
-      return '🍽️'
-    case 'COSMETIC':
-      return '💄'
-    case 'MEDICINE':
-      return '💊'
-    case 'GENERAL':
-      return '🔋'
-    default:
-      return '📦'
-  }
-}
-
 export function LocationDetailPanel({
   isOpen,
   onClose,
@@ -67,14 +57,18 @@ export function LocationDetailPanel({
   onEdit,
   onAddSubLocation,
 }: LocationDetailPanelProps) {
+  const queryClient = useQueryClient()
   const [subLocations, setSubLocations] = useState<Location[]>([])
   const [items, setItems] = useState<Item[]>([])
   const [loading, setLoading] = useState(false)
+  const [deleteError, setDeleteError] = useState<string | null>(null)
+  const [isDeleting, setIsDeleting] = useState(false)
 
   useEffect(() => {
     if (!location || !isOpen) {
       setSubLocations([])
       setItems([])
+      setDeleteError(null)
       return
     }
 
@@ -104,6 +98,41 @@ export function LocationDetailPanel({
     fetchLocationData()
   }, [location, isOpen])
 
+  const handleDelete = useCallback(async () => {
+    if (!location) {
+      return false
+    }
+
+    try {
+      setIsDeleting(true)
+      setDeleteError(null)
+
+      const response = await fetch(`/api/locations/${location.id}`, {
+        method: 'DELETE',
+      })
+      const result = await response.json().catch(() => null)
+
+      if (!response.ok) {
+        throw new Error(result?.error?.message || '위치 삭제 중 오류가 발생했습니다')
+      }
+
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['locations'] }),
+        queryClient.invalidateQueries({ queryKey: ['dashboard'] }),
+      ])
+
+      onClose()
+      return true
+    } catch (error) {
+      setDeleteError(
+        error instanceof Error ? error.message : '위치 삭제 중 오류가 발생했습니다'
+      )
+      return false
+    } finally {
+      setIsDeleting(false)
+    }
+  }, [location, onClose, queryClient])
+
   if (!location) return null
 
   return (
@@ -113,8 +142,19 @@ export function LocationDetailPanel({
       onBack={onBack}
       title={location.name}
       showBackButton
+      showCloseButton={false}
       showEditButton={!!onEdit}
       onEdit={() => onEdit?.(location)}
+      headerActions={
+        <EntityDeleteActions
+          entityName={location.name}
+          entityLabel="위치"
+          isDeleting={isDeleting}
+          deleteError={deleteError}
+          onDelete={handleDelete}
+          onResetState={() => setDeleteError(null)}
+        />
+      }
     >
       <div className="p-6 space-y-6">
         {/* Location Header */}
@@ -220,39 +260,20 @@ export function LocationDetailPanel({
                   {items.map((item) => {
                     const itemName = item.item_name || item.name || '이름 없음'
                     const itemType = item.item_type || item.type || 'GENERAL'
-                    const emoji = getEmojiByType(itemType)
-                    const daysUntilExpiry = item.days_until_expiry
 
                     return (
-                      <button
+                      <ItemListRowCard
                         key={item.id || item.item_id}
+                        title={itemName}
+                        type={itemType}
+                        imageUrl={item.image_url}
+                        locationText={
+                          item.location_path || item.location_name || location.name
+                        }
+                        tags={item.tags || []}
+                        daysUntilExpiry={item.days_until_expiry}
                         onClick={() => onItemClick?.(item)}
-                        className="w-full card hover-lift group"
-                      >
-                        <div className="flex items-center gap-3">
-                          <div className="text-3xl">{emoji}</div>
-                          <div className="flex-1 text-left min-w-0">
-                            <h4 className="font-semibold text-foreground truncate">
-                              {itemName}
-                            </h4>
-                            {daysUntilExpiry !== null && daysUntilExpiry !== undefined && (
-                              <p className={cn(
-                                "text-xs",
-                                daysUntilExpiry < 0
-                                  ? "text-destructive"
-                                  : daysUntilExpiry <= 7
-                                  ? "text-warning"
-                                  : "text-muted-foreground"
-                              )}>
-                                {daysUntilExpiry < 0
-                                  ? `${Math.abs(daysUntilExpiry)}일 지남`
-                                  : `${daysUntilExpiry}일 남음`}
-                              </p>
-                            )}
-                          </div>
-                          <ChevronRight className="w-5 h-5 text-muted-foreground" />
-                        </div>
-                      </button>
+                      />
                     )
                   })}
                 </div>

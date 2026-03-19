@@ -19,7 +19,7 @@ const navItems: NavItem[] = [
   },
   {
     href: "/explorer",
-    label: "탐색",
+    label: "위치",
     icon: Search,
   },
   {
@@ -36,6 +36,18 @@ const navItems: NavItem[] = [
 
 export function BottomNav() {
   const pathname = usePathname();
+
+  const handleNavClick = (href: string, isActive: boolean) => {
+    if (!isActive || typeof window === "undefined") {
+      return;
+    }
+
+    window.dispatchEvent(
+      new CustomEvent("app:navigation-retap", {
+        detail: { href, pathname },
+      }),
+    );
+  };
 
   return (
     <nav
@@ -55,6 +67,7 @@ export function BottomNav() {
             <Link
               key={item.href}
               href={item.href}
+              onClick={() => handleNavClick(item.href, isActive)}
               className={cn(
                 "flex flex-col items-center justify-center gap-1 transition-all duration-200 touch-manipulation",
                 isActive

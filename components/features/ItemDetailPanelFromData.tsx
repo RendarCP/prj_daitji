@@ -1,7 +1,18 @@
 "use client";
 
-import { useState, useCallback, useRef, useEffect } from "react";
+import {
+  useState,
+  useCallback,
+  useRef,
+  useEffect,
+  startTransition,
+} from "react";
 import { useRouter } from "next/navigation";
+import { ArrowLeft } from "lucide-react";
+import { useQueryClient } from "@tanstack/react-query";
+import { FormPageLayout } from "@/components/layout/FormPageLayout";
+import { EntityDeleteActions } from "@/components/features/EntityDeleteActions";
+import { ItemDetailContent } from "@/components/features/ItemDetailContent";
 import { ItemDetailPanel } from "@/components/ui/ItemDetailPanel";
 
 export const PANEL_EXIT_MS = 300;
@@ -22,6 +33,7 @@ export type DbItemForPanel = {
   id: string;
   name: string;
   type: string;
+  image_url?: string | null;
   location_id: string;
   quantity: number | null;
   tags: string[] | null;
@@ -66,9 +78,6 @@ export interface ItemDetailPanelFromDataProps {
   mode?: "modal" | "page";
 }
 
-import { FormPageLayout } from "@/components/layout/FormPageLayout";
-import { ItemDetailContent } from "@/components/features/ItemDetailContent";
-
 export function ItemDetailPanelFromData({
   item,
   locationPath = [],
@@ -78,7 +87,10 @@ export function ItemDetailPanelFromData({
   mode = "modal", // Default to modal (SidePanel) for backward compat
 }: ItemDetailPanelFromDataProps) {
   const router = useRouter();
+  const queryClient = useQueryClient();
   const [isOpen, setIsOpen] = useState(true);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
   const closeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const editNavTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -114,6 +126,7 @@ export function ItemDetailPanelFromData({
     item_name: item.name,
     type: item.type,
     item_type: item.type,
+    image_url: item.image_url ?? undefined,
     quantity: item.quantity ?? 0,
     location_path: locationPathStr || undefined,
     location_name: locationPathStr || undefined,
@@ -138,12 +151,78 @@ export function ItemDetailPanelFromData({
     router.push(`/item/${item.id}/edit`);
   }, [mode, item.id, onEditRequested, router]);
 
+  const handleDelete = useCallback(async () => {
+    try {
+      setIsDeleting(true);
+      setDeleteError(null);
+
+      const response = await fetch(`/api/items/${item.id}`, {
+        method: "DELETE",
+      });
+      const result = await response.json().catch(() => null);
+
+      if (!response.ok) {
+        throw new Error(
+          result?.error?.message ?? "물품 삭제 중 오류가 발생했습니다",
+        );
+      }
+
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["items"] }),
+        queryClient.invalidateQueries({ queryKey: ["dashboard"] }),
+        queryClient.invalidateQueries({ queryKey: ["locations"] }),
+      ]);
+      queryClient.removeQueries({ queryKey: ["item", "detail", item.id] });
+
+      if (mode === "page") {
+        startTransition(() => {
+          router.replace("/explorer");
+          router.refresh();
+        });
+        return true;
+      }
+
+      handleClose();
+      return true;
+    } catch (error) {
+      setDeleteError(
+        error instanceof Error ? error.message : "물품 삭제 중 오류가 발생했습니다",
+      );
+      return false;
+    } finally {
+      setIsDeleting(false);
+    }
+  }, [handleClose, item.id, mode, queryClient, router]);
+
+  const headerActions = (
+    <EntityDeleteActions
+      entityName={item.name}
+      entityLabel="물품"
+      isDeleting={isDeleting}
+      deleteError={deleteError}
+      onDelete={handleDelete}
+      onResetState={() => setDeleteError(null)}
+    />
+  );
+
   if (mode === "page") {
     // Page Mode: Use FormPageLayout
     return (
       <FormPageLayout
         title={item.name}
         className="bg-background" // Ensure background is set
+        leadingAction={
+          <button
+            type="button"
+            onClick={() => router.back()}
+            className="p-2 hover:bg-secondary rounded-lg transition-colors"
+            aria-label="뒤로가기"
+          >
+            <ArrowLeft className="w-5 h-5" />
+          </button>
+        }
+        trailingAction={headerActions}
+        showDefaultCloseButton={false}
       >
         <ItemDetailContent item={panelItem} onEdit={handleEdit} />
       </FormPageLayout>
@@ -158,6 +237,8 @@ export function ItemDetailPanelFromData({
       item={panelItem}
       onEdit={handleEdit}
       onFavorite={() => {}}
+      headerActions={headerActions}
+      showCloseButton={false}
     />
   );
 }

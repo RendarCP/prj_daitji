@@ -21,6 +21,7 @@ export interface ExpiringItem {
   item_id: string;
   item_name: string;
   item_type: "FOOD" | "COSMETIC" | "MEDICINE" | "GENERAL";
+  image_url?: string | null;
   expiry_date?: string;
   computed_expiry_date?: string;
   days_until_expiry: number;
@@ -51,6 +52,52 @@ export interface DashboardStats {
   expiring_soon: number;
   expired: number;
   locations_count: number;
+}
+
+export interface DashboardTypeStat {
+  type: "FOOD" | "COSMETIC" | "MEDICINE" | "GENERAL";
+  count: number;
+}
+
+export interface DashboardLocationStat {
+  location_id: string;
+  location_name: string;
+  item_count: number;
+  expiring_soon_count: number;
+  level: number;
+}
+
+export interface DashboardExpiryBuckets {
+  expired: number;
+  due_in_3_days: number;
+  due_in_7_days: number;
+  safe: number;
+}
+
+export interface DashboardRecentAddedPoint {
+  week_start: string;
+  count: number;
+}
+
+export interface DashboardLocationHighlight {
+  location_id: string;
+  location_name: string;
+  item_count: number;
+  expiring_soon_count: number;
+}
+
+export interface DashboardHighlights {
+  busiest_location: DashboardLocationHighlight | null;
+  highest_risk_location: DashboardLocationHighlight | null;
+}
+
+export interface DashboardOverviewResponse extends DashboardStats {
+  low_stock_count: number;
+  by_type: DashboardTypeStat[];
+  by_location: DashboardLocationStat[];
+  expiry_buckets: DashboardExpiryBuckets;
+  recent_added_by_week: DashboardRecentAddedPoint[];
+  highlights: DashboardHighlights;
 }
 
 export interface ApiError {
