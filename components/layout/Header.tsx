@@ -1,24 +1,25 @@
-'use client'
+"use client";
 
-import Link from 'next/link'
-import { ScanBarcode, Bell } from 'lucide-react'
-import { Button } from '@/components/ui/Button'
-import { Badge } from '@/components/ui/Badge'
-import { cn } from '@/lib/utils/cn'
+import Link from "next/link";
+import { ScanBarcode, Bell } from "lucide-react";
+import { DaitjiLogo } from "@/components/features/auth/AuthShared";
+import { Button } from "@/components/ui/Button";
+import { Badge } from "@/components/ui/Badge";
+import { cn } from "@/lib/utils/cn";
 
 interface HeaderProps {
-  title?: string
-  subtitle?: string
-  showScan?: boolean
-  showNotifications?: boolean
-  notificationCount?: number
-  onScanClick?: () => void
-  className?: string
+  title?: string;
+  subtitle?: string;
+  showScan?: boolean;
+  showNotifications?: boolean;
+  notificationCount?: number;
+  onScanClick?: () => void;
+  className?: string;
 }
 
 export function Header({
-  title = 'DAITJI',
-  subtitle = '다있지',
+  title = "DAITJI",
+  subtitle = "다있지",
   showScan = true,
   showNotifications = true,
   notificationCount = 0,
@@ -27,28 +28,27 @@ export function Header({
 }: HeaderProps) {
   const handleScanClick = () => {
     if (onScanClick) {
-      onScanClick()
+      onScanClick();
     } else {
       // 기본 동작: 스캔 페이지로 이동
-      window.location.href = '/scan'
+      window.location.href = "/scan";
     }
-  }
+  };
 
   return (
-    <header 
+    <header
       className={cn(
-        'sticky top-0 z-50 w-full bg-card/80 backdrop-blur-md',
-        'border-b border-border',
-        className
+        "sticky top-0 z-50 w-full bg-card/80 backdrop-blur-md",
+        "border-b border-border",
+        className,
       )}
+      data-slot="header"
     >
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-14 sm:h-16">
           {/* Left Section - Logo/Title */}
-          <Link 
-            href="/dashboard" 
-            className="flex items-center gap-2 group"
-          >
+          <Link href="/dashboard" className="flex items-center gap-3 group">
+            <DaitjiLogo className="size-10 shrink-0" />
             <div className="flex flex-col">
               <span className="text-lg sm:text-xl font-bold text-foreground leading-tight">
                 {title}
@@ -84,12 +84,12 @@ export function Header({
               >
                 <Bell className="w-5 h-5 sm:w-6 sm:h-6" />
                 {notificationCount > 0 && (
-                  <Badge 
-                    size="sm" 
-                    variant="danger" 
+                  <Badge
+                    size="sm"
+                    variant="danger"
                     className="absolute -top-0.5 -right-0.5 sm:-top-1 sm:-right-1 min-w-[18px] sm:min-w-[20px] h-[18px] sm:h-5 flex items-center justify-center px-1 text-[10px] sm:text-xs font-bold"
                   >
-                    {notificationCount > 99 ? '99+' : notificationCount}
+                    {notificationCount > 99 ? "99+" : notificationCount}
                   </Badge>
                 )}
               </Button>
@@ -98,5 +98,5 @@ export function Header({
         </div>
       </div>
     </header>
-  )
+  );
 }

@@ -17,6 +17,7 @@ import { useToast } from "@/lib/providers/ToastProvider";
 import { createClient } from "@/lib/supabase/client";
 import {
   AuthMessage,
+  DaitjiLogo,
   SocialLoginButtons,
   type SocialProvider,
 } from "@/components/features/auth/AuthShared";
@@ -178,15 +179,10 @@ export function SignupClient({
   return (
     <div className="min-h-screen bg-background px-4 py-12 sm:py-16">
       <div className="mx-auto w-full max-w-md">
-        <div className="mb-8 text-center animate-fade-in">
-          <p className="mb-2 text-xs font-semibold uppercase tracking-[0.2em] text-primary">
-            DAITJI SIGN UP
-          </p>
-          <h1 className="text-3xl font-bold text-foreground">회원가입</h1>
-          <p className="mt-3 text-sm text-muted-foreground">
-            이메일로 먼저 계정을 만들고, 원하면 아래에서 SNS로도 바로 시작할 수
-            있습니다.
-          </p>
+        <div className="mb-2 text-center animate-fade-in">
+          <div className="flex justify-center">
+            <DaitjiLogo className="size-24" />
+          </div>
         </div>
 
         <div className="card animate-scale-in space-y-6">
@@ -267,7 +263,7 @@ export function SignupClient({
                   required
                   autoComplete="new-password"
                   error={password ? passwordError || undefined : undefined}
-                  helperText="영문과 숫자를 포함한 8자 이상 비밀번호를 권장합니다."
+                  // helperText="영문과 숫자를 포함한 8자 이상 비밀번호를 권장합니다."
                   leftIcon={<Lock className="h-4 w-4 text-muted-foreground" />}
                 />
 
@@ -307,7 +303,7 @@ export function SignupClient({
                   size="lg"
                   isLoading={isEmailLoading}
                   loadingText="가입 중..."
-                  rightIcon={<ArrowRight className="h-4 w-4" />}
+                  // rightIcon={<ArrowRight className="h-4 w-4" />}
                 >
                   이메일로 회원가입
                 </Button>

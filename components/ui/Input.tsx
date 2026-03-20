@@ -30,7 +30,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
         {label && (
           <label className="text-sm font-medium text-foreground">
             {label}
-            {props.required && <span className="text-destructive ml-1">*</span>}
+            {/* {props.required && <span className="text-destructive ml-1">*</span>} */}
           </label>
         )}
         <div className="relative">
@@ -80,7 +80,10 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
           </p>
         )}
         {helperText && !error && (
-          <p id={`${props.id}-helper`} className="text-sm text-muted-foreground">
+          <p
+            id={`${props.id}-helper`}
+            className="text-sm text-muted-foreground"
+          >
             {helperText}
           </p>
         )}

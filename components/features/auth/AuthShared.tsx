@@ -1,10 +1,12 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { AlertCircle, CheckCircle2, ShieldCheck } from "lucide-react";
+import { AlertCircle, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
+import { DaitjiLogo } from "./DaitjiLogo";
 
 export type SocialProvider = "google" | "kakao";
+export { DaitjiLogo };
 
 export function GoogleIcon() {
   return (
@@ -83,6 +85,10 @@ export function SocialLoginButtons({
 }: SocialLoginButtonsProps) {
   return (
     <section className="space-y-3">
+      {/* <div className="space-y-1 text-center">
+        <p className="text-sm font-semibold text-foreground">{title}</p>
+        <p className="text-xs text-muted-foreground">{description}</p>
+      </div> */}
       <div className="space-y-3">
         <Button
           type="button"

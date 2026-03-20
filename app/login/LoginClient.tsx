@@ -18,6 +18,7 @@ import { useToast } from "@/lib/providers/ToastProvider";
 import { createClient } from "@/lib/supabase/client";
 import {
   AuthMessage,
+  DaitjiLogo,
   SocialLoginButtons,
   type SocialProvider,
 } from "@/components/features/auth/AuthShared";
@@ -155,18 +156,13 @@ export function LoginClient({
   return (
     <div className="min-h-screen bg-background px-4 py-12 sm:py-16">
       <div className="mx-auto w-full max-w-md">
-        <div className="mb-8 text-center animate-fade-in">
-          <p className="mb-2 text-xs font-semibold uppercase tracking-[0.2em] text-primary">
-            DAITJI LOGIN
-          </p>
-          <h1 className="text-3xl font-bold text-foreground">로그인</h1>
-          <p className="mt-3 text-sm text-muted-foreground">
-            이메일로 먼저 로그인하고, 필요하면 아래에서 SNS 로그인도 사용할 수
-            있습니다.
-          </p>
+        <div className="mb-2 text-center animate-fade-in">
+          <div className="flex justify-center">
+            <DaitjiLogo className="size-24" />
+          </div>
         </div>
 
-        <div className="card animate-scale-in space-y-6">
+        <div className="card animate-scale-in space-y-4 p-6">
           {visibleErrorMessage ? (
             <AuthMessage tone="error">{visibleErrorMessage}</AuthMessage>
           ) : null}
@@ -246,10 +242,7 @@ export function LoginClient({
                   leftIcon={<Lock className="h-4 w-4 text-muted-foreground" />}
                 />
 
-                <div className="flex items-center justify-between gap-3 text-sm">
-                  <p className="text-muted-foreground">
-                    소셜로 가입했다면 아래 버튼으로 로그인해 주세요.
-                  </p>
+                <div className="flex items-center justify-end gap-3 text-sm">
                   <Link
                     href={`/auth/forgot-password?next=${encodeURIComponent(
                       redirectNext,
@@ -272,22 +265,21 @@ export function LoginClient({
               </form>
 
               <div className="space-y-2 text-center text-sm text-muted-foreground">
-                <p>
-                  아직 계정이 없다면{" "}
-                  <Link
-                    href={`/signup?next=${encodeURIComponent(
-                      redirectNext,
-                    )}&email=${encodeURIComponent(email)}`}
-                    className="font-semibold text-primary hover:text-primary/80"
-                  >
-                    회원가입 페이지로 이동
-                  </Link>
-                </p>
+                {/* <p> */}
+                <Link
+                  href={`/signup?next=${encodeURIComponent(
+                    redirectNext,
+                  )}&email=${encodeURIComponent(email)}`}
+                  className="font-semibold text-primary hover:text-primary/80"
+                >
+                  회원가입 페이지로 이동
+                </Link>
+                {/* </p> */}
               </div>
 
               <div className="flex items-center gap-3 text-xs uppercase tracking-[0.2em] text-muted-foreground">
                 <span className="h-px flex-1 bg-border" />
-                또는 SNS로 로그인
+                또는
                 <span className="h-px flex-1 bg-border" />
               </div>
 
