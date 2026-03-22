@@ -40,6 +40,7 @@ import { Alert } from "@/components/ui/Alert";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { useLocations } from "@/lib/hooks/useLocations";
 import { useItemDetail } from "@/lib/hooks/useItemDetail";
+import { queryKeys } from "@/lib/queryKeys";
 import { cn } from "@/lib/utils/cn";
 import type { Location } from "@/lib/types";
 import { ItemDetailPanelFromData } from "@/components/features/ItemDetailPanelFromData";
@@ -171,6 +172,15 @@ function collectTreeIds(nodes: TreeLocation[], output: Set<string>): void {
   nodes.forEach((node) => {
     output.add(node.id);
     collectTreeIds(node.children, output);
+  });
+}
+
+function collectExpandableIds(nodes: TreeLocation[], output: Set<string>): void {
+  nodes.forEach((node) => {
+    if (node.children.length > 0) {
+      output.add(node.id);
+      collectExpandableIds(node.children, output);
+    }
   });
 }
 
@@ -649,10 +659,8 @@ export default function ExplorerV2Client() {
 
     const allIds = new Set<string>();
     collectTreeIds(normalized, allIds);
-    const topLevelIds = new Set<string>();
-    normalized.forEach((node) => {
-      topLevelIds.add(node.id);
-    });
+    const expandableIds = new Set<string>();
+    collectExpandableIds(normalized, expandableIds);
 
     setExpanded((prev) => {
       const next = new Set<string>();
@@ -666,7 +674,7 @@ export default function ExplorerV2Client() {
         }
       }
 
-      for (const id of topLevelIds) {
+      for (const id of expandableIds) {
         if (!next.has(id)) {
           next.add(id);
           changed = true;
@@ -1100,7 +1108,7 @@ export default function ExplorerV2Client() {
           setSelectedLocation(location);
         }}
         onItemClick={(item) => {
-          const id = "item_id" in item ? item.item_id : item.id;
+          const id = item.id;
           if (!id) return;
           setActiveItemId(id);
         }}
@@ -1133,7 +1141,7 @@ export default function ExplorerV2Client() {
               locationId={editingLocationId}
               onSuccess={async (_targetId, location) => {
                 await queryClient.invalidateQueries({
-                  queryKey: ["locations"],
+                  queryKey: queryKeys.locations.all,
                 });
 
                 if (location) {

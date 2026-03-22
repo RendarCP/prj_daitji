@@ -1,6 +1,7 @@
 'use client'
 
 import { useQuery } from '@tanstack/react-query'
+import { queryKeys } from '@/lib/queryKeys'
 import type { DashboardOverviewResponse, Item, Location } from '@/lib/types'
 
 async function fetchDashboardStats(): Promise<DashboardOverviewResponse> {
@@ -16,7 +17,7 @@ async function fetchDashboardStats(): Promise<DashboardOverviewResponse> {
 
 export function useDashboardStats() {
   return useQuery({
-    queryKey: ['dashboard', 'stats'],
+    queryKey: queryKeys.dashboard.stats(),
     queryFn: fetchDashboardStats,
   })
 }
@@ -34,7 +35,7 @@ async function fetchRecentItems(): Promise<Item[]> {
 
 export function useRecentItems() {
   return useQuery({
-    queryKey: ['items', 'recent'],
+    queryKey: queryKeys.items.recent(),
     queryFn: fetchRecentItems,
   })
 }
@@ -52,7 +53,7 @@ async function fetchLocationSummary(): Promise<Location[]> {
 
 export function useLocationSummary() {
   return useQuery({
-    queryKey: ['locations', 'summary'],
+    queryKey: queryKeys.locations.summary(),
     queryFn: fetchLocationSummary,
   })
 }

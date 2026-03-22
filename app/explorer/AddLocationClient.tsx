@@ -12,11 +12,13 @@ import { Alert } from "@/components/ui/Alert";
 import { CascadingLocationSelect } from "@/components/features/CascadingLocationSelect";
 import { LocationThumbnail } from "@/components/features/LocationThumbnail";
 import type { Location } from "@/lib/types";
+import { useLocations } from "@/lib/hooks/useLocations";
 import {
   findLocationPath,
   getSelectedParentId,
 } from "@/lib/utils/location-selection";
 import { cn } from "@/lib/utils/cn";
+import { queryKeys } from "@/lib/queryKeys";
 import { getLocationImage } from "@/lib/utils/location-images";
 
 interface AddLocationClientProps {
@@ -24,7 +26,7 @@ interface AddLocationClientProps {
   mode?: "page" | "modal";
   isEditMode?: boolean;
   locationId?: string;
-  onSuccess?: (targetId: string, location?: Location) => void;
+  onSuccess?: (targetId: string, location?: Location) => void | Promise<void>;
 }
 
 const SUGGESTED_ICONS = [
@@ -51,6 +53,39 @@ const SUGGESTED_LOCATION_COLORS = [
   "#EC4899",
 ];
 
+function flattenLocations(locations: Location[]): Location[] {
+  const seen = new Set<string>();
+  const output: Location[] = [];
+
+  const visit = (nodes: Location[]) => {
+    nodes.forEach((location) => {
+      if (!seen.has(location.id)) {
+        seen.add(location.id);
+        output.push({
+          id: location.id,
+          name: location.name,
+          level: location.level,
+          parent_id: location.parent_id ?? null,
+          path: location.path,
+          itemCount: location.itemCount,
+          item_count: location.item_count,
+          icon: location.icon,
+          color: location.color,
+          description: location.description,
+          sort_order: location.sort_order,
+        });
+      }
+
+      if (location.children?.length) {
+        visit(location.children);
+      }
+    });
+  };
+
+  visit(locations);
+  return output;
+}
+
 export function AddLocationClient({
   locations,
   mode = "page",
@@ -62,6 +97,11 @@ export function AddLocationClient({
   const queryClient = useQueryClient();
   const searchParams = useSearchParams();
   const parentIdParam = searchParams.get("parent_id");
+  const {
+    data: latestLocations = [],
+    isLoading: isLoadingLocations,
+    isFetching: isFetchingLocations,
+  } = useLocations();
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLoadingLocation, setIsLoadingLocation] = useState(
@@ -69,10 +109,37 @@ export function AddLocationClient({
   );
   const [error, setError] = useState<string | null>(null);
 
+  const normalizedLocations = useMemo(() => {
+    const sourceLocations = latestLocations.length > 0 ? latestLocations : locations;
+    return flattenLocations(sourceLocations);
+  }, [latestLocations, locations]);
+
   // Initialize selection path
   const [selectionPath, setSelectionPath] = useState<string[]>(() =>
-    parentIdParam ? findLocationPath(locations, parentIdParam) : [],
+    parentIdParam ? findLocationPath(flattenLocations(locations), parentIdParam) : [],
   );
+
+  useEffect(() => {
+    if (!parentIdParam) {
+      return;
+    }
+
+    const nextPath = findLocationPath(normalizedLocations, parentIdParam);
+    if (nextPath.length === 0) {
+      return;
+    }
+
+    setSelectionPath((currentPath) => {
+      if (currentPath.length === nextPath.length) {
+        const isSamePath = currentPath.every((id, index) => id === nextPath[index]);
+        if (isSamePath) {
+          return currentPath;
+        }
+      }
+
+      return nextPath;
+    });
+  }, [normalizedLocations, parentIdParam]);
 
   // Sync formData.parent_id with selectionPath
   const currentParentId = getSelectedParentId(selectionPath);
@@ -90,7 +157,7 @@ export function AddLocationClient({
 
   const availableLocations = useMemo(() => {
     if (!isEditMode || !locationId) {
-      return locations;
+      return normalizedLocations;
     }
 
     const excludedIds = new Set<string>([locationId]);
@@ -102,7 +169,7 @@ export function AddLocationClient({
         continue;
       }
 
-      locations.forEach((location) => {
+      normalizedLocations.forEach((location) => {
         if (location.parent_id === currentId && !excludedIds.has(location.id)) {
           excludedIds.add(location.id);
           queue.push(location.id);
@@ -110,8 +177,8 @@ export function AddLocationClient({
       });
     }
 
-    return locations.filter((location) => !excludedIds.has(location.id));
-  }, [isEditMode, locationId, locations]);
+    return normalizedLocations.filter((location) => !excludedIds.has(location.id));
+  }, [isEditMode, locationId, normalizedLocations]);
 
   useEffect(() => {
     if (!isEditMode || !locationId) {
@@ -128,7 +195,9 @@ export function AddLocationClient({
         const result = await response.json();
 
         if (!response.ok || !result.success) {
-          throw new Error(result.error?.message || "위치 정보를 불러오지 못했습니다");
+          throw new Error(
+            result.error?.message || "위치 정보를 불러오지 못했습니다",
+          );
         }
 
         if (cancelled) {
@@ -205,6 +274,8 @@ export function AddLocationClient({
       if (currentParentId) {
         const parentLocation = locations.find(
           (loc) => loc.id === currentParentId,
+        ) || normalizedLocations.find(
+          (loc) => loc.id === currentParentId,
         );
         if (parentLocation) {
           level = parentLocation.level + 1;
@@ -221,7 +292,9 @@ export function AddLocationClient({
       };
 
       const response = await fetch(
-        isEditMode && locationId ? `/api/locations/${locationId}` : "/api/locations",
+        isEditMode && locationId
+          ? `/api/locations/${locationId}`
+          : "/api/locations",
         {
           method: isEditMode && locationId ? "PATCH" : "POST",
           headers: { "Content-Type": "application/json" },
@@ -234,38 +307,42 @@ export function AddLocationClient({
       if (!response.ok) {
         throw new Error(
           result.error?.message ||
-            (isEditMode ? "위치를 수정하지 못했습니다" : "위치를 추가하지 못했습니다"),
+            (isEditMode
+              ? "위치를 수정하지 못했습니다"
+              : "위치를 추가하지 못했습니다"),
         );
       }
 
       const targetId = result.data?.id ?? locationId;
 
-      await queryClient.invalidateQueries({ queryKey: ["locations"] });
+      await queryClient.invalidateQueries({
+        queryKey: queryKeys.locations.all,
+      });
 
       if (targetId) {
-        await queryClient.invalidateQueries({ queryKey: ["location-path"] });
+        await queryClient.invalidateQueries({
+          queryKey: queryKeys.locations.path(targetId),
+        });
       }
 
       if (targetId && onSuccess) {
-        onSuccess(targetId, result.data);
+        await onSuccess(targetId, result.data);
         return;
       }
 
       if (mode === "modal") {
         const returnTo = searchParams.get("return_to");
         if (returnTo) {
-          router.push(returnTo);
+          router.replace(returnTo);
         } else {
           router.back();
         }
-        router.refresh();
       } else {
         if (currentParentId) {
-          router.push(`/explorer?location_id=${currentParentId}`);
+          router.replace(`/explorer?location_id=${currentParentId}`);
         } else {
-          router.push("/explorer");
+          router.replace("/explorer");
         }
-        router.refresh();
       }
     } catch (err) {
       setError(
@@ -345,7 +422,8 @@ export function AddLocationClient({
                       className="w-20 text-center text-2xl"
                     />
                     <div className="text-xs text-muted-foreground flex items-center">
-                      아이콘을 선택하거나 이 위치를 나타낼 이모지를 직접 입력하세요.
+                      아이콘을 선택하거나 이 위치를 나타낼 이모지를 직접
+                      입력하세요.
                     </div>
                   </div>
                 </div>
@@ -375,10 +453,15 @@ export function AddLocationClient({
                         기본 이미지 미리보기
                       </p>
                       <p className="mt-1 text-sm text-muted-foreground">
-                        현재 이름 기준으로 <span className="font-medium text-foreground">{previewImage.label}</span> 이미지가 자동 연결됩니다.
+                        현재 이름 기준으로{" "}
+                        <span className="font-medium text-foreground">
+                          {previewImage.label}
+                        </span>{" "}
+                        이미지가 자동 연결됩니다.
                       </p>
                       <p className="mt-1 text-xs text-muted-foreground">
-                        이름에 주방, 거실, 침실, 서재, 옷방이 포함되지 않으면 기본 방 이미지가 사용됩니다.
+                        이름에 주방, 거실, 침실, 서재, 옷방이 포함되지 않으면
+                        기본 방 이미지가 사용됩니다.
                       </p>
                     </div>
                   </div>
@@ -439,6 +522,7 @@ export function AddLocationClient({
                     rootOptionLabel="루트 (최상위)"
                     topPlaceholder="루트 (최상위)"
                     childPlaceholder="하위 위치 선택..."
+                    loading={isLoadingLocations || isFetchingLocations}
                   />
                   <p className="text-xs text-muted-foreground mt-1 whitespace-pre-wrap">
                     {`부모 위치를 선택하여 이 항목을 중첩하세요.

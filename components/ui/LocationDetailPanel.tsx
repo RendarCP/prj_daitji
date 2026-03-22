@@ -1,39 +1,20 @@
 'use client'
 
-import { useCallback, useEffect, useState } from 'react'
-import { useQueryClient } from '@tanstack/react-query'
-import { MapPin } from 'lucide-react'
+import { useCallback, useEffect, useRef, useState } from 'react'
+import { MapPin, RefreshCw } from 'lucide-react'
 import { EntityDeleteActions } from '@/components/features/EntityDeleteActions'
 import { ItemListRowCard } from '@/components/features/ItemListRowCard'
 import { LocationThumbnail } from '@/components/features/LocationThumbnail'
+import { Alert } from '@/components/ui/Alert'
+import { Button } from '@/components/ui/Button'
 import { SidePanel } from './SidePanel'
 import { Badge } from './Badge'
 import { Spinner } from './Spinner'
+import { useDeleteLocation } from '@/lib/hooks/useDeleteLocation'
+import { useLocationDetailPanelData } from '@/lib/hooks/useLocationDetailPanelData'
+import type { Item, Location } from '@/lib/types'
 
-interface Location {
-  id: string
-  name: string
-  icon?: string | null
-  color?: string | null
-  level: number
-  parent_id?: string | null
-  itemCount?: number
-  item_count?: number
-}
-
-interface Item {
-  id?: string | null
-  item_id?: string | null
-  name?: string | null
-  item_name?: string | null
-  type?: 'FOOD' | 'COSMETIC' | 'MEDICINE' | 'GENERAL' | null
-  item_type?: 'FOOD' | 'COSMETIC' | 'MEDICINE' | 'GENERAL' | null
-  image_url?: string | null
-  location_name?: string | null
-  location_path?: string | null
-  tags?: string[] | null
-  days_until_expiry?: number | null
-}
+const PANEL_EXIT_MS = 300
 
 interface LocationDetailPanelProps {
   isOpen: boolean
@@ -57,46 +38,41 @@ export function LocationDetailPanel({
   onEdit,
   onAddSubLocation,
 }: LocationDetailPanelProps) {
-  const queryClient = useQueryClient()
-  const [subLocations, setSubLocations] = useState<Location[]>([])
-  const [items, setItems] = useState<Item[]>([])
-  const [loading, setLoading] = useState(false)
-  const [deleteError, setDeleteError] = useState<string | null>(null)
-  const [isDeleting, setIsDeleting] = useState(false)
+  const [isPanelOpen, setIsPanelOpen] = useState(isOpen)
+  const closeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   useEffect(() => {
-    if (!location || !isOpen) {
-      setSubLocations([])
-      setItems([])
-      setDeleteError(null)
-      return
+    if (isOpen) {
+      setIsPanelOpen(true)
     }
+  }, [isOpen, location?.id])
 
-    const fetchLocationData = async () => {
-      setLoading(true)
-      try {
-        // Fetch sub-locations
-        const locationsRes = await fetch(`/api/locations?parent_id=${location.id}`)
-        const locationsData = await locationsRes.json()
-        if (locationsData.success) {
-          setSubLocations(locationsData.data || [])
-        }
-
-        // Fetch items in this location
-        const itemsRes = await fetch(`/api/items?location_id=${location.id}`)
-        const itemsData = await itemsRes.json()
-        if (itemsData.success) {
-          setItems(itemsData.data || [])
-        }
-      } catch (error) {
-        console.error('Failed to fetch location data:', error)
-      } finally {
-        setLoading(false)
+  useEffect(() => {
+    return () => {
+      if (closeTimerRef.current) {
+        clearTimeout(closeTimerRef.current)
       }
     }
+  }, [])
 
-    fetchLocationData()
-  }, [location, isOpen])
+  const { subLocations, items, isLoading, isError, error, refetch } =
+    useLocationDetailPanelData(location?.id ?? null, isPanelOpen && !!location?.id)
+
+  const handleCloseRequest = useCallback(() => {
+    setIsPanelOpen(false)
+
+    if (closeTimerRef.current) {
+      clearTimeout(closeTimerRef.current)
+    }
+
+    closeTimerRef.current = setTimeout(() => {
+      onClose()
+    }, PANEL_EXIT_MS)
+  }, [onClose])
+
+  const deleteLocationMutation = useDeleteLocation(location?.id ?? '', {
+    onSuccess: handleCloseRequest,
+  })
 
   const handleDelete = useCallback(async () => {
     if (!location) {
@@ -104,41 +80,20 @@ export function LocationDetailPanel({
     }
 
     try {
-      setIsDeleting(true)
-      setDeleteError(null)
-
-      const response = await fetch(`/api/locations/${location.id}`, {
-        method: 'DELETE',
-      })
-      const result = await response.json().catch(() => null)
-
-      if (!response.ok) {
-        throw new Error(result?.error?.message || '위치 삭제 중 오류가 발생했습니다')
-      }
-
-      await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ['locations'] }),
-        queryClient.invalidateQueries({ queryKey: ['dashboard'] }),
-      ])
-
-      onClose()
+      deleteLocationMutation.reset()
+      await deleteLocationMutation.mutateAsync()
       return true
-    } catch (error) {
-      setDeleteError(
-        error instanceof Error ? error.message : '위치 삭제 중 오류가 발생했습니다'
-      )
+    } catch {
       return false
-    } finally {
-      setIsDeleting(false)
     }
-  }, [location, onClose, queryClient])
+  }, [deleteLocationMutation, location])
 
   if (!location) return null
 
   return (
     <SidePanel
-      isOpen={isOpen}
-      onClose={onClose}
+      isOpen={isPanelOpen}
+      onClose={handleCloseRequest}
       onBack={onBack}
       title={location.name}
       showBackButton
@@ -149,10 +104,14 @@ export function LocationDetailPanel({
         <EntityDeleteActions
           entityName={location.name}
           entityLabel="위치"
-          isDeleting={isDeleting}
-          deleteError={deleteError}
+          isDeleting={deleteLocationMutation.isPending}
+          deleteError={
+            deleteLocationMutation.error instanceof Error
+              ? deleteLocationMutation.error.message
+              : null
+          }
           onDelete={handleDelete}
-          onResetState={() => setDeleteError(null)}
+          onResetState={() => deleteLocationMutation.reset()}
         />
       }
     >
@@ -174,12 +133,33 @@ export function LocationDetailPanel({
           </Badge>
         </div>
 
-        {loading ? (
+        {isLoading ? (
           <div className="flex justify-center py-8">
             <Spinner size="lg" />
           </div>
         ) : (
           <>
+            {isError && (
+              <Alert
+                variant="danger"
+                title="위치 정보를 불러오지 못했습니다"
+                className="rounded-2xl"
+              >
+                <div className="space-y-3">
+                  <p>{error instanceof Error ? error.message : '잠시 후 다시 시도해주세요.'}</p>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => void refetch()}
+                    leftIcon={<RefreshCw className="h-4 w-4" />}
+                  >
+                    다시 시도
+                  </Button>
+                </div>
+              </Alert>
+            )}
+
             <div className="grid grid-cols-2 gap-3">
               <div className="rounded-2xl border border-border bg-secondary/20 px-4 py-3">
                 <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
@@ -258,18 +238,13 @@ export function LocationDetailPanel({
               ) : (
                 <div className="space-y-2">
                   {items.map((item) => {
-                    const itemName = item.item_name || item.name || '이름 없음'
-                    const itemType = item.item_type || item.type || 'GENERAL'
-
                     return (
                       <ItemListRowCard
-                        key={item.id || item.item_id}
-                        title={itemName}
-                        type={itemType}
+                        key={item.id}
+                        title={item.item_name}
+                        type={item.type}
                         imageUrl={item.image_url}
-                        locationText={
-                          item.location_path || item.location_name || location.name
-                        }
+                        locationText={item.location_path || item.location_name || location.name}
                         tags={item.tags || []}
                         daysUntilExpiry={item.days_until_expiry}
                         onClick={() => onItemClick?.(item)}

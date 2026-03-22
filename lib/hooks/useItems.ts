@@ -1,6 +1,7 @@
 'use client'
 
 import { useQuery } from '@tanstack/react-query'
+import { queryKeys } from '@/lib/queryKeys'
 import type { Item, ExpiringItem } from '@/lib/types'
 
 interface ItemsParams {
@@ -31,7 +32,7 @@ async function fetchItems(params: ItemsParams = {}): Promise<Item[]> {
 
 export function useItems(params: ItemsParams = {}) {
   return useQuery({
-    queryKey: ['items', params],
+    queryKey: queryKeys.items.list(params),
     queryFn: () => fetchItems(params),
   })
 }
@@ -49,7 +50,7 @@ async function fetchExpiringItems(): Promise<ExpiringItem[]> {
 
 export function useExpiringItems() {
   return useQuery({
-    queryKey: ['items', 'expiring'],
+    queryKey: queryKeys.items.expiring(),
     queryFn: fetchExpiringItems,
   })
 }

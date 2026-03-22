@@ -60,6 +60,7 @@ export function CascadingLocationSelect({
     }
 
     const selectedId = selectionPath[levelIndex] || "";
+
     const selectOptions: SelectOption[] = [
       ...(showRootOption && levelIndex === 0
         ? [{ value: "", label: rootOptionLabel }]
@@ -91,7 +92,9 @@ export function CascadingLocationSelect({
                 : childPlaceholder
           }
           required={index === 0 && topRequired}
-          leftIcon={index === 0 ? <FolderOpen className="w-4 h-4" /> : undefined}
+          leftIcon={
+            index === 0 ? <FolderOpen className="w-4 h-4" /> : undefined
+          }
           error={index === 0 ? topError : undefined}
           disabled={disabled}
         />

@@ -4,6 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import type { DbItemForPanel } from "@/components/features/ItemDetailPanelFromData";
 import type { LocationPathItem } from "@/components/features/ItemDetailPanelFromData";
 import type { ItemLocationInfo } from "@/components/features/ItemDetailPanelFromData";
+import { queryKeys } from "@/lib/queryKeys";
 
 interface ItemDetailResponse {
   item: DbItemForPanel;
@@ -28,7 +29,7 @@ async function fetchItemDetail(id: string): Promise<ItemDetailResponse> {
 
 export function useItemDetail(id: string | null) {
   return useQuery({
-    queryKey: ["item", "detail", id],
+    queryKey: queryKeys.items.detail(id),
     queryFn: () => fetchItemDetail(id!),
     enabled: !!id,
   });

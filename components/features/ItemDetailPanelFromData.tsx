@@ -9,11 +9,11 @@ import {
 } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
-import { useQueryClient } from "@tanstack/react-query";
 import { FormPageLayout } from "@/components/layout/FormPageLayout";
 import { EntityDeleteActions } from "@/components/features/EntityDeleteActions";
 import { ItemDetailContent } from "@/components/features/ItemDetailContent";
 import { ItemDetailPanel } from "@/components/ui/ItemDetailPanel";
+import { useDeleteItem } from "@/lib/hooks/useDeleteItem";
 
 export const PANEL_EXIT_MS = 300;
 
@@ -87,10 +87,7 @@ export function ItemDetailPanelFromData({
   mode = "modal", // Default to modal (SidePanel) for backward compat
 }: ItemDetailPanelFromDataProps) {
   const router = useRouter();
-  const queryClient = useQueryClient();
   const [isOpen, setIsOpen] = useState(true);
-  const [deleteError, setDeleteError] = useState<string | null>(null);
-  const [isDeleting, setIsDeleting] = useState(false);
   const closeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const editNavTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -101,7 +98,7 @@ export function ItemDetailPanelFromData({
         onCloseRequested();
       }, PANEL_EXIT_MS);
     }
-  }, [onCloseRequested]);
+  }, [onCloseRequested, setIsOpen]);
 
   useEffect(() => {
     return () => {
@@ -149,59 +146,44 @@ export function ItemDetailPanelFromData({
       return;
     }
     router.push(`/item/${item.id}/edit`);
-  }, [mode, item.id, onEditRequested, router]);
+  }, [item.id, mode, onEditRequested, router, setIsOpen]);
 
-  const handleDelete = useCallback(async () => {
-    try {
-      setIsDeleting(true);
-      setDeleteError(null);
-
-      const response = await fetch(`/api/items/${item.id}`, {
-        method: "DELETE",
-      });
-      const result = await response.json().catch(() => null);
-
-      if (!response.ok) {
-        throw new Error(
-          result?.error?.message ?? "물품 삭제 중 오류가 발생했습니다",
-        );
-      }
-
-      await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ["items"] }),
-        queryClient.invalidateQueries({ queryKey: ["dashboard"] }),
-        queryClient.invalidateQueries({ queryKey: ["locations"] }),
-      ]);
-      queryClient.removeQueries({ queryKey: ["item", "detail", item.id] });
-
+  const deleteItemMutation = useDeleteItem(item.id, {
+    onSuccess: async () => {
       if (mode === "page") {
         startTransition(() => {
           router.replace("/explorer");
           router.refresh();
         });
-        return true;
+        return;
       }
 
       handleClose();
+    },
+  });
+
+  const handleDelete = useCallback(async () => {
+    try {
+      deleteItemMutation.reset();
+      await deleteItemMutation.mutateAsync();
       return true;
-    } catch (error) {
-      setDeleteError(
-        error instanceof Error ? error.message : "물품 삭제 중 오류가 발생했습니다",
-      );
+    } catch {
       return false;
-    } finally {
-      setIsDeleting(false);
     }
-  }, [handleClose, item.id, mode, queryClient, router]);
+  }, [deleteItemMutation]);
 
   const headerActions = (
     <EntityDeleteActions
       entityName={item.name}
       entityLabel="물품"
-      isDeleting={isDeleting}
-      deleteError={deleteError}
+      isDeleting={deleteItemMutation.isPending}
+      deleteError={
+        deleteItemMutation.error instanceof Error
+          ? deleteItemMutation.error.message
+          : null
+      }
       onDelete={handleDelete}
-      onResetState={() => setDeleteError(null)}
+      onResetState={() => deleteItemMutation.reset()}
     />
   );
 

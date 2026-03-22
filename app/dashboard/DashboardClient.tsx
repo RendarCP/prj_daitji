@@ -230,7 +230,7 @@ export function DashboardClient() {
           setSelectedLocation(subLoc);
         }}
         onItemClick={(item) => {
-          const id = "item_id" in item ? item.item_id : item.id;
+          const id = item.id;
           if (!id) return;
           setActiveItemId(id);
         }}

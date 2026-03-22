@@ -27,6 +27,7 @@ import { Alert } from "@/components/ui/Alert";
 import { CascadingLocationSelect } from "@/components/features/CascadingLocationSelect";
 import { ItemTypeMetadataFields } from "@/components/features/ItemTypeMetadataFields";
 import { useLocations } from "@/lib/hooks/useLocations";
+import { queryKeys } from "@/lib/queryKeys";
 import { cn } from "@/lib/utils/cn";
 
 const ITEM_TYPES = ["FOOD", "COSMETIC", "MEDICINE", "GENERAL"] as const;
@@ -343,8 +344,10 @@ export function ItemAddClient({
 
       if (targetId) {
         await Promise.all([
-          queryClient.invalidateQueries({ queryKey: ["items"] }),
-          queryClient.invalidateQueries({ queryKey: ["item", "detail", targetId] }),
+          queryClient.invalidateQueries({ queryKey: queryKeys.items.all }),
+          queryClient.invalidateQueries({
+            queryKey: queryKeys.items.detail(targetId),
+          }),
         ]);
       }
 

@@ -1,6 +1,7 @@
 'use client'
 
 import { useQuery } from '@tanstack/react-query'
+import { queryKeys } from '@/lib/queryKeys'
 import type { Location } from '@/lib/types'
 
 interface LocationsParams {
@@ -31,7 +32,7 @@ async function fetchLocations(params: LocationsParams = {}): Promise<Location[]>
 
 export function useLocations(params: LocationsParams = {}) {
   return useQuery({
-    queryKey: ['locations', params],
+    queryKey: queryKeys.locations.list(params),
     queryFn: () => fetchLocations(params),
     staleTime: 0,
     refetchOnMount: 'always',
@@ -52,7 +53,7 @@ async function fetchLocationPath(locationId: string): Promise<Location[]> {
 
 export function useLocationPath(locationId: string | null) {
   return useQuery({
-    queryKey: ['location-path', locationId],
+    queryKey: queryKeys.locations.path(locationId),
     queryFn: () => fetchLocationPath(locationId!),
     enabled: !!locationId,
     staleTime: 0,
