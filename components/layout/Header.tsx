@@ -20,8 +20,8 @@ interface HeaderProps {
 export function Header({
   title = "DAITJI",
   subtitle = "다있지",
-  showScan = true,
-  showNotifications = true,
+  showScan = false,
+  showNotifications = false,
   notificationCount = 0,
   onScanClick,
   className,
