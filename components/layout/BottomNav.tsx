@@ -51,11 +51,11 @@ export function BottomNav() {
 
   return (
     <nav
-      className="fixed bottom-0 left-0 right-0 z-30 bg-card/80 backdrop-blur-md border-t border-border shadow-soft"
+      className="fixed bottom-0 left-0 right-0 z-30 border-t border-border bg-card/80 backdrop-blur-md shadow-soft"
       role="navigation"
       aria-label="하단 네비게이션"
     >
-      <div className="grid grid-cols-4 h-16">
+      <div className="grid h-[calc(4.3rem+env(safe-area-inset-bottom))] grid-cols-4">
         {navItems.map((item) => {
           const Icon = item.icon;
           const isActive =
@@ -69,7 +69,7 @@ export function BottomNav() {
               href={item.href}
               onClick={() => handleNavClick(item.href, isActive)}
               className={cn(
-                "flex flex-col items-center justify-center gap-1 transition-all duration-200 touch-manipulation",
+                "flex flex-col items-center justify-start gap-1 pt-3 transition-all duration-200 touch-manipulation",
                 isActive
                   ? "text-primary bg-primary/10"
                   : "text-muted-foreground hover:text-foreground hover:bg-secondary active:bg-secondary/80",
@@ -94,9 +94,6 @@ export function BottomNav() {
           );
         })}
       </div>
-
-      {/* Safe Area Spacing for iOS */}
-      <div className="h-safe-area-inset-bottom bg-card" />
     </nav>
   );
 }
