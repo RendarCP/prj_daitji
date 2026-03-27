@@ -55,7 +55,7 @@ export function BottomNav() {
       role="navigation"
       aria-label="하단 네비게이션"
     >
-      <div className="grid h-[calc(4.3rem+env(safe-area-inset-bottom))] grid-cols-4">
+      <div className="grid h-[calc(5rem+env(safe-area-inset-bottom))] grid-cols-4">
         {navItems.map((item) => {
           const Icon = item.icon;
           const isActive =
@@ -70,24 +70,17 @@ export function BottomNav() {
               onClick={() => handleNavClick(item.href, isActive)}
               className={cn(
                 "flex flex-col items-center justify-start gap-1 pt-3 transition-all duration-200 touch-manipulation",
-                isActive
-                  ? "text-primary bg-primary/10"
-                  : "text-muted-foreground hover:text-foreground hover:bg-secondary active:bg-secondary/80",
+                "text-muted-foreground hover:bg-secondary active:bg-secondary/80",
               )}
               aria-current={isActive ? "page" : undefined}
             >
               <Icon
                 className={cn(
-                  "w-5 h-5 transition-transform",
-                  isActive && "scale-110",
+                  "size-5 transition-transform",
+                  isActive ? "scale-110 text-primary" : "text-muted-foreground",
                 )}
               />
-              <span
-                className={cn(
-                  "text-xs font-medium",
-                  isActive && "font-semibold",
-                )}
-              >
+              <span className="text-xs font-medium text-muted-foreground">
                 {item.label}
               </span>
             </Link>
