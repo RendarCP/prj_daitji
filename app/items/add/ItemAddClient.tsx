@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { ChangeEvent, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useQueryClient } from "@tanstack/react-query";
@@ -191,7 +192,12 @@ export function ItemAddClient({
   const [selectionPath, setSelectionPath] = useState<string[]>([]);
   const [tagInput, setTagInput] = useState("");
   const [isTagComposing, setIsTagComposing] = useState(false);
+  const [isTagEditorOpen, setIsTagEditorOpen] = useState(false);
   const [isUploadingImage, setIsUploadingImage] = useState(false);
+  const [selectedImageFile, setSelectedImageFile] = useState<File | null>(null);
+  const [selectedImagePreviewUrl, setSelectedImagePreviewUrl] = useState<
+    string | null
+  >(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const { data: locations = [], isLoading: isLoadingLocations } =
@@ -225,6 +231,15 @@ export function ItemAddClient({
   const metadata = watch("metadata") || {};
   const quantity = watch("quantity") || 0;
   const barcodeValue = watch("barcode") || "";
+  const displayImageUrl = selectedImagePreviewUrl ?? imageUrl;
+
+  useEffect(() => {
+    return () => {
+      if (selectedImagePreviewUrl) {
+        URL.revokeObjectURL(selectedImagePreviewUrl);
+      }
+    };
+  }, [selectedImagePreviewUrl]);
 
   useEffect(() => {
     if (isEditMode) {
@@ -278,6 +293,8 @@ export function ItemAddClient({
         }
 
         setSelectionPath(pathIds);
+        setSelectedImageFile(null);
+        setSelectedImagePreviewUrl(null);
         reset({
           name: item.name ?? "",
           type: (item.type as ItemType) ?? "",
@@ -338,6 +355,7 @@ export function ItemAddClient({
       shouldValidate: true,
     });
     setTagInput("");
+    setIsTagEditorOpen(true);
   };
 
   const removeTag = (tag: string) => {
@@ -352,7 +370,69 @@ export function ItemAddClient({
     );
   };
 
-  const handleImageUpload = async (event: ChangeEvent<HTMLInputElement>) => {
+  const handleClearSelectedImage = () => {
+    if (selectedImagePreviewUrl) {
+      URL.revokeObjectURL(selectedImagePreviewUrl);
+    }
+
+    setSelectedImageFile(null);
+    setSelectedImagePreviewUrl(null);
+    setValue("image_url", "", {
+      shouldDirty: true,
+      shouldTouch: true,
+      shouldValidate: true,
+    });
+  };
+
+  const uploadImageFile = async (file: File) => {
+    const uploadFile = await optimizeImageFile(file);
+
+    if (uploadFile.size > MAX_UPLOAD_SIZE_BYTES) {
+      throw new Error(
+        "최적화 후에도 이미지가 10MB를 초과합니다. 더 작은 이미지를 선택해주세요.",
+      );
+    }
+
+    const presignResponse = await fetch("/api/uploads/presign", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        filename: uploadFile.name,
+        contentType: uploadFile.type,
+        size: uploadFile.size,
+      }),
+    });
+
+    const presignResult = await presignResponse.json();
+    if (!presignResponse.ok) {
+      throw new Error(
+        presignResult.error?.details?.message ||
+          presignResult.error?.message ||
+          "업로드 URL 생성에 실패했습니다",
+      );
+    }
+
+    const { uploadUrl, publicUrl } = presignResult.data as {
+      uploadUrl: string;
+      publicUrl: string;
+    };
+
+    const uploadResponse = await fetch(uploadUrl, {
+      method: "PUT",
+      headers: {
+        "Content-Type": uploadFile.type,
+      },
+      body: uploadFile,
+    });
+
+    if (!uploadResponse.ok) {
+      throw new Error("이미지 업로드에 실패했습니다");
+    }
+
+    return publicUrl;
+  };
+
+  const handleImageSelection = async (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     event.target.value = "";
 
@@ -362,70 +442,48 @@ export function ItemAddClient({
 
     try {
       setError(null);
-      setIsUploadingImage(true);
-      const uploadFile = await optimizeImageFile(file);
-
-      if (uploadFile.size > MAX_UPLOAD_SIZE_BYTES) {
+      if (BLOCKED_IMAGE_TYPES.has(file.type)) {
         throw new Error(
-          "최적화 후에도 이미지가 10MB를 초과합니다. 더 작은 이미지를 선택해주세요.",
+          "HEIC/HEIF 이미지는 아직 지원하지 않습니다. JPG, PNG, WebP 또는 GIF를 사용해주세요.",
         );
       }
 
-      const presignResponse = await fetch("/api/uploads/presign", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          filename: uploadFile.name,
-          contentType: uploadFile.type,
-          size: uploadFile.size,
-        }),
-      });
-
-      const presignResult = await presignResponse.json();
-      if (!presignResponse.ok) {
+      if (
+        !OPTIMIZABLE_IMAGE_TYPES.has(file.type) &&
+        !PASSTHROUGH_IMAGE_TYPES.has(file.type)
+      ) {
         throw new Error(
-          presignResult.error?.details?.message ||
-            presignResult.error?.message ||
-            "업로드 URL 생성에 실패했습니다",
+          "지원하지 않는 이미지 형식입니다. JPG, PNG, WebP 또는 GIF를 사용해주세요.",
         );
       }
 
-      const { uploadUrl, publicUrl } = presignResult.data as {
-        uploadUrl: string;
-        publicUrl: string;
-      };
-
-      const uploadResponse = await fetch(uploadUrl, {
-        method: "PUT",
-        headers: {
-          "Content-Type": uploadFile.type,
-        },
-        body: uploadFile,
-      });
-
-      if (!uploadResponse.ok) {
-        throw new Error("이미지 업로드에 실패했습니다");
+      if (file.size > MAX_UPLOAD_SIZE_BYTES) {
+        throw new Error("이미지 파일이 10MB를 초과합니다. 더 작은 파일을 선택해주세요.");
       }
 
-      setValue("image_url", publicUrl, {
-        shouldDirty: true,
-        shouldTouch: true,
-        shouldValidate: true,
-      });
+      if (selectedImagePreviewUrl) {
+        URL.revokeObjectURL(selectedImagePreviewUrl);
+      }
+
+      setSelectedImageFile(file);
+      setSelectedImagePreviewUrl(URL.createObjectURL(file));
     } catch (uploadError) {
       setError(
         uploadError instanceof Error
           ? uploadError.message
-          : "이미지 업로드 중 오류가 발생했습니다",
+          : "이미지 파일을 준비하는 중 오류가 발생했습니다",
       );
-    } finally {
-      setIsUploadingImage(false);
     }
   };
 
   const onSubmit = async (values: ItemFormValues) => {
     try {
       setError(null);
+      setIsUploadingImage(Boolean(selectedImageFile));
+
+      const uploadedImageUrl = selectedImageFile
+        ? await uploadImageFile(selectedImageFile)
+        : values.image_url.trim() || undefined;
 
       const cleanMetadata = Object.fromEntries(
         Object.entries(values.metadata || {}).filter(
@@ -439,7 +497,7 @@ export function ItemAddClient({
         location_id: values.location_id,
         quantity: values.quantity,
         barcode: values.barcode.trim() || undefined,
-        image_url: values.image_url.trim() || undefined,
+        image_url: uploadedImageUrl,
         tags: values.tags,
         metadata: cleanMetadata,
       };
@@ -475,6 +533,12 @@ export function ItemAddClient({
         ]);
       }
 
+      if (selectedImagePreviewUrl) {
+        URL.revokeObjectURL(selectedImagePreviewUrl);
+      }
+      setSelectedImageFile(null);
+      setSelectedImagePreviewUrl(null);
+
       if (targetId && onSuccess) {
         onSuccess(targetId);
         return;
@@ -488,6 +552,8 @@ export function ItemAddClient({
           ? submitError.message
           : "알 수 없는 오류가 발생했습니다",
       );
+    } finally {
+      setIsUploadingImage(false);
     }
   };
 
@@ -534,46 +600,49 @@ export function ItemAddClient({
                 type="file"
                 accept="image/jpeg,image/png,image/webp,image/gif"
                 className="hidden"
-                onChange={handleImageUpload}
+                onChange={handleImageSelection}
               />
 
-              <button
-                type="button"
-                onClick={() => fileInputRef.current?.click()}
-                disabled={isSubmitting || isUploadingImage}
+              <div
                 className={cn(
-                  "group relative flex w-full overflow-hidden rounded-[24px] border text-center transition-all duration-200",
-                  imageUrl
+                  "group relative flex aspect-square w-full overflow-hidden rounded-[24px] border text-center transition-all duration-200 sm:aspect-[4/3]",
+                  displayImageUrl
                     ? "border-border bg-secondary/20 hover:border-primary/40"
                     : "items-center justify-center border-dashed border-border/80 bg-secondary/10 hover:border-primary/50 hover:bg-secondary/20",
-                  "disabled:cursor-not-allowed disabled:opacity-70",
+                  (isSubmitting || isUploadingImage) &&
+                    "cursor-not-allowed opacity-70",
                 )}
               >
-                {imageUrl ? (
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={isSubmitting || isUploadingImage}
+                  className="absolute inset-0 z-10"
+                  aria-label={displayImageUrl ? "이미지 변경" : "이미지 업로드"}
+                />
+                {displayImageUrl ? (
                   <>
-                    <img
-                      src={imageUrl}
+                    <Image
+                      src={displayImageUrl}
                       alt="물품 이미지 미리보기"
-                      className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.02]"
-                      onError={(e) => {
-                        (e.target as HTMLImageElement).style.display = "none";
-                      }}
+                      fill
+                      sizes="(max-width: 768px) 100vw, 768px"
+                      className="object-cover transition-transform duration-300 group-hover:scale-[1.02]"
+                      unoptimized={displayImageUrl.startsWith("blob:")}
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/55 via-black/10 to-transparent" />
-                    <div className="absolute inset-x-0 bottom-0 flex items-end justify-between p-4 text-left">
-                      <div>
-                        <p className="text-sm font-semibold text-white">
-                          {isUploadingImage
-                            ? "이미지 업로드 중..."
-                            : "이미지 변경"}
-                        </p>
-                        <p className="mt-1 text-xs text-white/80">
-                          탭해서 다른 사진으로 교체할 수 있어요
-                        </p>
-                      </div>
-                      <div className="flex h-11 w-11 items-center justify-center rounded-full border border-white/25 bg-white/15 text-white backdrop-blur-sm">
-                        <Plus className="h-5 w-5" />
-                      </div>
+                    <div className="absolute inset-x-0 top-0 z-20 flex items-start justify-end p-4">
+                      <button
+                        type="button"
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          handleClearSelectedImage();
+                        }}
+                        className="flex h-10 w-10 items-center justify-center rounded-full border border-white/20 bg-black/45 text-white backdrop-blur-sm transition-colors hover:bg-black/60"
+                        aria-label="이미지 삭제"
+                      >
+                        <X className="h-4 w-4" />
+                      </button>
                     </div>
                   </>
                 ) : (
@@ -600,7 +669,7 @@ export function ItemAddClient({
                     </div>
                   </div>
                 )}
-              </button>
+              </div>
 
               {/* <Input
                 label="이미지 URL"
@@ -734,61 +803,76 @@ export function ItemAddClient({
               </div>
             </Card>
 
-            <Card>
-              <h2 className="text-xl font-bold text-foreground mb-4 flex items-center gap-2">
-                <TagIcon className="w-5 h-5" />
-                태그
-              </h2>
+            {(tags.length > 0 || isTagEditorOpen) && (
+              <Card>
+                <h2 className="text-xl font-bold text-foreground mb-4 flex items-center gap-2">
+                  <TagIcon className="w-5 h-5" />
+                  태그
+                </h2>
 
-              <div className="space-y-3">
-                <div className="flex gap-2">
-                  <Input
-                    placeholder="태그 입력 (엔터로 추가)"
-                    value={tagInput}
-                    onChange={(e) => setTagInput(e.target.value)}
-                    onCompositionStart={() => setIsTagComposing(true)}
-                    onCompositionEnd={(e) => {
-                      setIsTagComposing(false);
-                      setTagInput(e.currentTarget.value);
-                    }}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter") {
-                        if (isTagComposing || e.nativeEvent.isComposing) {
-                          return;
+                <div className="space-y-3">
+                  <div className="flex gap-2">
+                    <Input
+                      placeholder="태그 입력 (엔터로 추가)"
+                      value={tagInput}
+                      onChange={(e) => setTagInput(e.target.value)}
+                      onCompositionStart={() => setIsTagComposing(true)}
+                      onCompositionEnd={(e) => {
+                        setIsTagComposing(false);
+                        setTagInput(e.currentTarget.value);
+                      }}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          if (isTagComposing || e.nativeEvent.isComposing) {
+                            return;
+                          }
+                          e.preventDefault();
+                          addTag();
                         }
-                        e.preventDefault();
-                        addTag();
-                      }
-                    }}
-                    fullWidth
-                  />
-                  <Button
-                    size="md"
-                    className="h-auto"
-                    type="button"
-                    onClick={addTag}
-                  >
-                    추가
-                  </Button>
-                </div>
-
-                {tags.length > 0 && (
-                  <div className="flex flex-wrap gap-2">
-                    {tags.map((tag: string) => (
-                      <Badge
-                        key={tag}
-                        variant="secondary"
-                        className="cursor-pointer hover:bg-secondary/30"
-                        onClick={() => removeTag(tag)}
-                      >
-                        {tag}
-                        <X className="w-3 h-3 ml-1" />
-                      </Badge>
-                    ))}
+                      }}
+                      fullWidth
+                    />
+                    <Button
+                      size="md"
+                      className="h-auto"
+                      type="button"
+                      onClick={addTag}
+                    >
+                      추가
+                    </Button>
                   </div>
-                )}
+
+                  {tags.length > 0 ? (
+                    <div className="flex flex-wrap gap-2">
+                      {tags.map((tag: string) => (
+                        <Badge
+                          key={tag}
+                          variant="secondary"
+                          className="cursor-pointer hover:bg-secondary/30"
+                          onClick={() => removeTag(tag)}
+                        >
+                          {tag}
+                          <X className="w-3 h-3 ml-1" />
+                        </Badge>
+                      ))}
+                    </div>
+                  ) : null}
+                </div>
+              </Card>
+            )}
+
+            {!tags.length && !isTagEditorOpen && (
+              <div className="flex justify-start">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setIsTagEditorOpen(true)}
+                  leftIcon={<TagIcon className="h-4 w-4" />}
+                >
+                  태그 추가
+                </Button>
               </div>
-            </Card>
+            )}
 
             {itemType && (
               <Card>

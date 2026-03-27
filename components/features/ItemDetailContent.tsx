@@ -144,7 +144,7 @@ export function ItemDetailContent({ item, onEdit }: ItemDetailContentProps) {
         {/* Location Section */}
         <div className="space-y-3">
           <label className="text-xs font-bold text-muted-foreground uppercase tracking-widest pl-1">
-            Location
+            저장 위치
           </label>
           <div className="bg-secondary/10 rounded-2xl p-5 border border-border/50 hover:border-border/70 transition-colors">
             <div className="flex items-center gap-3">
@@ -159,9 +159,9 @@ export function ItemDetailContent({ item, onEdit }: ItemDetailContentProps) {
         {/* Details Grid */}
         <div className="space-y-3">
           <label className="text-xs font-bold text-muted-foreground uppercase tracking-widest pl-1">
-            Details
+            물품 내용
           </label>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-2 gap-2">
             {/* 갯수 */}
             <div className="bg-secondary/10 rounded-2xl p-5 border border-border/50 hover:border-border/70 transition-colors flex flex-col justify-between h-32">
               <span className="text-sm font-medium text-muted-foreground">
@@ -198,7 +198,7 @@ export function ItemDetailContent({ item, onEdit }: ItemDetailContentProps) {
                 </span>
                 <Calendar
                   className={cn(
-                    "w-5 h-5",
+                    "size-5",
                     expiryStatus === "expired"
                       ? "text-destructive"
                       : "text-muted-foreground/50",
@@ -211,7 +211,7 @@ export function ItemDetailContent({ item, onEdit }: ItemDetailContentProps) {
                   <>
                     <p
                       className={cn(
-                        "text-lg font-bold mb-1",
+                        "text-md font-bold mb-1",
                         expiryStatus === "expired"
                           ? "text-destructive"
                           : "text-foreground",
@@ -227,7 +227,7 @@ export function ItemDetailContent({ item, onEdit }: ItemDetailContentProps) {
                       daysUntilExpiry !== undefined && (
                         <p
                           className={cn(
-                            "text-sm font-medium",
+                            "text-xs font-medium",
                             expiryStatus === "expired"
                               ? "text-destructive"
                               : "text-warning",
@@ -246,12 +246,12 @@ export function ItemDetailContent({ item, onEdit }: ItemDetailContentProps) {
             </div>
 
             {/* Date Added */}
-            <div className="bg-secondary/10 rounded-2xl p-5 border border-border/50 hover:border-border/70 transition-colors flex flex-col justify-between h-32">
+            <div className="bg-secondary/10 rounded-2xl p-5 border border-border/50 hover:border-border/70 transition-colors flex flex-col justify-between h-28">
               <span className="text-sm font-medium text-muted-foreground">
                 추가일
               </span>
               <div>
-                <p className="text-lg font-bold text-foreground">
+                <p className="text-md font-bold text-foreground">
                   {createdAt
                     ? new Date(createdAt).toLocaleDateString("ko-KR", {
                         year: "numeric",

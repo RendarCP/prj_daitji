@@ -1,5 +1,6 @@
 'use client'
 
+import Image from 'next/image'
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { 
@@ -251,10 +252,12 @@ export function ItemDetailClient({ item: initialItem, locationPath, allLocations
             <Card>
               <div className="aspect-video bg-secondary/20 rounded-lg overflow-hidden relative">
                 {(isEditing ? formData.image_url : item.image_url) ? (
-                  <img
+                  <Image
                     src={isEditing ? formData.image_url : item.image_url!}
                     alt={item.name}
-                    className="w-full h-full object-cover"
+                    fill
+                    sizes="(max-width: 768px) 100vw, 1024px"
+                    className="object-cover"
                   />
                 ) : (
                   <div className="w-full h-full flex items-center justify-center">
