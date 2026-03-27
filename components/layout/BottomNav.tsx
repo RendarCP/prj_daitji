@@ -68,11 +68,13 @@ export function BottomNav() {
               key={item.href}
               href={item.href}
               onClick={() => handleNavClick(item.href, isActive)}
+              onContextMenu={(event) => event.preventDefault()}
               className={cn(
-                "flex flex-col items-center justify-start gap-1 pt-3 transition-all duration-200 touch-manipulation",
-                "text-muted-foreground hover:bg-secondary active:bg-secondary/80",
+                "flex flex-col items-center justify-start gap-1 pt-3 transition-all duration-200 touch-manipulation select-none [webkit-touch-callout:none]",
+                "text-muted-foreground",
               )}
               aria-current={isActive ? "page" : undefined}
+              draggable={false}
             >
               <Icon
                 className={cn(
