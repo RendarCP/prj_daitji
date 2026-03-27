@@ -2,13 +2,14 @@
 
 import dynamic from "next/dynamic";
 import { useEffect, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
 import { BottomNav } from "@/components/layout/BottomNav";
 import { Alert } from "@/components/ui/Alert";
 import { QuickAddButton } from "@/components/features/QuickAddButton";
 import { LocationDetailPanel } from "@/components/ui/LocationDetailPanel";
 import { BottomSheet } from "@/components/ui/BottomSheet";
+import { FullPageModal } from "@/components/ui/FullPageModal";
 import { ItemAddClient } from "@/app/items/add/ItemAddClient";
+import { AddLocationClient } from "@/app/explorer/AddLocationClient";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { useItemDetail } from "@/lib/hooks/useItemDetail";
 import { ItemDetailPanelFromData } from "@/components/features/ItemDetailPanelFromData";
@@ -17,6 +18,7 @@ import {
   useDashboardStats,
   useLocationSummary,
 } from "@/lib/hooks/useDashboard";
+import { useLocations } from "@/lib/hooks/useLocations";
 import { useDialog } from "@/lib/hooks/useDialog";
 import type { Location } from "@/lib/types";
 import { LocationThumbnail } from "@/components/features/LocationThumbnail";
@@ -51,13 +53,14 @@ const DashboardOverviewSection = dynamic(
 
 export function DashboardClient() {
   const SHEET_EXIT_MS = 300;
-  const router = useRouter();
   const [selectedLocation, setSelectedLocation] = useState<Location | null>(
     null,
   );
   /** 장소 디테일 패널에서 하위로 들어갈 때마다 부모를 쌓음. 뒤로가기 시 pop */
   const [locationStack, setLocationStack] = useState<Location[]>([]);
   const [activeItemId, setActiveItemId] = useState<string | null>(null);
+  const [isItemAddModalOpen, setIsItemAddModalOpen] = useState(false);
+  const [isLocationAddModalOpen, setIsLocationAddModalOpen] = useState(false);
   const editSheetDialog = useDialog<string>();
   const editSheetCloseTimerRef = useRef<ReturnType<typeof setTimeout> | null>(
     null,
@@ -74,15 +77,16 @@ export function DashboardClient() {
     isLoading: isLocationLoading,
     error: locationError,
   } = useLocationSummary();
+  const { data: locations = [] } = useLocations();
   const { data: activeItemDetail, isLoading: isActiveItemLoading } =
     useItemDetail(activeItemId);
 
   const handleAddItem = () => {
-    router.push("/items/add", { scroll: false });
+    setIsItemAddModalOpen(true);
   };
 
   const handleAddLocation = () => {
-    router.push("/explorer/add", { scroll: false });
+    setIsLocationAddModalOpen(true);
   };
 
   const openEditSheet = (itemId: string) => {
@@ -136,7 +140,7 @@ export function DashboardClient() {
             </div>
           </div>
         ) : (
-          <DashboardOverviewSection stats={stats} />
+          <DashboardOverviewSection stats={stats} onAddItem={handleAddItem} />
         )}
 
         {/* Quick Zones Section */}
@@ -263,6 +267,41 @@ export function DashboardClient() {
             />
           </div>
         </BottomSheet>
+      )}
+
+      {isItemAddModalOpen && (
+        <FullPageModal
+          onClose={() => setIsItemAddModalOpen(false)}
+          title="물품 추가"
+          disableBodyScroll={true}
+        >
+          <ItemAddClient
+            mode="modal"
+            onSuccess={(targetId) => {
+              setIsItemAddModalOpen(false);
+              setActiveItemId(targetId);
+            }}
+          />
+        </FullPageModal>
+      )}
+
+      {isLocationAddModalOpen && (
+        <FullPageModal
+          onClose={() => setIsLocationAddModalOpen(false)}
+          title="위치 추가"
+          disableBodyScroll={true}
+        >
+          <AddLocationClient
+            locations={locations}
+            mode="modal"
+            onSuccess={async (_targetId, location) => {
+              setIsLocationAddModalOpen(false);
+              if (location) {
+                setSelectedLocation(location);
+              }
+            }}
+          />
+        </FullPageModal>
       )}
 
       {/* Bottom Navigation */}

@@ -165,7 +165,7 @@ export function ItemTypeMetadataFields({
               주의사항
             </label>
             <textarea
-              className="w-full px-4 py-2.5 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-ring"
+              className="w-full rounded-lg border border-border bg-white px-4 py-2.5 text-slate-900 placeholder:text-slate-500 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent focus:bg-white"
               rows={3}
               placeholder="주의사항을 입력하세요 (줄바꿈으로 구분)"
               value={
@@ -231,7 +231,7 @@ export function ItemTypeMetadataFields({
               메모
             </label>
             <textarea
-              className="w-full px-4 py-2.5 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-ring text-black"
+              className="w-full rounded-lg border border-border bg-white px-4 py-2.5 text-slate-900 placeholder:text-slate-500 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent focus:bg-white"
               rows={3}
               placeholder="추가 정보를 입력하세요"
               value={toStringValue(metadata.notes)}

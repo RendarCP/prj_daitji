@@ -1,4 +1,9 @@
-import { InputHTMLAttributes, forwardRef, ReactNode } from "react";
+import {
+  InputHTMLAttributes,
+  forwardRef,
+  MouseEvent,
+  ReactNode,
+} from "react";
 import { cn } from "@/lib/utils/cn";
 
 export interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
@@ -25,6 +30,20 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
     },
     ref,
   ) => {
+    const handleDateInputClick = (event: MouseEvent<HTMLInputElement>) => {
+      props.onClick?.(event);
+
+      if (type !== "date") {
+        return;
+      }
+
+      const input = event.currentTarget as HTMLInputElement & {
+        showPicker?: () => void;
+      };
+
+      input.showPicker?.();
+    };
+
     return (
       <div className={cn("flex flex-col gap-2", fullWidth ? "w-full" : "")}>
         {label && (
@@ -35,21 +54,22 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
         )}
         <div className="relative">
           {leftIcon && (
-            <div className="absolute left-3 top-1/2 -translate-y-1/2 text-black">
+            <div className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">
               {leftIcon}
             </div>
           )}
           <input
             type={type}
             ref={ref}
+            onClick={handleDateInputClick}
             className={cn(
-              "w-full px-4 py-2.5 border rounded-lg transition-all duration-200 text-black",
-              "placeholder:text-black/40",
-              "focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent",
+              "w-full rounded-lg border border-border bg-white px-4 py-2.5 text-slate-900 transition-all duration-200",
+              "placeholder:text-slate-500",
+              "focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent focus:bg-white",
               "disabled:bg-secondary/20 disabled:cursor-not-allowed disabled:text-muted-foreground",
               error
                 ? "border-destructive focus:ring-destructive"
-                : "border-border hover:border-border",
+                : "hover:border-border hover:bg-white",
               leftIcon && "pl-10",
               rightIcon && "pr-10",
               className,
@@ -65,7 +85,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
             {...props}
           />
           {rightIcon && (
-            <div className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground">
+            <div className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground">
               {rightIcon}
             </div>
           )}

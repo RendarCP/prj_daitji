@@ -6,7 +6,6 @@ import {
   useCallback,
   useState,
   useRef,
-  useLayoutEffect,
 } from "react";
 import { X, ArrowLeft } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
@@ -42,16 +41,6 @@ export function FullPageModal({
   const [isClosing, setIsClosing] = useState(false); // 닫기 애니메이션 진행 중 (이때는 onClose 지연)
   const hasCloseIntentRef = useRef(false);
   const onCloseRef = useRef(onClose);
-  const lockedScrollYRef = useRef(0);
-  const bodyStylesRef = useRef<{
-    overflow: string;
-    position: string;
-    top: string;
-    left: string;
-    right: string;
-    width: string;
-  } | null>(null);
-  const htmlOverflowRef = useRef<string>("");
   const lastCloseSignalRef = useRef(closeSignal);
 
   useEffect(() => {
@@ -117,52 +106,11 @@ export function FullPageModal({
     [closeOnEscape, startClose],
   );
 
-  useLayoutEffect(() => {
+  useEffect(() => {
     if (!isOpen) return;
 
-    const { body, documentElement } = document;
-    lockedScrollYRef.current = window.scrollY;
-    bodyStylesRef.current = {
-      overflow: body.style.overflow,
-      position: body.style.position,
-      top: body.style.top,
-      left: body.style.left,
-      right: body.style.right,
-      width: body.style.width,
-    };
-    htmlOverflowRef.current = documentElement.style.overflow;
-
-    body.style.overflow = "hidden";
-    body.style.position = "fixed";
-    body.style.top = `-${lockedScrollYRef.current}px`;
-    body.style.left = "0";
-    body.style.right = "0";
-    body.style.width = "100%";
-    documentElement.style.overflow = "hidden";
     document.addEventListener("keydown", handleEscape);
-
     return () => {
-      const { body, documentElement } = document;
-      const previousBodyStyles = bodyStylesRef.current;
-
-      if (previousBodyStyles) {
-        body.style.overflow = previousBodyStyles.overflow;
-        body.style.position = previousBodyStyles.position;
-        body.style.top = previousBodyStyles.top;
-        body.style.left = previousBodyStyles.left;
-        body.style.right = previousBodyStyles.right;
-        body.style.width = previousBodyStyles.width;
-      } else {
-        body.style.overflow = "";
-        body.style.position = "";
-        body.style.top = "";
-        body.style.left = "";
-        body.style.right = "";
-        body.style.width = "";
-      }
-
-      documentElement.style.overflow = htmlOverflowRef.current;
-      window.scrollTo({ top: lockedScrollYRef.current, behavior: "auto" });
       document.removeEventListener("keydown", handleEscape);
     };
   }, [isOpen, handleEscape]);
@@ -171,7 +119,7 @@ export function FullPageModal({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex flex-col justify-end pointer-events-none"
+      className="fixed inset-0 z-50 flex flex-col justify-end overscroll-none pointer-events-none"
       role="dialog"
       aria-modal="true"
       aria-labelledby={title ? "full-page-modal-title" : undefined}
@@ -179,7 +127,7 @@ export function FullPageModal({
       {/* Overlay - 닫힐 때도 페이드 아웃 */}
       <div
         className={cn(
-          "absolute inset-0 bg-black/60 backdrop-blur-sm transition-opacity duration-300 pointer-events-auto",
+          "absolute inset-0 bg-black/60 backdrop-blur-sm transition-opacity duration-300 pointer-events-auto touch-none",
           isAnimating ? "opacity-100" : "opacity-0",
         )}
         onClick={startClose}
@@ -191,6 +139,7 @@ export function FullPageModal({
         className={cn(
           "relative bg-card w-full h-full pointer-events-auto",
           "flex flex-col overflow-hidden",
+          "overscroll-contain touch-pan-y",
           "shadow-2xl transition-transform duration-300 ease-in-out transform",
           isAnimating ? "translate-y-0" : "translate-y-full",
         )}

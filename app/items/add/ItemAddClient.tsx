@@ -12,8 +12,6 @@ import {
   Package,
   Barcode,
   Tag as TagIcon,
-  Image as ImageIcon,
-  Upload,
   Plus,
   Minus,
 } from "lucide-react";
@@ -31,16 +29,25 @@ import { queryKeys } from "@/lib/queryKeys";
 import { cn } from "@/lib/utils/cn";
 
 const ITEM_TYPES = ["FOOD", "COSMETIC", "MEDICINE", "GENERAL"] as const;
+const MAX_OPTIMIZED_IMAGE_DIMENSION = 1600;
+const OPTIMIZED_IMAGE_QUALITY = 0.82;
+const MAX_UPLOAD_SIZE_BYTES = 10 * 1024 * 1024;
+const IMAGE_OPTIMIZATION_THRESHOLD_BYTES = 2 * 1024 * 1024;
+const OPTIMIZABLE_IMAGE_TYPES = new Set([
+  "image/jpeg",
+  "image/png",
+  "image/webp",
+]);
+const PASSTHROUGH_IMAGE_TYPES = new Set(["image/gif"]);
+const BLOCKED_IMAGE_TYPES = new Set(["image/heic", "image/heif"]);
 
 type ItemType = (typeof ITEM_TYPES)[number];
 
 const itemFormSchema = z.object({
   name: z.string().trim().min(1, "물품 이름은 필수입니다"),
-  type: z
-    .string()
-    .refine((value) => ITEM_TYPES.includes(value as ItemType), {
-      message: "타입을 선택해주세요",
-    }),
+  type: z.string().refine((value) => ITEM_TYPES.includes(value as ItemType), {
+    message: "타입을 선택해주세요",
+  }),
   location_id: z.string().min(1, "위치를 선택해주세요"),
   quantity: z.coerce.number().int().min(0, "수량은 0 이상이어야 합니다"),
   barcode: z.string().max(100),
@@ -69,6 +76,107 @@ interface ItemAddClientProps {
   initialBarcode?: string;
 }
 
+function changeFileExtension(filename: string, extension: string) {
+  const normalizedExtension = extension.startsWith(".")
+    ? extension
+    : `.${extension}`;
+
+  return filename.replace(/\.[^/.]+$/, "") + normalizedExtension;
+}
+
+async function loadImageElement(file: File): Promise<HTMLImageElement> {
+  const objectUrl = URL.createObjectURL(file);
+
+  try {
+    const image = await new Promise<HTMLImageElement>((resolve, reject) => {
+      const nextImage = new Image();
+      nextImage.onload = () => resolve(nextImage);
+      nextImage.onerror = () =>
+        reject(new Error("이미지 파일을 읽는 중 오류가 발생했습니다"));
+      nextImage.src = objectUrl;
+    });
+
+    return image;
+  } finally {
+    URL.revokeObjectURL(objectUrl);
+  }
+}
+
+async function canvasToBlob(
+  canvas: HTMLCanvasElement,
+  type: string,
+  quality?: number,
+): Promise<Blob> {
+  return new Promise((resolve, reject) => {
+    canvas.toBlob(
+      (blob) => {
+        if (!blob) {
+          reject(new Error("이미지 최적화 결과를 생성하지 못했습니다"));
+          return;
+        }
+
+        resolve(blob);
+      },
+      type,
+      quality,
+    );
+  });
+}
+
+async function optimizeImageFile(file: File): Promise<File> {
+  if (BLOCKED_IMAGE_TYPES.has(file.type)) {
+    throw new Error(
+      "HEIC/HEIF 이미지는 아직 지원하지 않습니다. JPG, PNG, WebP 또는 GIF를 사용해주세요.",
+    );
+  }
+
+  if (PASSTHROUGH_IMAGE_TYPES.has(file.type)) {
+    return file;
+  }
+
+  if (!OPTIMIZABLE_IMAGE_TYPES.has(file.type)) {
+    throw new Error(
+      "지원하지 않는 이미지 형식입니다. JPG, PNG, WebP 또는 GIF를 사용해주세요.",
+    );
+  }
+
+  if (file.size <= IMAGE_OPTIMIZATION_THRESHOLD_BYTES) {
+    return file;
+  }
+
+  const image = await loadImageElement(file);
+  const largestSide = Math.max(image.width, image.height);
+  const scale =
+    largestSide > MAX_OPTIMIZED_IMAGE_DIMENSION
+      ? MAX_OPTIMIZED_IMAGE_DIMENSION / largestSide
+      : 1;
+  const targetWidth = Math.max(1, Math.round(image.width * scale));
+  const targetHeight = Math.max(1, Math.round(image.height * scale));
+  const canvas = document.createElement("canvas");
+  canvas.width = targetWidth;
+  canvas.height = targetHeight;
+
+  const context = canvas.getContext("2d");
+  if (!context) {
+    throw new Error("이미지 최적화를 위한 브라우저 기능을 사용할 수 없습니다.");
+  }
+
+  context.fillStyle = "#ffffff";
+  context.fillRect(0, 0, targetWidth, targetHeight);
+  context.drawImage(image, 0, 0, targetWidth, targetHeight);
+
+  const optimizedBlob = await canvasToBlob(
+    canvas,
+    "image/jpeg",
+    OPTIMIZED_IMAGE_QUALITY,
+  );
+
+  return new File([optimizedBlob], changeFileExtension(file.name, "jpg"), {
+    type: "image/jpeg",
+    lastModified: Date.now(),
+  });
+}
+
 export function ItemAddClient({
   mode = "page",
   isEditMode = false,
@@ -86,7 +194,8 @@ export function ItemAddClient({
   const [isUploadingImage, setIsUploadingImage] = useState(false);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
-  const { data: locations = [], isLoading: isLoadingLocations } = useLocations();
+  const { data: locations = [], isLoading: isLoadingLocations } =
+    useLocations();
 
   const {
     register,
@@ -157,10 +266,14 @@ export function ItemAddClient({
 
         let pathIds: string[] = [];
         if (item.location_id) {
-          const pathRes = await fetch(`/api/locations/${item.location_id}/path`);
+          const pathRes = await fetch(
+            `/api/locations/${item.location_id}/path`,
+          );
           if (pathRes.ok) {
             const { data: pathData } = await pathRes.json();
-            pathIds = (pathData?.path || []).map((path: { id: string }) => path.id);
+            pathIds = (pathData?.path || []).map(
+              (path: { id: string }) => path.id,
+            );
           }
         }
 
@@ -174,7 +287,9 @@ export function ItemAddClient({
           image_url: item.image_url ?? "",
           tags: Array.isArray(item.tags) ? item.tags : [],
           metadata:
-            item.metadata && typeof item.metadata === "object" ? item.metadata : {},
+            item.metadata && typeof item.metadata === "object"
+              ? item.metadata
+              : {},
         });
       } catch (loadError) {
         if (!cancelled) {
@@ -248,14 +363,21 @@ export function ItemAddClient({
     try {
       setError(null);
       setIsUploadingImage(true);
+      const uploadFile = await optimizeImageFile(file);
+
+      if (uploadFile.size > MAX_UPLOAD_SIZE_BYTES) {
+        throw new Error(
+          "최적화 후에도 이미지가 10MB를 초과합니다. 더 작은 이미지를 선택해주세요.",
+        );
+      }
 
       const presignResponse = await fetch("/api/uploads/presign", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          filename: file.name,
-          contentType: file.type,
-          size: file.size,
+          filename: uploadFile.name,
+          contentType: uploadFile.type,
+          size: uploadFile.size,
         }),
       });
 
@@ -276,9 +398,9 @@ export function ItemAddClient({
       const uploadResponse = await fetch(uploadUrl, {
         method: "PUT",
         headers: {
-          "Content-Type": file.type,
+          "Content-Type": uploadFile.type,
         },
-        body: file,
+        body: uploadFile,
       });
 
       if (!uploadResponse.ok) {
@@ -336,7 +458,9 @@ export function ItemAddClient({
       if (!response.ok) {
         throw new Error(
           result.error?.message ||
-            (isEditMode ? "물품 수정에 실패했습니다" : "물품 추가에 실패했습니다"),
+            (isEditMode
+              ? "물품 수정에 실패했습니다"
+              : "물품 추가에 실패했습니다"),
         );
       }
 
@@ -356,12 +480,8 @@ export function ItemAddClient({
         return;
       }
 
-      if (mode === "modal") {
-        window.location.href = `/item/${targetId}`;
-      } else {
-        router.push(`/item/${targetId}`);
-        router.refresh();
-      }
+      router.replace(`/item/${targetId}`);
+      router.refresh();
     } catch (submitError) {
       setError(
         submitError instanceof Error
@@ -409,60 +529,93 @@ export function ItemAddClient({
             <Card>
               <h2 className="text-xl font-bold text-foreground mb-4">이미지</h2>
 
-              <div className="aspect-video bg-secondary/20 rounded-lg overflow-hidden relative mb-4">
-                {imageUrl ? (
-                  <img
-                    src={imageUrl}
-                    alt="물품 이미지 미리보기"
-                    className="w-full h-full object-cover"
-                    onError={(e) => {
-                      (e.target as HTMLImageElement).style.display = "none";
-                    }}
-                  />
-                ) : (
-                  <div className="w-full h-full flex items-center justify-center">
-                    <Package className="w-20 h-20 text-muted-foreground" />
-                  </div>
-                )}
-              </div>
-
               <input
                 ref={fileInputRef}
                 type="file"
-                accept="image/*"
+                accept="image/jpeg,image/png,image/webp,image/gif"
                 className="hidden"
                 onChange={handleImageUpload}
               />
 
-              <div className="mb-4">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => fileInputRef.current?.click()}
-                  isLoading={isUploadingImage}
-                  loadingText="업로드 중..."
-                  leftIcon={<Upload className="w-4 h-4" />}
-                  disabled={isSubmitting}
-                >
-                  사진 파일 업로드
-                </Button>
-                <p className="mt-2 text-sm text-muted-foreground">
-                  JPG, PNG, WebP, GIF, HEIC/HEIF (최대 10MB)
-                </p>
-              </div>
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={isSubmitting || isUploadingImage}
+                className={cn(
+                  "group relative flex w-full overflow-hidden rounded-[24px] border text-center transition-all duration-200",
+                  imageUrl
+                    ? "border-border bg-secondary/20 hover:border-primary/40"
+                    : "items-center justify-center border-dashed border-border/80 bg-secondary/10 hover:border-primary/50 hover:bg-secondary/20",
+                  "disabled:cursor-not-allowed disabled:opacity-70",
+                )}
+              >
+                {imageUrl ? (
+                  <>
+                    <img
+                      src={imageUrl}
+                      alt="물품 이미지 미리보기"
+                      className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.02]"
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).style.display = "none";
+                      }}
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/55 via-black/10 to-transparent" />
+                    <div className="absolute inset-x-0 bottom-0 flex items-end justify-between p-4 text-left">
+                      <div>
+                        <p className="text-sm font-semibold text-white">
+                          {isUploadingImage
+                            ? "이미지 업로드 중..."
+                            : "이미지 변경"}
+                        </p>
+                        <p className="mt-1 text-xs text-white/80">
+                          탭해서 다른 사진으로 교체할 수 있어요
+                        </p>
+                      </div>
+                      <div className="flex h-11 w-11 items-center justify-center rounded-full border border-white/25 bg-white/15 text-white backdrop-blur-sm">
+                        <Plus className="h-5 w-5" />
+                      </div>
+                    </div>
+                  </>
+                ) : (
+                  <div className="flex h-full w-full flex-col items-center justify-center p-6">
+                    <div className="flex size-16 items-center justify-center rounded-full border border-primary/20 bg-primary/10 text-primary transition-transform duration-200 group-hover:scale-105">
+                      {isUploadingImage ? (
+                        <span className="text-sm font-semibold">...</span>
+                      ) : (
+                        <Plus className="h-8 w-8" />
+                      )}
+                    </div>
+                    <div className="mt-5 space-y-1.5">
+                      <p className="text-base font-semibold text-foreground">
+                        {isUploadingImage
+                          ? "이미지 업로드 중..."
+                          : "이미지 업로드"}
+                      </p>
+                      <p className="mx-auto max-w-sm text-sm leading-6 text-muted-foreground">
+                        탭해서 사진을 선택하거나 새로 촬영한 이미지를 추가하세요
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        JPG, PNG, WebP, GIF · 최대 10MB
+                      </p>
+                    </div>
+                  </div>
+                )}
+              </button>
 
-              <Input
+              {/* <Input
                 label="이미지 URL"
                 placeholder="https://example.com/image.jpg"
-                leftIcon={<ImageIcon className="w-4 h-4" />}
+                leftIcon={<ImageIcon className="size-4" />}
                 error={errors.image_url?.message}
                 helperText="물품 이미지의 URL을 입력하세요 (선택사항)"
                 {...register("image_url")}
-              />
+              /> */}
             </Card>
 
             <Card>
-              <h2 className="text-xl font-bold text-foreground mb-4">기본 정보</h2>
+              <h2 className="text-xl font-bold text-foreground mb-4">
+                기본 정보
+              </h2>
 
               <div className="space-y-4">
                 <Input
@@ -505,7 +658,9 @@ export function ItemAddClient({
                       setSelectionPath(nextPath);
                       setValue(
                         "location_id",
-                        nextPath.length > 0 ? nextPath[nextPath.length - 1] : "",
+                        nextPath.length > 0
+                          ? nextPath[nextPath.length - 1]
+                          : "",
                         { shouldDirty: true, shouldValidate: true },
                       );
                     }}
@@ -525,48 +680,48 @@ export function ItemAddClient({
                 </div>
 
                 <div className="space-y-2">
-                  <label className="text-sm font-medium text-foreground">수량</label>
-                  <div className="flex items-center gap-3">
-                    <div className="bg-secondary/10 rounded-2xl p-2 w-fit border border-border/50">
-                      <div className="flex items-center gap-1">
-                        <button
-                          type="button"
-                          onClick={() =>
-                            setValue("quantity", Math.max(0, quantity - 1), {
-                              shouldDirty: true,
-                              shouldValidate: true,
-                            })
-                          }
-                          className="w-12 h-12 rounded-xl hover:bg-white/10 flex items-center justify-center transition-colors text-muted-foreground hover:text-foreground active:scale-95 duration-200"
-                          aria-label="수량 감소"
-                        >
-                          <Minus className="w-6 h-6" />
-                        </button>
-                        <span className="w-12 text-center text-xl font-bold font-mono">
-                          {quantity}
-                        </span>
-                        <button
-                          type="button"
-                          onClick={() =>
-                            setValue("quantity", quantity + 1, {
-                              shouldDirty: true,
-                              shouldValidate: true,
-                            })
-                          }
-                          className="w-12 h-12 rounded-xl hover:bg-white/10 flex items-center justify-center transition-colors text-muted-foreground hover:text-foreground active:scale-95 duration-200"
-                          aria-label="수량 증가"
-                        >
-                          <Plus className="w-6 h-6" />
-                        </button>
-                      </div>
-                    </div>
+                  <label className="text-sm font-medium text-foreground">
+                    수량
+                  </label>
+                  <div className="flex w-full items-center py-4">
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setValue("quantity", Math.max(0, quantity - 1), {
+                          shouldDirty: true,
+                          shouldValidate: true,
+                        })
+                      }
+                      className="flex size-12 items-center justify-center rounded-full border border-border bg-background text-muted-foreground transition-all duration-200 hover:border-border/80 hover:bg-secondary hover:text-foreground active:scale-95"
+                      aria-label="수량 감소"
+                    >
+                      <Minus className="size-5" />
+                    </button>
+                    <span className="flex-1 text-center text-2xl font-bold font-mono text-foreground">
+                      {quantity}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setValue("quantity", quantity + 1, {
+                          shouldDirty: true,
+                          shouldValidate: true,
+                        })
+                      }
+                      className="flex size-12 items-center justify-center rounded-full border border-border bg-background text-muted-foreground transition-all duration-200 hover:border-border/80 hover:bg-secondary hover:text-foreground active:scale-95"
+                      aria-label="수량 증가"
+                    >
+                      <Plus className="size-5" />
+                    </button>
                   </div>
                   <input
                     type="hidden"
                     {...register("quantity", { valueAsNumber: true })}
                   />
                   {errors.quantity?.message ? (
-                    <p className="text-sm text-destructive">{errors.quantity.message}</p>
+                    <p className="text-sm text-destructive">
+                      {errors.quantity.message}
+                    </p>
                   ) : null}
                 </div>
 
@@ -607,7 +762,12 @@ export function ItemAddClient({
                     }}
                     fullWidth
                   />
-                  <Button size="md" className="h-auto" type="button" onClick={addTag}>
+                  <Button
+                    size="md"
+                    className="h-auto"
+                    type="button"
+                    onClick={addTag}
+                  >
                     추가
                   </Button>
                 </div>
@@ -632,7 +792,9 @@ export function ItemAddClient({
 
             {itemType && (
               <Card>
-                <h2 className="text-xl font-bold text-foreground mb-4">상세 정보</h2>
+                <h2 className="text-xl font-bold text-foreground mb-4">
+                  상세 정보
+                </h2>
                 <ItemTypeMetadataFields
                   type={itemType}
                   metadata={metadata}

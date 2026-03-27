@@ -48,20 +48,19 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(
         )}
         <div className="relative">
           {leftIcon && (
-            <div className="absolute left-3 top-1/2 -translate-y-1/2 text-black pointer-events-none z-10">
+            <div className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none z-10">
               {leftIcon}
             </div>
           )}
           <select
             ref={ref}
             className={cn(
-              "w-full px-4 py-2.5 border rounded-lg transition-all duration-200 text-black bg-white",
-              "appearance-none cursor-pointer placeholder:text-muted-foreground",
-              "focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent",
+              "w-full appearance-none cursor-pointer rounded-lg border border-border bg-white px-4 py-2.5 text-slate-900 transition-all duration-200",
+              "focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent focus:bg-white",
               "disabled:bg-secondary/20 disabled:cursor-not-allowed disabled:text-muted-foreground",
               error
                 ? "border-destructive focus:ring-destructive"
-                : "border-border hover:border-border",
+                : "hover:border-border hover:bg-white",
               leftIcon && "pl-10",
               "pr-10",
               className,
@@ -77,7 +76,7 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(
             {...props}
           >
             {placeholder && (
-              <option className="text-muted-foreground" value="" disabled>
+              <option className="bg-card text-muted-foreground" value="" disabled>
                 {placeholder}
               </option>
             )}
@@ -86,6 +85,7 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(
                 key={option.value}
                 value={option.value}
                 disabled={option.disabled}
+                className="bg-card text-foreground"
               >
                 {option.label}
               </option>

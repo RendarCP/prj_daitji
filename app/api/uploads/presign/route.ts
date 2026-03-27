@@ -19,8 +19,6 @@ const allowedImageTypes = new Set([
   "image/png",
   "image/webp",
   "image/gif",
-  "image/heic",
-  "image/heif",
 ]);
 
 function sanitizeFilename(filename: string) {

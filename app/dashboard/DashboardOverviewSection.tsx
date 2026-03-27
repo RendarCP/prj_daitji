@@ -9,6 +9,7 @@ import {
   Clock3,
   MapPin,
   Package,
+  Plus,
 } from "lucide-react";
 import {
   Bar,
@@ -23,6 +24,7 @@ import {
   YAxis,
 } from "recharts";
 import type { DashboardOverviewResponse } from "@/lib/types";
+import { EmptyState } from "@/components/ui/EmptyState";
 import { StatCardSkeleton } from "@/components/ui/Skeleton";
 
 const TYPE_META = {
@@ -340,28 +342,36 @@ function MobileWeekBars({
 
 export function DashboardOverviewSection({
   stats,
+  onAddItem,
 }: {
   stats: DashboardOverviewResponse;
+  onAddItem?: () => void;
 }) {
   const totalTypeCount = stats.by_type.reduce(
     (sum, item) => sum + item.count,
     0,
   );
-  const typeChartData = stats.by_type.map((entry) => ({
-    ...entry,
-    label: TYPE_META[entry.type].label,
-    color: TYPE_META[entry.type].color,
-  }));
+  const hasTypeDistributionData = totalTypeCount > 0;
+  const typeChartData = stats.by_type
+    .filter((entry) => entry.count > 0)
+    .map((entry) => ({
+      ...entry,
+      label: TYPE_META[entry.type].label,
+      color: TYPE_META[entry.type].color,
+    }));
   const leadingType =
-    [...stats.by_type].sort((a, b) => b.count - a.count)[0] ?? stats.by_type[0];
+    [...typeChartData].sort((a, b) => b.count - a.count)[0] ?? typeChartData[0];
   const leadingTypeMeta = TYPE_META[leadingType?.type ?? "GENERAL"];
   const leadingTypeRatio =
     totalTypeCount > 0
       ? Math.round(((leadingType?.count ?? 0) / totalTypeCount) * 100)
       : 0;
+  const hasLocationStorageData = stats.by_location.some(
+    (location) => location.item_count > 0 || location.expiring_soon_count > 0,
+  );
 
   const locationChartData =
-    stats.by_location.length > 0
+    hasLocationStorageData
       ? stats.by_location.map((location) => ({
           ...location,
           short_name:
@@ -369,21 +379,13 @@ export function DashboardOverviewSection({
               ? `${location.location_name.slice(0, 7)}…`
               : location.location_name,
         }))
-      : [
-          {
-            location_id: "empty",
-            location_name: "데이터 없음",
-            short_name: "데이터 없음",
-            item_count: 0,
-            expiring_soon_count: 0,
-            level: 0,
-          },
-        ];
+      : [];
 
   const expiryChartData = EXPIRY_BUCKET_META.map((bucket) => ({
     ...bucket,
     value: stats.expiry_buckets[bucket.key],
   }));
+  const hasExpiryRiskData = expiryChartData.some((bucket) => bucket.value > 0);
   const recentAddedData =
     stats.recent_added_by_week.length > 0
       ? stats.recent_added_by_week.map((entry) => ({
@@ -464,199 +466,224 @@ export function DashboardOverviewSection({
       <div className="mt-4 grid gap-4 lg:grid-cols-[1.05fr_0.95fr]">
         <ChartShell
           title="물품 타입 분포"
-          summary={`${leadingTypeMeta.label} 비중 ${leadingTypeRatio}%로 가장 큽니다.`}
+          summary={
+            hasTypeDistributionData
+              ? `${leadingTypeMeta.label} 비중 ${leadingTypeRatio}%로 가장 큽니다.`
+              : "아직 등록된 물품이 없어 타입 분포를 표시할 수 없습니다."
+          }
         >
-          <MobileDistributionList rows={typeChartData} total={totalTypeCount} />
+          {hasTypeDistributionData ? (
+            <>
+              <MobileDistributionList rows={typeChartData} total={totalTypeCount} />
 
-          <div className="hidden gap-4 md:grid md:grid-cols-[1fr_220px] md:items-center">
-            <div className="h-[240px]">
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie
-                    data={typeChartData}
-                    dataKey="count"
-                    nameKey="label"
-                    innerRadius={58}
-                    outerRadius={84}
-                    paddingAngle={4}
-                    stroke="rgba(15, 23, 42, 0.18)"
-                    strokeWidth={2}
-                  >
-                    {typeChartData.map((entry) => (
-                      <Cell key={entry.type} fill={entry.color} />
-                    ))}
-                  </Pie>
-                  <Tooltip content={<DashboardTooltip />} />
-                </PieChart>
-              </ResponsiveContainer>
-            </div>
-            <div className="space-y-3">
-              {typeChartData.map((entry) => {
-                const percent =
-                  totalTypeCount > 0
-                    ? Math.round((entry.count / totalTypeCount) * 100)
-                    : 0;
+              <div className="hidden gap-4 md:grid md:grid-cols-[1fr_220px] md:items-center">
+                <div className="h-[240px]">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie
+                        data={typeChartData}
+                        dataKey="count"
+                        nameKey="label"
+                        innerRadius={58}
+                        outerRadius={84}
+                        paddingAngle={4}
+                        stroke="rgba(15, 23, 42, 0.18)"
+                        strokeWidth={2}
+                      >
+                        {typeChartData.map((entry) => (
+                          <Cell key={entry.type} fill={entry.color} />
+                        ))}
+                      </Pie>
+                      <Tooltip content={<DashboardTooltip />} />
+                    </PieChart>
+                  </ResponsiveContainer>
+                </div>
+                <div className="space-y-3">
+                  {typeChartData.map((entry) => {
+                    const percent =
+                      totalTypeCount > 0
+                        ? Math.round((entry.count / totalTypeCount) * 100)
+                        : 0;
 
-                return (
-                  <div
-                    key={entry.type}
-                    className="rounded-2xl border border-border bg-background px-4 py-3"
-                  >
-                    <div className="flex items-center justify-between gap-3">
-                      <div className="flex items-center gap-3">
-                        <span
-                          className="h-3 w-3 rounded-full"
-                          style={{ backgroundColor: entry.color }}
-                        />
-                        <div>
-                          <div className="text-sm font-medium text-foreground">
-                            {entry.label}
+                    return (
+                      <div
+                        key={entry.type}
+                        className="rounded-2xl border border-border bg-background px-4 py-3"
+                      >
+                        <div className="flex items-center justify-between gap-3">
+                          <div className="flex items-center gap-3">
+                            <span
+                              className="h-3 w-3 rounded-full"
+                              style={{ backgroundColor: entry.color }}
+                            />
+                            <div>
+                              <div className="text-sm font-medium text-foreground">
+                                {entry.label}
+                              </div>
+                              <div className="text-xs text-muted-foreground">
+                                {percent}% 비중
+                              </div>
+                            </div>
                           </div>
-                          <div className="text-xs text-muted-foreground">
-                            {percent}% 비중
+                          <div className="text-lg font-semibold text-foreground">
+                            {entry.count}
                           </div>
                         </div>
                       </div>
-                      <div className="text-lg font-semibold text-foreground">
-                        {entry.count}
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
+                    );
+                  })}
+                </div>
+              </div>
+            </>
+          ) : (
+            <div className="rounded-2xl border border-border bg-background px-4">
+              <EmptyState
+                size="sm"
+                title="등록된 물품이 없습니다"
+                action={{
+                  label: "물품 추가",
+                  onClick: () => onAddItem?.(),
+                  icon: <Plus className="h-4 w-4" />,
+                }}
+                className="py-10"
+              />
             </div>
-          </div>
+          )}
         </ChartShell>
 
-        <ChartShell
-          title="위치별 보관량"
-          summary={
-            stats.highlights.busiest_location
-              ? `${stats.highlights.busiest_location.location_name}에 ${stats.highlights.busiest_location.item_count}개가 있습니다.`
-              : "아직 집계할 물품이 없습니다."
-          }
-        >
-          <MobileRankList rows={mobileLocationRows} valueLabel="개" />
+        {hasLocationStorageData ? (
+          <ChartShell
+            title="위치별 보관량"
+            summary={
+              stats.highlights.busiest_location
+                ? `${stats.highlights.busiest_location.location_name}에 ${stats.highlights.busiest_location.item_count}개가 있습니다.`
+                : "아직 집계할 물품이 없습니다."
+            }
+          >
+            <MobileRankList rows={mobileLocationRows} valueLabel="개" />
 
-          <div className="hidden md:block">
-            <div className="h-[260px]">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart
-                  data={locationChartData}
-                  margin={{ top: 8, right: 8, left: -16, bottom: 0 }}
-                >
-                  <CartesianGrid
-                    stroke="rgba(148, 163, 184, 0.12)"
-                    vertical={false}
-                  />
-                  <XAxis
-                    dataKey="short_name"
-                    axisLine={false}
-                    tickLine={false}
-                    tick={{ fill: "#94a3b8", fontSize: 12 }}
-                  />
-                  <YAxis
-                    allowDecimals={false}
-                    axisLine={false}
-                    tickLine={false}
-                    tick={{ fill: "#94a3b8", fontSize: 12 }}
-                  />
-                  <Tooltip
-                    content={<DashboardTooltip />}
-                    labelFormatter={(
-                      _label,
-                      payload: ReadonlyArray<{
-                        payload?: { location_name?: string };
-                      }>,
-                    ) =>
-                      payload[0]?.payload?.location_name
-                        ? String(payload[0].payload.location_name)
-                        : ""
-                    }
-                  />
-                  <Bar
-                    dataKey="item_count"
-                    name="물품 수"
-                    radius={[10, 10, 0, 0]}
-                    fill="#38bdf8"
-                  />
-                  <Bar
-                    dataKey="expiring_soon_count"
-                    name="만료 임박"
-                    radius={[10, 10, 0, 0]}
-                    fill="#fb923c"
-                  />
-                </BarChart>
-              </ResponsiveContainer>
+            <div className="hidden md:block">
+              <div className="h-[260px]">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart
+                    data={locationChartData}
+                    margin={{ top: 8, right: 8, left: -16, bottom: 0 }}
+                  >
+                    <CartesianGrid
+                      stroke="rgba(148, 163, 184, 0.12)"
+                      vertical={false}
+                    />
+                    <XAxis
+                      dataKey="short_name"
+                      axisLine={false}
+                      tickLine={false}
+                      tick={{ fill: "#94a3b8", fontSize: 12 }}
+                    />
+                    <YAxis
+                      allowDecimals={false}
+                      axisLine={false}
+                      tickLine={false}
+                      tick={{ fill: "#94a3b8", fontSize: 12 }}
+                    />
+                    <Tooltip
+                      content={<DashboardTooltip />}
+                      labelFormatter={(
+                        _label,
+                        payload: ReadonlyArray<{
+                          payload?: { location_name?: string };
+                        }>,
+                      ) =>
+                        payload[0]?.payload?.location_name
+                          ? String(payload[0].payload.location_name)
+                          : ""
+                      }
+                    />
+                    <Bar
+                      dataKey="item_count"
+                      name="물품 수"
+                      radius={[10, 10, 0, 0]}
+                      fill="#38bdf8"
+                    />
+                    <Bar
+                      dataKey="expiring_soon_count"
+                      name="만료 임박"
+                      radius={[10, 10, 0, 0]}
+                      fill="#fb923c"
+                    />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
             </div>
-          </div>
-        </ChartShell>
+          </ChartShell>
+        ) : null}
       </div>
 
       <div className="mt-4 grid gap-4 lg:grid-cols-[0.95fr_1.05fr]">
-        <ChartShell
-          title="만료 리스크 분포"
-          summary={`${stats.expired + stats.expiring_soon}개가 우선 확인 대상입니다.`}
-        >
-          <MobileStackedBar rows={expiryChartData} />
+        {hasExpiryRiskData ? (
+          <ChartShell
+            title="만료 리스크 분포"
+            summary={`${stats.expired + stats.expiring_soon}개가 우선 확인 대상입니다.`}
+          >
+            <MobileStackedBar rows={expiryChartData} />
 
-          <div className="hidden space-y-4 md:block">
-            <div className="h-[220px]">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart
-                  data={expiryChartData}
-                  layout="vertical"
-                  margin={{ top: 0, right: 8, left: 8, bottom: 0 }}
-                >
-                  <CartesianGrid
-                    stroke="rgba(148, 163, 184, 0.12)"
-                    horizontal={false}
-                  />
-                  <XAxis
-                    type="number"
-                    allowDecimals={false}
-                    axisLine={false}
-                    tickLine={false}
-                    tick={{ fill: "#94a3b8", fontSize: 12 }}
-                  />
-                  <YAxis
-                    type="category"
-                    dataKey="label"
-                    axisLine={false}
-                    tickLine={false}
-                    tick={{ fill: "#cbd5e1", fontSize: 12 }}
-                    width={68}
-                  />
-                  <Tooltip content={<DashboardTooltip />} />
-                  <Bar dataKey="value" radius={[0, 10, 10, 0]}>
-                    {expiryChartData.map((entry) => (
-                      <Cell key={entry.key} fill={entry.color} />
-                    ))}
-                  </Bar>
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              {expiryChartData.map((entry) => (
-                <div
-                  key={entry.key}
-                  className="rounded-2xl border border-border bg-background px-4 py-3"
-                >
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <span
-                      className="h-2.5 w-2.5 rounded-full"
-                      style={{ backgroundColor: entry.color }}
+            <div className="hidden space-y-4 md:block">
+              <div className="h-[220px]">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart
+                    data={expiryChartData}
+                    layout="vertical"
+                    margin={{ top: 0, right: 8, left: 8, bottom: 0 }}
+                  >
+                    <CartesianGrid
+                      stroke="rgba(148, 163, 184, 0.12)"
+                      horizontal={false}
                     />
-                    {entry.label}
+                    <XAxis
+                      type="number"
+                      allowDecimals={false}
+                      axisLine={false}
+                      tickLine={false}
+                      tick={{ fill: "#94a3b8", fontSize: 12 }}
+                    />
+                    <YAxis
+                      type="category"
+                      dataKey="label"
+                      axisLine={false}
+                      tickLine={false}
+                      tick={{ fill: "#cbd5e1", fontSize: 12 }}
+                      width={68}
+                    />
+                    <Tooltip content={<DashboardTooltip />} />
+                    <Bar dataKey="value" radius={[0, 10, 10, 0]}>
+                      {expiryChartData.map((entry) => (
+                        <Cell key={entry.key} fill={entry.color} />
+                      ))}
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                {expiryChartData.map((entry) => (
+                  <div
+                    key={entry.key}
+                    className="rounded-2xl border border-border bg-background px-4 py-3"
+                  >
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <span
+                        className="h-2.5 w-2.5 rounded-full"
+                        style={{ backgroundColor: entry.color }}
+                      />
+                      {entry.label}
+                    </div>
+                    <div className="mt-2 text-2xl font-semibold text-foreground">
+                      {entry.value}
+                    </div>
                   </div>
-                  <div className="mt-2 text-2xl font-semibold text-foreground">
-                    {entry.value}
-                  </div>
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
-          </div>
-        </ChartShell>
+          </ChartShell>
+        ) : null}
 
         <ChartShell
           title="최근 등록 추이"
