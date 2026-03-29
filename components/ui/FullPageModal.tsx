@@ -37,43 +37,20 @@ export function FullPageModal({
   disableBodyScroll = false,
 }: FullPageModalProps) {
   const [isVisible, setIsVisible] = useState(false); // Controls rendering
-  const [isAnimating, setIsAnimating] = useState(false); // true = 열림 상태, false = 닫힘 애니 중
   const [isClosing, setIsClosing] = useState(false); // 닫기 애니메이션 진행 중 (이때는 onClose 지연)
   const hasCloseIntentRef = useRef(false);
   const onCloseRef = useRef(onClose);
   const lastCloseSignalRef = useRef(closeSignal);
-  const openAnimationFrameRef = useRef<number | null>(null);
-  const openAnimationFrameNestedRef = useRef<number | null>(null);
 
   useEffect(() => {
     onCloseRef.current = onClose;
   }, [onClose]);
 
-  // 열림: 마운트 후 슬라이드 업
+  // 열림: 마운트 시 바로 키프레임 애니메이션을 재생한다.
   useEffect(() => {
     if (isOpen && !isClosing && !hasCloseIntentRef.current) {
       setIsVisible(true);
       setIsClosing(false);
-      setIsAnimating(false);
-
-      // Standalone PWA/WebKit 환경에서는 첫 프레임이 생략되기 쉬워서
-      // 두 번의 RAF 뒤에 열림 상태를 적용해 초기 transform 페인트를 보장한다.
-      openAnimationFrameRef.current = requestAnimationFrame(() => {
-        openAnimationFrameNestedRef.current = requestAnimationFrame(() => {
-          setIsAnimating(true);
-        });
-      });
-
-      return () => {
-        if (openAnimationFrameRef.current !== null) {
-          cancelAnimationFrame(openAnimationFrameRef.current);
-          openAnimationFrameRef.current = null;
-        }
-        if (openAnimationFrameNestedRef.current !== null) {
-          cancelAnimationFrame(openAnimationFrameNestedRef.current);
-          openAnimationFrameNestedRef.current = null;
-        }
-      };
     }
   }, [isOpen, isClosing]);
 
@@ -84,8 +61,6 @@ export function FullPageModal({
     }
 
     if (!isOpen && isVisible) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      setIsAnimating(false);
       const t = setTimeout(() => setIsVisible(false), CLOSE_DURATION_MS);
       return () => clearTimeout(t);
     }
@@ -96,7 +71,6 @@ export function FullPageModal({
     if (isClosing || hasCloseIntentRef.current) return;
     hasCloseIntentRef.current = true;
     setIsClosing(true);
-    setIsAnimating(false); // 슬라이드 다운 (translate-y-full)
   }, [isClosing]);
 
   useEffect(() => {
@@ -127,17 +101,6 @@ export function FullPageModal({
   );
 
   useEffect(() => {
-    return () => {
-      if (openAnimationFrameRef.current !== null) {
-        cancelAnimationFrame(openAnimationFrameRef.current);
-      }
-      if (openAnimationFrameNestedRef.current !== null) {
-        cancelAnimationFrame(openAnimationFrameNestedRef.current);
-      }
-    };
-  }, []);
-
-  useEffect(() => {
     if (!isOpen) return;
 
     document.addEventListener("keydown", handleEscape);
@@ -159,7 +122,7 @@ export function FullPageModal({
       <div
         className={cn(
           "absolute inset-0 bg-black/60 backdrop-blur-sm transition-opacity duration-300 pointer-events-auto touch-none",
-          isAnimating ? "opacity-100" : "opacity-0",
+          isClosing ? "opacity-0" : "opacity-100",
         )}
         onClick={startClose}
         aria-hidden="true"
@@ -171,8 +134,8 @@ export function FullPageModal({
           "relative bg-card w-full h-full pointer-events-auto",
           "flex flex-col overflow-hidden",
           "overscroll-contain touch-pan-y",
-          "shadow-2xl transition-transform duration-300 ease-in-out transform",
-          isAnimating ? "translate-y-0" : "translate-y-full",
+          "shadow-2xl",
+          isClosing ? "animate-slide-down-sheet" : "animate-slide-up-sheet",
         )}
       >
         {/* Header - Matching SidePanel style */}

@@ -1,4 +1,4 @@
-const CACHE_NAME = 'daitji-v1'
+const CACHE_NAME = 'daitji-v3'
 const APP_SHELL_ASSETS = [
   '/',
   '/manifest.webmanifest',
@@ -6,6 +6,27 @@ const APP_SHELL_ASSETS = [
   '/icon-maskable.svg',
   '/offline.html',
 ]
+
+function isStaticAssetRequest(request, url) {
+  if (request.destination === 'style' || request.destination === 'script') {
+    return true
+  }
+
+  if (
+    request.destination === 'image' ||
+    request.destination === 'font' ||
+    request.destination === 'audio' ||
+    request.destination === 'video'
+  ) {
+    return true
+  }
+
+  return (
+    url.pathname.startsWith('/_next/static/') ||
+    url.pathname.startsWith('/images/') ||
+    url.pathname === '/favicon.ico'
+  )
+}
 
 self.addEventListener('install', (event) => {
   event.waitUntil(
@@ -31,6 +52,14 @@ self.addEventListener('message', (event) => {
   if (event.data?.type === 'SKIP_WAITING') {
     self.skipWaiting()
   }
+
+  if (event.data?.type === 'CLEAR_APP_CACHE') {
+    event.waitUntil(
+      caches.keys().then((cacheNames) =>
+        Promise.all(cacheNames.map((cacheName) => caches.delete(cacheName))),
+      ),
+    )
+  }
 })
 
 self.addEventListener('fetch', (event) => {
@@ -49,21 +78,22 @@ self.addEventListener('fetch', (event) => {
   if (request.mode === 'navigate') {
     event.respondWith(
       fetch(request)
-        .then((response) => {
-          const responseClone = response.clone()
-          caches.open(CACHE_NAME).then((cache) => cache.put(request, responseClone))
-          return response
-        })
         .catch(async () => {
-          const cachedResponse = await caches.match(request)
-
-          if (cachedResponse) {
-            return cachedResponse
-          }
-
           return caches.match('/offline.html')
         }),
     )
+    return
+  }
+
+  if (
+    url.pathname.startsWith('/api/') ||
+    url.pathname.startsWith('/auth/') ||
+    url.pathname.startsWith('/_next/data/')
+  ) {
+    return
+  }
+
+  if (!isStaticAssetRequest(request, url)) {
     return
   }
 

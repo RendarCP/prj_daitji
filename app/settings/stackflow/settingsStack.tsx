@@ -6,6 +6,7 @@ import { stackflow, useActivity } from "@stackflow/react";
 import { basicRendererPlugin } from "@stackflow/plugin-renderer-basic";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { useQueryClient } from "@tanstack/react-query";
 import {
   ShieldCheck,
   Bell,
@@ -131,6 +132,7 @@ const settingSections: SettingSection[] = [
 const SettingsListActivity: ActivityComponentType = () => {
   const { push } = useFlow();
   const router = useRouter();
+  const queryClient = useQueryClient();
   const supabase = createClient();
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
@@ -161,6 +163,14 @@ const SettingsListActivity: ActivityComponentType = () => {
     if (error) {
       setLogoutError(error.message || "로그아웃 중 오류가 발생했습니다.");
       return;
+    }
+
+    queryClient.clear();
+
+    if ("serviceWorker" in navigator) {
+      navigator.serviceWorker.controller?.postMessage({
+        type: "CLEAR_APP_CACHE",
+      });
     }
 
     setShowLogoutConfirm(false);
