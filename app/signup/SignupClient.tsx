@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/Input";
 import {
   buildAbsoluteUrl,
   DEFAULT_NEXT_PATH,
+  getOAuthQueryParams,
   getOAuthRedirectPath,
   mapAuthErrorMessage,
   validatePassword,
@@ -133,6 +134,7 @@ export function SignupClient({
       provider,
       options: {
         redirectTo: buildAbsoluteUrl(getOAuthRedirectPath(nextPath)),
+        queryParams: getOAuthQueryParams(provider),
       },
     });
 

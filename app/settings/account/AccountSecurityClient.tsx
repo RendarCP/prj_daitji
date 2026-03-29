@@ -11,8 +11,6 @@ import {
   ShieldCheck,
   TriangleAlert,
 } from "lucide-react";
-import type { User } from "@supabase/supabase-js";
-import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import {
   Card,
@@ -33,8 +31,7 @@ import {
 } from "@/lib/auth/utils";
 import { useToast } from "@/lib/providers/ToastProvider";
 import { createClient } from "@/lib/supabase/client";
-
-type AccountUser = User | null;
+import type { AccountUser } from "@/app/settings/SettingsContext";
 
 function formatDate(dateString: string | null | undefined) {
   if (!dateString) {

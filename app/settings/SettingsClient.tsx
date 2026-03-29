@@ -1,11 +1,19 @@
-'use client'
+"use client";
 
-import { Stack } from './stackflow/settingsStack'
+import type { AccountUser } from "./SettingsContext";
+import { SettingsAccountUserProvider } from "./SettingsContext";
+import { Stack } from "./stackflow/settingsStack";
 
-export function SettingsClient() {
+interface SettingsClientProps {
+  initialAccountUser: AccountUser;
+}
+
+export function SettingsClient({ initialAccountUser }: SettingsClientProps) {
   return (
-    <div className="relative">
-      <Stack />
-    </div>
-  )
+    <SettingsAccountUserProvider value={initialAccountUser}>
+      <div className="relative">
+        <Stack />
+      </div>
+    </SettingsAccountUserProvider>
+  );
 }

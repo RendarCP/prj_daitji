@@ -1,6 +1,6 @@
 'use client'
 
-import { ReactNode, useEffect, useCallback, useLayoutEffect, useRef, useState } from 'react'
+import { ReactNode, useEffect, useCallback, useState } from 'react'
 import { X, ArrowLeft, Heart, Edit } from 'lucide-react'
 import { cn } from '@/lib/utils/cn'
 
@@ -42,16 +42,6 @@ export function SidePanel({
 }: SidePanelProps) {
   const [isVisible, setIsVisible] = useState(false) // Controls rendering
   const [isAnimating, setIsAnimating] = useState(false) // Controls animation class
-  const lockedScrollYRef = useRef(0)
-  const bodyStylesRef = useRef<{
-    overflow: string
-    position: string
-    top: string
-    left: string
-    right: string
-    width: string
-  } | null>(null)
-  const htmlOverflowRef = useRef('')
 
   // Handle visibility and animation based on isOpen prop
   useEffect(() => {
@@ -76,52 +66,11 @@ export function SidePanel({
     [closeOnEscape, onClose]
   )
 
-  useLayoutEffect(() => {
-    if (isOpen) {
-      const { body, documentElement } = document
-      lockedScrollYRef.current = window.scrollY
-      bodyStylesRef.current = {
-        overflow: body.style.overflow,
-        position: body.style.position,
-        top: body.style.top,
-        left: body.style.left,
-        right: body.style.right,
-        width: body.style.width,
-      }
-      htmlOverflowRef.current = documentElement.style.overflow
+  useEffect(() => {
+    if (!isOpen) return
 
-      body.style.overflow = 'hidden'
-      body.style.position = 'fixed'
-      body.style.top = `-${lockedScrollYRef.current}px`
-      body.style.left = '0'
-      body.style.right = '0'
-      body.style.width = '100%'
-      documentElement.style.overflow = 'hidden'
-      document.addEventListener('keydown', handleEscape)
-    }
-
+    document.addEventListener('keydown', handleEscape)
     return () => {
-      const { body, documentElement } = document
-      const previousBodyStyles = bodyStylesRef.current
-
-      if (previousBodyStyles) {
-        body.style.overflow = previousBodyStyles.overflow
-        body.style.position = previousBodyStyles.position
-        body.style.top = previousBodyStyles.top
-        body.style.left = previousBodyStyles.left
-        body.style.right = previousBodyStyles.right
-        body.style.width = previousBodyStyles.width
-      } else {
-        body.style.overflow = ''
-        body.style.position = ''
-        body.style.top = ''
-        body.style.left = ''
-        body.style.right = ''
-        body.style.width = ''
-      }
-
-      documentElement.style.overflow = htmlOverflowRef.current
-      window.scrollTo({ top: lockedScrollYRef.current, behavior: 'auto' })
       document.removeEventListener('keydown', handleEscape)
     }
   }, [isOpen, handleEscape])
@@ -130,7 +79,7 @@ export function SidePanel({
 
   return (
     <div 
-      className="fixed inset-0 z-50 flex items-stretch justify-end pointer-events-none"
+      className="fixed inset-0 z-50 flex items-stretch justify-end overscroll-none pointer-events-none"
       role="dialog"
       aria-modal="true"
       aria-labelledby={title ? 'side-panel-title' : undefined}
@@ -138,7 +87,7 @@ export function SidePanel({
       {/* Overlay */}
       <div 
         className={cn(
-          "absolute inset-0 bg-black/60 backdrop-blur-sm transition-opacity duration-300 pointer-events-auto",
+          "absolute inset-0 bg-black/60 backdrop-blur-sm transition-opacity duration-300 pointer-events-auto touch-none",
           isAnimating ? "opacity-100" : "opacity-0"
         )}
         onClick={closeOnOverlayClick ? onClose : undefined}
@@ -149,7 +98,7 @@ export function SidePanel({
       <div 
         className={cn(
           'relative bg-card w-full md:w-[400px] md:max-w-[90vw]',
-          'flex flex-col h-full overflow-hidden pointer-events-auto',
+          'flex flex-col h-full overflow-hidden overscroll-contain pointer-events-auto touch-pan-y',
           'shadow-2xl transition-transform duration-300 ease-in-out transform',
           isAnimating ? 'translate-x-0' : 'translate-x-full'
         )}

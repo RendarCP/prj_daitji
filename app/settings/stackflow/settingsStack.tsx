@@ -16,6 +16,7 @@ import {
 import type { LucideIcon } from "lucide-react";
 import { BottomNav } from "@/components/layout/BottomNav";
 import { Header } from "@/components/layout/Header";
+import { useSettingsAccountUser } from "@/app/settings/SettingsContext";
 import { createClient } from "@/lib/supabase/client";
 import { AccountSecurityClient } from "@/app/settings/account/AccountSecurityClient";
 import NotificationsSettingsClient from "@/app/settings/notifications/NotificationsSettingsClient";
@@ -50,13 +51,13 @@ interface SettingSection {
 const settingSections: SettingSection[] = [
   {
     id: "account",
-    title: "ACCOUNT",
+    title: "계정 설정",
     items: [
       {
         id: "account-security",
         icon: ShieldCheck,
         title: "계정 보안",
-        description: "로그인 수단과 비밀번호 관리",
+        description: "로그인 수단과 비밀번호를 관리합니다.",
         action: {
           type: "activity",
           activity: "AccountSecurityActivity",
@@ -66,7 +67,7 @@ const settingSections: SettingSection[] = [
         id: "notifications",
         icon: Bell,
         title: "알림 설정",
-        description: "Manage notifications",
+        description: "알림 수신 여부를 설정합니다.",
         action: {
           type: "activity",
           activity: "NotificationSettingsActivity",
@@ -102,7 +103,7 @@ const settingSections: SettingSection[] = [
   // },
   {
     id: "support",
-    title: "SUPPORT",
+    title: "지원",
     items: [
       // {
       //   id: "help",
@@ -118,7 +119,7 @@ const settingSections: SettingSection[] = [
         id: "logout",
         icon: LogOut,
         title: "로그아웃",
-        description: "Sign out of your account",
+        description: "계정에서 로그아웃합니다.",
         action: {
           type: "logout",
         },
@@ -177,14 +178,16 @@ const SettingsListActivity: ActivityComponentType = () => {
         className="group w-full card hover-lift"
       >
         <div className="flex items-center gap-4">
-          <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-secondary/50 text-foreground">
-            <Icon className="h-5 w-5" />
+          <div className="flex size-10 flex-shrink-0 items-center justify-center rounded-lg bg-secondary/50 text-foreground">
+            <Icon className="size-5" />
           </div>
           <div className="min-w-0 flex-1 text-left">
-            <h3 className="font-semibold text-foreground">{item.title}</h3>
+            <h3 className="font-semibold text-foreground text-lg">
+              {item.title}
+            </h3>
             <p className="text-sm text-muted-foreground">{item.description}</p>
           </div>
-          <ChevronRight className="h-5 w-5 flex-shrink-0 text-muted-foreground" />
+          <ChevronRight className="size-5 flex-shrink-0 text-muted-foreground" />
         </div>
       </button>
     );
@@ -195,7 +198,7 @@ const SettingsListActivity: ActivityComponentType = () => {
       <Header />
       <div className="container mx-auto max-w-3xl flex-1 px-4 py-6 pb-[calc(5rem+env(safe-area-inset-bottom))]">
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-foreground">Settings</h1>
+          <h1 className="text-3xl font-bold text-foreground">설정</h1>
         </div>
 
         {settingSections.map((section) => (
@@ -286,11 +289,11 @@ function SettingsOverlayShell({
 
   return (
     <div
-      className={`fixed inset-0 z-[60] overflow-y-auto bg-background ${
+      className={`fixed inset-0 z-[60] overflow-hidden bg-background overscroll-none ${
         isVisible ? transitionClass : "pointer-events-none"
       }`}
     >
-      <div className="sticky top-0 z-[61] border-b border-border bg-background/95 backdrop-blur">
+      <div className="fixed inset-x-0 top-0 z-[61] border-b border-border bg-background/95 backdrop-blur">
         <div className="container mx-auto max-w-3xl px-4">
           <div className="grid h-14 grid-cols-[40px_1fr_40px] items-center">
             <button
@@ -299,7 +302,7 @@ function SettingsOverlayShell({
               className="inline-flex h-9 w-9 items-center justify-center rounded-full text-foreground transition-colors hover:bg-secondary"
               aria-label="뒤로가기"
             >
-              <ArrowLeft className="h-5 w-5" />
+              <ArrowLeft className="size-5" />
             </button>
             <h1 className="text-center text-base font-semibold text-foreground">
               {title}
@@ -309,8 +312,10 @@ function SettingsOverlayShell({
         </div>
       </div>
 
-      <div className="container mx-auto max-w-3xl px-4 py-4 pb-[calc(2rem+env(safe-area-inset-bottom))]">
-        {children}
+      <div className="absolute inset-x-0 bottom-0 top-14 overflow-y-auto overscroll-contain touch-pan-y">
+        <div className="container mx-auto max-w-3xl px-4 py-4 pb-[calc(2rem+env(safe-area-inset-bottom))]">
+          {children}
+        </div>
       </div>
     </div>
   );
@@ -334,6 +339,7 @@ const NotificationSettingsActivity: ActivityComponentType = () => {
 const AccountSecurityActivity: ActivityComponentType = () => {
   const { pop } = useFlow();
   const activity = useActivity();
+  const initialUser = useSettingsAccountUser();
 
   return (
     <SettingsOverlayShell
@@ -341,7 +347,7 @@ const AccountSecurityActivity: ActivityComponentType = () => {
       transitionState={activity.transitionState}
       onBack={() => pop()}
     >
-      <AccountSecurityClient />
+      <AccountSecurityClient initialUser={initialUser} />
     </SettingsOverlayShell>
   );
 };

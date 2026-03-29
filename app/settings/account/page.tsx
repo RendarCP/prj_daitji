@@ -31,16 +31,24 @@ export default async function AccountSecurityPage() {
   return (
     <>
       <Header />
-      <div className="min-h-screen bg-background pb-[calc(2rem+env(safe-area-inset-bottom))]">
+      <div className="min-h-screen bg-background pb-[calc(2rem+env(safe-area-inset-bottom))] overscroll-none">
+        <div className="fixed inset-x-0 top-14 z-40 border-b border-border/60 bg-background/95 backdrop-blur-md sm:top-16">
+          <div className="container mx-auto max-w-3xl px-4 py-3">
+            <Link
+              href="/settings"
+              className="inline-flex items-center gap-1.5 rounded-lg px-1 py-1 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
+              aria-label="설정으로 돌아가기"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              뒤로가기
+            </Link>
+          </div>
+        </div>
+        <div
+          aria-hidden="true"
+          className="h-[53px] w-full sm:h-[57px]"
+        />
         <div className="container mx-auto max-w-3xl px-4 py-6">
-          <Link
-            href="/settings"
-            className="mb-3 inline-flex items-center gap-1.5 rounded-lg px-1 py-1 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
-            aria-label="설정으로 돌아가기"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            뒤로가기
-          </Link>
           <AccountSecurityClient initialUser={user} />
         </div>
       </div>

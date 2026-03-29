@@ -175,7 +175,10 @@ function collectTreeIds(nodes: TreeLocation[], output: Set<string>): void {
   });
 }
 
-function collectExpandableIds(nodes: TreeLocation[], output: Set<string>): void {
+function collectExpandableIds(
+  nodes: TreeLocation[],
+  output: Set<string>,
+): void {
   nodes.forEach((node) => {
     if (node.children.length > 0) {
       output.add(node.id);
@@ -1010,7 +1013,7 @@ export default function ExplorerV2Client() {
             여기에 드롭하면 루트 위치로 이동
           </section>
 
-          <section className="space-y-2">
+          <section className="space-y-2 !mb-6">
             {isLoading && (
               <div className="rounded-xl border border-border bg-card p-4 text-muted-foreground">
                 위치 목록을 불러오는 중...

@@ -1,4 +1,8 @@
-import type { AuthError, Provider, User } from "@supabase/supabase-js";
+import type {
+  AuthError,
+  Provider,
+  User,
+} from "@supabase/supabase-js";
 
 export const DEFAULT_NEXT_PATH = "/dashboard";
 export const PASSWORD_MIN_LENGTH = 8;
@@ -95,6 +99,18 @@ export function isLikelyNewUser(user: User | null | undefined) {
 
 export function getOAuthRedirectPath(nextPath: string) {
   return `/auth/callback?next=${encodeURIComponent(nextPath)}`;
+}
+
+export function getOAuthQueryParams(
+  provider: Provider,
+): Record<string, string> | undefined {
+  if (provider === "google") {
+    return {
+      prompt: "select_account",
+    };
+  }
+
+  return undefined;
 }
 
 export function getPasswordRecoveryRedirectPath() {

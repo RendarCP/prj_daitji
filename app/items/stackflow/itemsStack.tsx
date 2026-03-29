@@ -272,7 +272,7 @@ const ItemsListActivity: ActivityComponentType = () => {
             className="py-10"
           />
         ) : (
-          <div className="space-y-2">
+          <div className="space-y-2 mb-6">
             {filteredItems.map((item) => {
               return (
                 <ItemListRowCard
