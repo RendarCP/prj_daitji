@@ -20,6 +20,7 @@ import {
 } from "@/lib/hooks/useDashboard";
 import { useLocations } from "@/lib/hooks/useLocations";
 import { useDialog } from "@/lib/hooks/useDialog";
+import { cn } from "@/lib/utils/cn";
 import type { Location } from "@/lib/types";
 import { LocationThumbnail } from "@/components/features/LocationThumbnail";
 
@@ -80,6 +81,8 @@ export function DashboardClient() {
   const { data: locations = [] } = useLocations();
   const { data: activeItemDetail, isLoading: isActiveItemLoading } =
     useItemDetail(activeItemId);
+  const isOverlayOpen =
+    !!selectedLocation || !!activeItemId || !!editSheetDialog.data;
 
   const handleAddItem = () => {
     setIsItemAddModalOpen(true);
@@ -109,7 +112,12 @@ export function DashboardClient() {
   }, []);
 
   return (
-    <div className="flex min-h-[calc(100dvh-3.5rem)] flex-col bg-background sm:min-h-[calc(100dvh-4rem)]">
+    <div
+      className={cn(
+        "flex min-h-[calc(100dvh-3.5rem)] flex-col bg-background sm:min-h-[calc(100dvh-4rem)]",
+        isOverlayOpen && "overflow-hidden touch-none",
+      )}
+    >
       <div className="container mx-auto max-w-7xl flex-1 px-4 py-6 pb-[calc(5rem+env(safe-area-inset-bottom))]">
         {statsError ? (
           <Alert variant="danger" className="mb-6">

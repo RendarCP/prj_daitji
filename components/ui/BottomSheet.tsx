@@ -2,6 +2,7 @@
 
 import { ReactNode, useEffect, useCallback, useRef, useState } from "react";
 import { X } from "lucide-react";
+import { useBodyScrollLock } from "@/lib/hooks/useBodyScrollLock";
 import { cn } from "@/lib/utils/cn";
 
 export interface BottomSheetProps {
@@ -37,6 +38,7 @@ export function BottomSheet({
   const closeCallbackTimerRef = useRef<ReturnType<typeof setTimeout> | null>(
     null,
   );
+  useBodyScrollLock(shouldRender);
 
   const requestClose = useCallback(() => {
     if (isClosing) return;
@@ -107,12 +109,10 @@ export function BottomSheet({
 
   useEffect(() => {
     if (shouldRender) {
-      document.body.style.overflow = "hidden";
       document.addEventListener("keydown", handleEscape);
     }
 
     return () => {
-      document.body.style.overflow = "unset";
       document.removeEventListener("keydown", handleEscape);
     };
   }, [shouldRender, handleEscape]);

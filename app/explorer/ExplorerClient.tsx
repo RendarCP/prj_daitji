@@ -138,12 +138,14 @@ export default function ExplorerClient() {
     selectedLocationId !== null && filteredItems.length > 0;
   const isRootCompletelyEmpty =
     !isLoadingLocations && !selectedLocationId && displayLocations.length === 0;
+  const isOverlayOpen = !!activeItemId || !!editSheetDialog.data;
 
   return (
     <div
       className={cn(
         "bg-background pb-20",
         hasVisibleItems ? "min-h-screen overflow-y-auto" : "overflow-y-hidden",
+        isOverlayOpen && "overflow-hidden touch-none",
       )}
     >
       <div className="container mx-auto px-4 max-w-3xl space-y-6 mt-5">

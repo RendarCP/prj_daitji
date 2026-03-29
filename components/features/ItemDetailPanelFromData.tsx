@@ -131,6 +131,7 @@ export function ItemDetailPanelFromData({
     created_at: item.created_at ?? undefined,
     computed_expiry_date: computed_expiry_date ?? undefined,
     days_until_expiry: days_until_expiry ?? undefined,
+    metadata: item.metadata ?? undefined,
   };
 
   const handleEdit = useCallback(() => {

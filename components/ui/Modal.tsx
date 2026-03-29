@@ -4,6 +4,7 @@ import { ReactNode, useEffect, useCallback, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { X } from 'lucide-react'
 import { cn } from '@/lib/utils/cn'
+import { useBodyScrollLock } from '@/lib/hooks/useBodyScrollLock'
 import { Button } from './Button'
 
 export interface ModalProps {
@@ -32,6 +33,7 @@ export function Modal({
   footer,
 }: ModalProps) {
   const [isMounted, setIsMounted] = useState(false)
+  useBodyScrollLock(isOpen)
 
   useEffect(() => {
     setIsMounted(true)
@@ -48,12 +50,10 @@ export function Modal({
 
   useEffect(() => {
     if (isOpen) {
-      document.body.style.overflow = 'hidden'
       document.addEventListener('keydown', handleEscape)
     }
 
     return () => {
-      document.body.style.overflow = 'unset'
       document.removeEventListener('keydown', handleEscape)
     }
   }, [isOpen, handleEscape])

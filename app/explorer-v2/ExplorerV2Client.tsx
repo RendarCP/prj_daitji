@@ -753,6 +753,8 @@ export default function ExplorerV2Client() {
     0,
   );
   const busiestStructuredLocation = rootLocationDistribution[0];
+  const isOverlayOpen =
+    !!selectedLocation || !!activeItemId || !!editingLocationId;
 
   const persistMovedTree = useCallback(
     async (prevTree: TreeLocation[], nextTree: TreeLocation[]) => {
@@ -899,7 +901,12 @@ export default function ExplorerV2Client() {
   };
 
   return (
-    <div className="flex min-h-[calc(100dvh-3.5rem)] flex-col bg-background sm:min-h-[calc(100dvh-4rem)]">
+    <div
+      className={cn(
+        "flex min-h-[calc(100dvh-3.5rem)] flex-col bg-background sm:min-h-[calc(100dvh-4rem)]",
+        isOverlayOpen && "overflow-hidden touch-none",
+      )}
+    >
       <div className="container mx-auto max-w-3xl flex-1 space-y-4 px-4 py-6 pb-[calc(5rem+env(safe-area-inset-bottom))]">
         {!isLoading && !isError && rootLocationDistribution.length > 0 && (
           <section className="rounded-[28px] shadow-soft">
