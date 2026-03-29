@@ -42,6 +42,8 @@ export function FullPageModal({
   const hasCloseIntentRef = useRef(false);
   const onCloseRef = useRef(onClose);
   const lastCloseSignalRef = useRef(closeSignal);
+  const openAnimationFrameRef = useRef<number | null>(null);
+  const openAnimationFrameNestedRef = useRef<number | null>(null);
 
   useEffect(() => {
     onCloseRef.current = onClose;
@@ -50,10 +52,28 @@ export function FullPageModal({
   // 열림: 마운트 후 슬라이드 업
   useEffect(() => {
     if (isOpen && !isClosing && !hasCloseIntentRef.current) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
       setIsVisible(true);
       setIsClosing(false);
-      requestAnimationFrame(() => setIsAnimating(true));
+      setIsAnimating(false);
+
+      // Standalone PWA/WebKit 환경에서는 첫 프레임이 생략되기 쉬워서
+      // 두 번의 RAF 뒤에 열림 상태를 적용해 초기 transform 페인트를 보장한다.
+      openAnimationFrameRef.current = requestAnimationFrame(() => {
+        openAnimationFrameNestedRef.current = requestAnimationFrame(() => {
+          setIsAnimating(true);
+        });
+      });
+
+      return () => {
+        if (openAnimationFrameRef.current !== null) {
+          cancelAnimationFrame(openAnimationFrameRef.current);
+          openAnimationFrameRef.current = null;
+        }
+        if (openAnimationFrameNestedRef.current !== null) {
+          cancelAnimationFrame(openAnimationFrameNestedRef.current);
+          openAnimationFrameNestedRef.current = null;
+        }
+      };
     }
   }, [isOpen, isClosing]);
 
@@ -105,6 +125,17 @@ export function FullPageModal({
     },
     [closeOnEscape, startClose],
   );
+
+  useEffect(() => {
+    return () => {
+      if (openAnimationFrameRef.current !== null) {
+        cancelAnimationFrame(openAnimationFrameRef.current);
+      }
+      if (openAnimationFrameNestedRef.current !== null) {
+        cancelAnimationFrame(openAnimationFrameNestedRef.current);
+      }
+    };
+  }, []);
 
   useEffect(() => {
     if (!isOpen) return;

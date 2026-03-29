@@ -796,7 +796,7 @@ export default function ExplorerV2Client() {
     const returnTo = currentQuery ? `${pathname}?${currentQuery}` : pathname;
     params.set("return_to", returnTo);
 
-    router.push(`/explorer/add?${params.toString()}`);
+    router.push(`/explorer/add?${params.toString()}`, { scroll: false });
   };
 
   const openEditSheet = (location: Location) => {
