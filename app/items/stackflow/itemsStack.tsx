@@ -4,7 +4,7 @@ import Image from "next/image";
 import type { ActivityComponentType } from "@stackflow/react";
 import { stackflow, useActivity } from "@stackflow/react";
 import { basicRendererPlugin } from "@stackflow/plugin-renderer-basic";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { CheckCircle, Search, SlidersHorizontal } from "lucide-react";
 import { BottomNav } from "@/components/layout/BottomNav";
 import { FloatingActionButton } from "@/components/ui/FloatingActionButton";
@@ -18,6 +18,7 @@ import { useExpiringItems, useItems } from "@/lib/hooks/useItems";
 import { useItemDetail } from "@/lib/hooks/useItemDetail";
 import { ItemDetailPanelFromData } from "@/components/features/ItemDetailPanelFromData";
 import { cn } from "@/lib/utils/cn";
+import { useOverlayHistorySync } from "@/lib/hooks/useOverlayHistorySync";
 import type { ExpiringItem, Item } from "@/lib/types";
 import { BottomSheet } from "@/components/ui/BottomSheet";
 import { ItemAddClient } from "@/app/items/add/ItemAddClient";
@@ -304,6 +305,15 @@ const ItemDetailActivity: ActivityComponentType<{ id: string }> = ({
 }) => {
   const { pop, push } = useFlow();
   const { data, isLoading, error } = useItemDetail(params.id);
+  const closeDetailActivity = useCallback(() => {
+    pop();
+  }, [pop]);
+  const { requestClose } = useOverlayHistorySync({
+    isOpen: true,
+    overlayKey: "item-detail",
+    overlayId: params.id,
+    onRequestClose: closeDetailActivity,
+  });
 
   if (isLoading || !data) {
     return (
@@ -330,7 +340,7 @@ const ItemDetailActivity: ActivityComponentType<{ id: string }> = ({
         item={data.item}
         location={data.location}
         locationPath={data.locationPath}
-        onCloseRequested={() => pop()}
+        onCloseRequested={requestClose}
         onEditRequested={(itemId) => push("ItemEditActivity", { id: itemId })}
         enableOverlayHistorySync={false}
       />
