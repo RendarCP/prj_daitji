@@ -1,13 +1,14 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { BottomNav } from "@/components/layout/BottomNav";
 import { Alert } from "@/components/ui/Alert";
 import { QuickAddButton } from "@/components/features/QuickAddButton";
 import { LocationDetailPanel } from "@/components/ui/LocationDetailPanel";
 import { BottomSheet } from "@/components/ui/BottomSheet";
 import { FullPageModal } from "@/components/ui/FullPageModal";
+import { useOverlayHistorySync } from "@/lib/hooks/useOverlayHistorySync";
 import { ItemAddClient } from "@/app/items/add/ItemAddClient";
 import { AddLocationClient } from "@/app/explorer/AddLocationClient";
 import { EmptyState } from "@/components/ui/EmptyState";
@@ -81,6 +82,15 @@ export function DashboardClient() {
   const { data: locations = [] } = useLocations();
   const { data: activeItemDetail, isLoading: isActiveItemLoading } =
     useItemDetail(activeItemId);
+  const closeActiveItemPanel = useCallback(() => {
+    setActiveItemId(null);
+  }, []);
+  const { requestClose: requestCloseActiveItemPanel } = useOverlayHistorySync({
+    isOpen: !!activeItemId,
+    overlayKey: "item-detail",
+    overlayId: activeItemId ?? "pending",
+    onRequestClose: closeActiveItemPanel,
+  });
   const isOverlayOpen =
     !!selectedLocation || !!activeItemId || !!editSheetDialog.data;
 
@@ -254,8 +264,9 @@ export function DashboardClient() {
           item={activeItemDetail.item}
           location={activeItemDetail.location}
           locationPath={activeItemDetail.locationPath}
-          onCloseRequested={() => setActiveItemId(null)}
+          onCloseRequested={requestCloseActiveItemPanel}
           onEditRequested={(itemId) => openEditSheet(itemId)}
+          enableOverlayHistorySync={false}
         />
       )}
 

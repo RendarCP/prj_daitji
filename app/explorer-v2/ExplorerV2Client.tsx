@@ -38,6 +38,7 @@ import { FloatingActionButton } from "@/components/ui/FloatingActionButton";
 import { Badge } from "@/components/ui/Badge";
 import { Alert } from "@/components/ui/Alert";
 import { EmptyState } from "@/components/ui/EmptyState";
+import { useOverlayHistorySync } from "@/lib/hooks/useOverlayHistorySync";
 import { useLocations } from "@/lib/hooks/useLocations";
 import { useItemDetail } from "@/lib/hooks/useItemDetail";
 import { queryKeys } from "@/lib/queryKeys";
@@ -622,6 +623,15 @@ export default function ExplorerV2Client() {
   } = useLocations({ tree: true });
   const { data: activeItemDetail, isLoading: isActiveItemLoading } =
     useItemDetail(activeItemId);
+  const closeActiveItemPanel = useCallback(() => {
+    setActiveItemId(null);
+  }, []);
+  const { requestClose: requestCloseActiveItemPanel } = useOverlayHistorySync({
+    isOpen: !!activeItemId,
+    overlayKey: "item-detail",
+    overlayId: activeItemId ?? "pending",
+    onRequestClose: closeActiveItemPanel,
+  });
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -1132,7 +1142,8 @@ export default function ExplorerV2Client() {
           item={activeItemDetail.item}
           location={activeItemDetail.location}
           locationPath={activeItemDetail.locationPath}
-          onCloseRequested={() => setActiveItemId(null)}
+          onCloseRequested={requestCloseActiveItemPanel}
+          enableOverlayHistorySync={false}
         />
       )}
 

@@ -14,6 +14,7 @@ import { useLocations, useLocationPath } from "@/lib/hooks/useLocations";
 import { useDialog } from "@/lib/hooks/useDialog";
 import { useItems } from "@/lib/hooks/useItems";
 import { useItemDetail } from "@/lib/hooks/useItemDetail";
+import { useOverlayHistorySync } from "@/lib/hooks/useOverlayHistorySync";
 import { cn } from "@/lib/utils/cn";
 import type { Location, Item } from "@/lib/types";
 import { ItemDetailPanelFromData } from "@/components/features/ItemDetailPanelFromData";
@@ -54,6 +55,15 @@ export default function ExplorerClient() {
   });
   const { data: activeItemDetail, isLoading: isActiveItemLoading } =
     useItemDetail(activeItemId);
+  const closeActiveItemPanel = useCallback(() => {
+    setActiveItemId(null);
+  }, []);
+  const { requestClose: requestCloseActiveItemPanel } = useOverlayHistorySync({
+    isOpen: !!activeItemId,
+    overlayKey: "item-detail",
+    overlayId: activeItemId ?? "pending",
+    onRequestClose: closeActiveItemPanel,
+  });
 
   // Create query string helper
   const createQueryString = useCallback(
@@ -378,8 +388,9 @@ export default function ExplorerClient() {
           item={activeItemDetail.item}
           location={activeItemDetail.location}
           locationPath={activeItemDetail.locationPath}
-          onCloseRequested={() => setActiveItemId(null)}
+          onCloseRequested={requestCloseActiveItemPanel}
           onEditRequested={(itemId) => openEditSheet(itemId)}
+          enableOverlayHistorySync={false}
         />
       )}
 
