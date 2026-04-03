@@ -20,6 +20,16 @@ function createEntryId(overlayKey: OverlayKey, overlayId: string) {
   return `${overlayKey}:${overlayId}:${Date.now()}:${Math.random()}`;
 }
 
+function createOverlayHash(
+  overlayKey: OverlayKey,
+  overlayId: string,
+  entryId: string,
+) {
+  const normalizedEntryId = entryId.replace(/[^a-zA-Z0-9_-]/g, "");
+  const normalizedOverlayId = overlayId.replace(/[^a-zA-Z0-9_-]/g, "");
+  return `overlay-${overlayKey}-${normalizedOverlayId}-${normalizedEntryId}`;
+}
+
 export function useOverlayHistorySync({
   isOpen,
   enabled = true,
@@ -46,6 +56,8 @@ export function useOverlayHistorySync({
     }
 
     const entryId = createEntryId(overlayKey, overlayId);
+    const nextUrl = new URL(window.location.href);
+    nextUrl.hash = createOverlayHash(overlayKey, overlayId, entryId);
     const nextState = {
       ...(window.history.state ?? {}),
       overlay: overlayKey,
@@ -57,7 +69,7 @@ export function useOverlayHistorySync({
     isEntryActiveRef.current = true;
     isUiClosingRef.current = false;
 
-    window.history.pushState(nextState, "");
+    window.history.pushState(nextState, "", nextUrl);
   }, [enabled, isOpen, overlayId, overlayKey]);
 
   useEffect(() => {
