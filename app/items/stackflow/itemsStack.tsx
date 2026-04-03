@@ -332,6 +332,7 @@ const ItemDetailActivity: ActivityComponentType<{ id: string }> = ({
         locationPath={data.locationPath}
         onCloseRequested={() => pop()}
         onEditRequested={(itemId) => push("ItemEditActivity", { id: itemId })}
+        enableOverlayHistorySync={false}
       />
     </div>
   );

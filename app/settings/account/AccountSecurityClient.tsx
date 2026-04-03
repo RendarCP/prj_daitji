@@ -240,7 +240,6 @@ export function AccountSecurityClient({
 
   return (
     <div className="space-y-8 pb-10">
-
       {errorMessage ? (
         <div className="rounded-2xl border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
           <div className="flex items-start gap-2">
@@ -272,12 +271,12 @@ export function AccountSecurityClient({
               </p>
             </div>
             <div className="grid gap-3 sm:grid-cols-2">
-              <div className="rounded-2xl border border-border bg-secondary/30 px-4 py-3">
+              {/* <div className="rounded-2xl border border-border bg-secondary/30 px-4 py-3">
                 <p className="text-muted-foreground">이메일 인증</p>
                 <p className="mt-1 font-semibold text-foreground">
                   {isEmailConfirmed ? "완료" : "대기 중"}
                 </p>
-              </div>
+              </div> */}
               <div className="rounded-2xl border border-border bg-secondary/30 px-4 py-3">
                 <p className="text-muted-foreground">최근 로그인</p>
                 <p className="mt-1 font-semibold text-foreground">

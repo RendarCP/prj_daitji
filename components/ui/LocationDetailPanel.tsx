@@ -7,6 +7,7 @@ import { ItemListRowCard } from '@/components/features/ItemListRowCard'
 import { LocationThumbnail } from '@/components/features/LocationThumbnail'
 import { Alert } from '@/components/ui/Alert'
 import { Button } from '@/components/ui/Button'
+import { useOverlayHistorySync } from '@/lib/hooks/useOverlayHistorySync'
 import { SidePanel } from './SidePanel'
 import { Badge } from './Badge'
 import { Spinner } from './Spinner'
@@ -26,6 +27,8 @@ interface LocationDetailPanelProps {
   onItemClick?: (item: Item) => void
   onEdit?: (location: Location) => void
   onAddSubLocation?: (parentId: string) => void
+  shouldCloseOnBack?: boolean
+  enableOverlayHistorySync?: boolean
 }
 
 export function LocationDetailPanel({
@@ -37,6 +40,8 @@ export function LocationDetailPanel({
   onItemClick,
   onEdit,
   onAddSubLocation,
+  shouldCloseOnBack = true,
+  enableOverlayHistorySync = true,
 }: LocationDetailPanelProps) {
   const [isPanelOpen, setIsPanelOpen] = useState(isOpen)
   const closeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -70,8 +75,16 @@ export function LocationDetailPanel({
     }, PANEL_EXIT_MS)
   }, [onClose])
 
+  const { requestClose } = useOverlayHistorySync({
+    isOpen: isPanelOpen && !!location?.id,
+    enabled: enableOverlayHistorySync && !!location?.id,
+    overlayKey: 'location-detail',
+    overlayId: location?.id ?? 'unknown',
+    onRequestClose: handleCloseRequest,
+  })
+
   const deleteLocationMutation = useDeleteLocation(location?.id ?? '', {
-    onSuccess: handleCloseRequest,
+    onSuccess: requestClose,
   })
 
   const handleDelete = useCallback(async () => {
@@ -93,8 +106,8 @@ export function LocationDetailPanel({
   return (
     <SidePanel
       isOpen={isPanelOpen}
-      onClose={handleCloseRequest}
-      onBack={onBack}
+      onClose={requestClose}
+      onBack={shouldCloseOnBack ? requestClose : onBack}
       title={location.name}
       showBackButton
       showCloseButton={false}

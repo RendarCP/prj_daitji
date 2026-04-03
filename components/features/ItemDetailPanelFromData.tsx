@@ -13,6 +13,7 @@ import { FormPageLayout } from "@/components/layout/FormPageLayout";
 import { EntityDeleteActions } from "@/components/features/EntityDeleteActions";
 import { ItemDetailContent } from "@/components/features/ItemDetailContent";
 import { ItemDetailPanel } from "@/components/ui/ItemDetailPanel";
+import { useOverlayHistorySync } from "@/lib/hooks/useOverlayHistorySync";
 import { useDeleteItem } from "@/lib/hooks/useDeleteItem";
 
 export const PANEL_EXIT_MS = 300;
@@ -76,6 +77,7 @@ export interface ItemDetailPanelFromDataProps {
   /** Stackflow 등 외부 네비게이션으로 수정 화면 열기 */
   onEditRequested?: (itemId: string) => void;
   mode?: "modal" | "page";
+  enableOverlayHistorySync?: boolean;
 }
 
 export function ItemDetailPanelFromData({
@@ -85,13 +87,14 @@ export function ItemDetailPanelFromData({
   onCloseRequested,
   onEditRequested,
   mode = "modal", // Default to modal (SidePanel) for backward compat
+  enableOverlayHistorySync = true,
 }: ItemDetailPanelFromDataProps) {
   const router = useRouter();
   const [isOpen, setIsOpen] = useState(true);
   const closeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const editNavTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const handleClose = useCallback(() => {
+  const closePanel = useCallback(() => {
     setIsOpen(false);
     if (onCloseRequested) {
       closeTimerRef.current = setTimeout(() => {
@@ -99,6 +102,14 @@ export function ItemDetailPanelFromData({
       }, PANEL_EXIT_MS);
     }
   }, [onCloseRequested, setIsOpen]);
+
+  const { requestClose } = useOverlayHistorySync({
+    isOpen: mode === "modal" && isOpen,
+    enabled: mode === "modal" && enableOverlayHistorySync,
+    overlayKey: "item-detail",
+    overlayId: item.id,
+    onRequestClose: closePanel,
+  });
 
   useEffect(() => {
     return () => {
@@ -159,7 +170,7 @@ export function ItemDetailPanelFromData({
         return;
       }
 
-      handleClose();
+      requestClose();
     },
   });
 
@@ -216,7 +227,7 @@ export function ItemDetailPanelFromData({
   return (
     <ItemDetailPanel
       isOpen={isOpen}
-      onClose={handleClose}
+      onClose={requestClose}
       item={panelItem}
       onEdit={handleEdit}
       onFavorite={() => {}}

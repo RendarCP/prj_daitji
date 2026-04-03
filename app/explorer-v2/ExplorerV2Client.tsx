@@ -1124,6 +1124,7 @@ export default function ExplorerV2Client() {
         }}
         onEdit={(location) => openEditSheet(location)}
         onAddSubLocation={(parentId) => openAddModal(parentId)}
+        shouldCloseOnBack={locationStack.length === 0}
       />
 
       {activeItemId && activeItemDetail && !isActiveItemLoading && (

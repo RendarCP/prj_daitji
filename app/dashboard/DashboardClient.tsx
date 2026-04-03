@@ -246,6 +246,7 @@ export function DashboardClient() {
           if (!id) return;
           setActiveItemId(id);
         }}
+        shouldCloseOnBack={locationStack.length === 0}
       />
 
       {activeItemId && activeItemDetail && !isActiveItemLoading && (
