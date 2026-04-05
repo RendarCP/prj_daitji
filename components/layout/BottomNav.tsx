@@ -70,7 +70,7 @@ export function BottomNav() {
               onClick={() => handleNavClick(item.href, isActive)}
               onContextMenu={(event) => event.preventDefault()}
               className={cn(
-                "flex h-full w-full flex-col items-center justify-center gap-1 px-2 pt-2 pb-[calc(0.5rem+env(safe-area-inset-bottom))] transition-all duration-200 touch-manipulation select-none [webkit-touch-callout:none]",
+                "flex h-full w-full flex-col items-center justify-start gap-1 px-2 pt-3 pb-[calc(0.5rem+env(safe-area-inset-bottom))] transition-all duration-200 touch-manipulation select-none [webkit-touch-callout:none]",
                 "min-h-[48px]",
                 "text-muted-foreground",
               )}
