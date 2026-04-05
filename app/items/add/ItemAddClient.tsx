@@ -77,6 +77,12 @@ interface ItemAddClientProps {
   initialBarcode?: string;
 }
 
+function getLocalDateInputValue() {
+  const now = new Date();
+  const timezoneOffsetMs = now.getTimezoneOffset() * 60 * 1000;
+  return new Date(now.getTime() - timezoneOffsetMs).toISOString();
+}
+
 function changeFileExtension(filename: string, extension: string) {
   const normalizedExtension = extension.startsWith(".")
     ? extension
@@ -329,6 +335,25 @@ export function ItemAddClient({
       cancelled = true;
     };
   }, [isEditMode, itemId, reset]);
+
+  useEffect(() => {
+    if (isEditMode) {
+      return;
+    }
+
+    if (itemType !== "FOOD" && itemType !== "GENERAL") {
+      return;
+    }
+
+    if (typeof metadata.purchase_date === "string" && metadata.purchase_date) {
+      return;
+    }
+
+    setValue("metadata", {
+      ...metadata,
+      purchase_date: getLocalDateInputValue(),
+    });
+  }, [isEditMode, itemType, metadata, setValue]);
 
   const updateMetadata = (key: string, value: unknown) => {
     const nextMetadata = {
