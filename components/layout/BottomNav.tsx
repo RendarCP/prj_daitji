@@ -51,7 +51,7 @@ export function BottomNav() {
 
   return (
     <nav
-      className="fixed bottom-0 left-0 right-0 z-30 border-t border-border bg-card/80 backdrop-blur-md shadow-soft"
+      className="fixed bottom-0 left-0 right-0 z-30 border-t border-border bg-card/80 backdrop-blur-md shadow-soft pointer-events-auto"
       role="navigation"
       aria-label="하단 네비게이션"
     >
@@ -70,7 +70,8 @@ export function BottomNav() {
               onClick={() => handleNavClick(item.href, isActive)}
               onContextMenu={(event) => event.preventDefault()}
               className={cn(
-                "flex flex-col items-center justify-start gap-1 pt-3 transition-all duration-200 touch-manipulation select-none [webkit-touch-callout:none]",
+                "flex h-full w-full flex-col items-center justify-center gap-1 px-2 pt-2 pb-[calc(0.5rem+env(safe-area-inset-bottom))] transition-all duration-200 touch-manipulation select-none [webkit-touch-callout:none]",
+                "min-h-[48px]",
                 "text-muted-foreground",
               )}
               aria-current={isActive ? "page" : undefined}
@@ -82,7 +83,12 @@ export function BottomNav() {
                   isActive ? "scale-110 text-primary" : "text-muted-foreground",
                 )}
               />
-              <span className="text-xs font-medium text-muted-foreground">
+              <span
+                className={cn(
+                  "text-xs font-medium",
+                  isActive ? "text-primary" : "text-muted-foreground",
+                )}
+              >
                 {item.label}
               </span>
             </Link>

@@ -24,24 +24,29 @@ export function QuickAddButton({
   };
 
   return (
-    <div className={cn("fixed bottom-20 right-4 z-40 md:bottom-6", className)}>
+    <div
+      className={cn(
+        "fixed bottom-20 right-4 z-40 pointer-events-none md:bottom-6",
+        className,
+      )}
+    >
       {/* Action Menu */}
       {actionMenu.isOpen && (
         <>
           {/* Backdrop */}
           <div
-            className="fixed inset-0 -z-10"
+            className="fixed inset-0 -z-10 pointer-events-auto"
             onClick={actionMenu.close}
             aria-hidden="true"
           />
 
           {/* Actions */}
-          <div className="absolute bottom-16 right-0 flex flex-col gap-2 animate-fade-in">
+          <div className="absolute bottom-16 right-0 flex flex-col gap-2 animate-fade-in pointer-events-none">
             {/* {onAddItem && ( */}
             <button
               // href="/items/add"
               onClick={() => handleAction(onAddItem)}
-              className="flex items-center gap-3 px-4 py-3 bg-card rounded-full shadow-soft hover:shadow-medium transition-all hover:scale-105 active:scale-95 group border border-border"
+              className="pointer-events-auto flex items-center gap-3 px-4 py-3 bg-card rounded-full shadow-soft hover:shadow-medium transition-all hover:scale-105 active:scale-95 group border border-border"
               aria-label="물품 추가"
             >
               <span className="text-sm font-medium text-foreground whitespace-nowrap">
@@ -56,7 +61,7 @@ export function QuickAddButton({
             {onAddLocation && (
               <button
                 onClick={() => handleAction(onAddLocation)}
-                className="flex items-center gap-3 px-4 py-3 bg-card rounded-full shadow-soft hover:shadow-medium transition-all hover:scale-105 active:scale-95 group border border-border"
+                className="pointer-events-auto flex items-center gap-3 px-4 py-3 bg-card rounded-full shadow-soft hover:shadow-medium transition-all hover:scale-105 active:scale-95 group border border-border"
                 aria-label="위치 추가"
               >
                 <span className="text-sm font-medium text-foreground whitespace-nowrap">
@@ -74,6 +79,7 @@ export function QuickAddButton({
       {/* Main Button: Plus ↔ X (45° rotation) */}
       <FloatingActionButton
         onClick={actionMenu.toggle}
+        className="pointer-events-auto"
         icon={
           <Plus
             className={cn(
