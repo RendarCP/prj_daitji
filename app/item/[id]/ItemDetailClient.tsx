@@ -1,7 +1,7 @@
 'use client'
 
 import Image from 'next/image'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { 
   Edit2, 
@@ -82,6 +82,20 @@ const ITEM_STATUS_OPTIONS = [
   { value: 'EXPIRED', label: '만료됨' },
   { value: 'DISCARDED', label: '폐기됨' },
 ]
+
+const DATE_METADATA_KEYS = {
+  FOOD: ['expiry_date', 'purchase_date'],
+  COSMETIC: ['opened_date'],
+  MEDICINE: ['expiry_date'],
+  GENERAL: ['purchase_date', 'warranty_until'],
+} as const
+
+// TODO: Remove this temporary fallback once date input UX is standardized.
+function getLocalDateInputValue() {
+  const now = new Date()
+  const timezoneOffsetMs = now.getTimezoneOffset() * 60 * 1000
+  return new Date(now.getTime() - timezoneOffsetMs).toISOString()
+}
 
 export function ItemDetailClient({ item: initialItem, locationPath, allLocations }: ItemDetailClientProps) {
   const router = useRouter()
@@ -205,6 +219,44 @@ export function ItemDetailClient({ item: initialItem, locationPath, allLocations
       },
     })
   }
+
+  useEffect(() => {
+    if (!isEditing) {
+      return
+    }
+
+    const dateKeys = DATE_METADATA_KEYS[formData.type as keyof typeof DATE_METADATA_KEYS]
+    if (!dateKeys) {
+      return
+    }
+
+    const missingDateKeys = dateKeys.filter((key) => {
+      const value = formData.metadata[key as keyof ItemMetadata]
+      return typeof value !== 'string' || !value
+    })
+
+    if (missingDateKeys.length === 0) {
+      return
+    }
+
+    const defaultDateValue = getLocalDateInputValue()
+
+    setFormData((currentFormData) => {
+      const nextMetadata = { ...currentFormData.metadata }
+
+      for (const key of missingDateKeys) {
+        const currentValue = nextMetadata[key as keyof ItemMetadata]
+        if (typeof currentValue !== 'string' || !currentValue) {
+          nextMetadata[key as keyof ItemMetadata] = defaultDateValue as never
+        }
+      }
+
+      return {
+        ...currentFormData,
+        metadata: nextMetadata,
+      }
+    })
+  }, [formData.metadata, formData.type, isEditing])
 
   const locationOptions = allLocations.map(loc => ({
     value: loc.id,

@@ -77,6 +77,14 @@ interface ItemAddClientProps {
   initialBarcode?: string;
 }
 
+const DATE_METADATA_KEYS: Partial<Record<ItemType, string[]>> = {
+  FOOD: ["expiry_date", "purchase_date"],
+  COSMETIC: ["opened_date"],
+  MEDICINE: ["expiry_date"],
+  GENERAL: ["purchase_date", "warranty_until"],
+};
+
+// TODO: Remove this temporary fallback once date input UX is standardized.
 function getLocalDateInputValue() {
   const now = new Date();
   const timezoneOffsetMs = now.getTimezoneOffset() * 60 * 1000;
@@ -341,18 +349,28 @@ export function ItemAddClient({
       return;
     }
 
-    if (itemType !== "FOOD" && itemType !== "GENERAL") {
+    if (!itemType || !(itemType in DATE_METADATA_KEYS)) {
       return;
     }
 
-    if (typeof metadata.purchase_date === "string" && metadata.purchase_date) {
-      return;
-    }
-
-    setValue("metadata", {
-      ...metadata,
-      purchase_date: getLocalDateInputValue(),
+    const dateKeys = DATE_METADATA_KEYS[itemType as ItemType] || [];
+    const missingDateKeys = dateKeys.filter((key) => {
+      const value = metadata[key];
+      return typeof value !== "string" || !value;
     });
+
+    if (missingDateKeys.length === 0) {
+      return;
+    }
+
+    const defaultDateValue = getLocalDateInputValue();
+    const nextMetadata = { ...metadata };
+
+    for (const key of missingDateKeys) {
+      nextMetadata[key] = defaultDateValue;
+    }
+
+    setValue("metadata", nextMetadata);
   }, [isEditMode, itemType, metadata, setValue]);
 
   const updateMetadata = (key: string, value: unknown) => {
