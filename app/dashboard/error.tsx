@@ -2,8 +2,6 @@
 
 import { useEffect } from 'react'
 import { AlertTriangle, RefreshCw, Home } from 'lucide-react'
-import { Header } from '@/components/layout/Header'
-import { BottomNav } from '@/components/layout/BottomNav'
 import { Button } from '@/components/ui/Button'
 import { Alert } from '@/components/ui/Alert'
 import { Card } from '@/components/ui/Card'
@@ -24,9 +22,7 @@ export default function DashboardError({ error, reset }: ErrorProps) {
   }, [error])
 
   return (
-    <div className="min-h-screen bg-secondary/10 pb-20 md:pb-6">
-      <Header />
-      
+    <div className="min-h-[calc(100dvh-3.5rem)] bg-secondary/10 pb-20 sm:min-h-[calc(100dvh-4rem)] md:pb-6">
       <div className="container mx-auto px-4 py-6 max-w-7xl">
         <div className="flex items-center justify-center min-h-[60vh]">
           <Card className="max-w-lg w-full">
@@ -91,8 +87,6 @@ export default function DashboardError({ error, reset }: ErrorProps) {
           </Card>
         </div>
       </div>
-
-      <BottomNav />
     </div>
   )
 }

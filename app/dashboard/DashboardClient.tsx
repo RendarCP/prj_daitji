@@ -2,7 +2,6 @@
 
 import dynamic from "next/dynamic";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { BottomNav } from "@/components/layout/BottomNav";
 import { Alert } from "@/components/ui/Alert";
 import { QuickAddButton } from "@/components/features/QuickAddButton";
 import { LocationDetailPanel } from "@/components/ui/LocationDetailPanel";
@@ -323,9 +322,6 @@ export function DashboardClient() {
           />
         </FullPageModal>
       )}
-
-      {/* Bottom Navigation */}
-      <BottomNav />
     </div>
   );
 }

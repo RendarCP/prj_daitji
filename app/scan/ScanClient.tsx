@@ -12,7 +12,6 @@ import {
   Sparkles,
   X,
 } from 'lucide-react'
-import { BottomNav } from '@/components/layout/BottomNav'
 import { PageHeader } from '@/components/layout/PageHeader'
 import { Alert } from '@/components/ui/Alert'
 import { Badge } from '@/components/ui/Badge'
@@ -488,8 +487,6 @@ export function ScanClient() {
           </Card>
         </section>
       </main>
-
-      <BottomNav />
     </div>
   )
 }

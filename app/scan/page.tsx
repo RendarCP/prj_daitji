@@ -1,6 +1,5 @@
 import { Metadata } from 'next'
 import { ScanClient } from './ScanClient'
-import { Header } from '@/components/layout/Header'
 
 export const metadata: Metadata = {
   title: '바코드 스캔 - DAITJI',
@@ -8,10 +7,5 @@ export const metadata: Metadata = {
 }
 
 export default function ScanPage() {
-  return (
-    <>
-      <Header />
-      <ScanClient />
-    </>
-  )
+  return <ScanClient />
 }

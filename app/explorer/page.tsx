@@ -1,6 +1,5 @@
 import { Metadata } from "next";
 import { Suspense } from "react";
-import { Header } from "@/components/layout/Header";
 import { Spinner } from "@/components/ui/Spinner";
 import ExplorerV2Client from "@/app/explorer-v2/ExplorerV2Client";
 
@@ -19,11 +18,8 @@ function ExplorerV2Fallback() {
 
 export default function ExplorerPage() {
   return (
-    <>
-      <Header />
-      <Suspense fallback={<ExplorerV2Fallback />}>
-        <ExplorerV2Client />
-      </Suspense>
-    </>
+    <Suspense fallback={<ExplorerV2Fallback />}>
+      <ExplorerV2Client />
+    </Suspense>
   );
 }

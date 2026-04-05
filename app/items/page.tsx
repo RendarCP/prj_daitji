@@ -1,6 +1,5 @@
 import { Metadata } from 'next'
 import { ItemsClient } from './ItemsClient'
-import { Header } from '@/components/layout/Header'
 
 export const metadata: Metadata = {
   title: 'Items',
@@ -8,10 +7,5 @@ export const metadata: Metadata = {
 }
 
 export default function ItemsPage() {
-  return (
-    <>
-      <Header />
-      <ItemsClient />
-    </>
-  )
+  return <ItemsClient />
 }

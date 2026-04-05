@@ -33,7 +33,6 @@ import {
   ArrowDownToLine,
 } from "lucide-react";
 import { Cell, Pie, PieChart, ResponsiveContainer, Tooltip } from "recharts";
-import { BottomNav } from "@/components/layout/BottomNav";
 import { FloatingActionButton } from "@/components/ui/FloatingActionButton";
 import { Badge } from "@/components/ui/Badge";
 import { Alert } from "@/components/ui/Alert";
@@ -1176,8 +1175,6 @@ export default function ExplorerV2Client() {
           </div>
         </BottomSheet>
       )}
-
-      <BottomNav />
     </div>
   );
 }

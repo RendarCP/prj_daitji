@@ -6,7 +6,6 @@ import { stackflow, useActivity } from "@stackflow/react";
 import { basicRendererPlugin } from "@stackflow/plugin-renderer-basic";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { CheckCircle, Search, SlidersHorizontal } from "lucide-react";
-import { BottomNav } from "@/components/layout/BottomNav";
 import { FloatingActionButton } from "@/components/ui/FloatingActionButton";
 import { Button } from "@/components/ui/Button";
 import { Alert } from "@/components/ui/Alert";
@@ -293,8 +292,6 @@ const ItemsListActivity: ActivityComponentType = () => {
       </div>
 
       <FloatingActionButton onClick={() => push("ItemCreateActivity", {})} />
-
-      <BottomNav />
     </div>
   );
 };
