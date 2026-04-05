@@ -1,6 +1,6 @@
 "use client";
 
-import Image from "next/image";
+import NextImage from "next/image";
 import { ChangeEvent, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useQueryClient } from "@tanstack/react-query";
@@ -90,7 +90,7 @@ async function loadImageElement(file: File): Promise<HTMLImageElement> {
 
   try {
     const image = await new Promise<HTMLImageElement>((resolve, reject) => {
-      const nextImage = new Image();
+      const nextImage = new window.Image();
       nextImage.onload = () => resolve(nextImage);
       nextImage.onerror = () =>
         reject(new Error("이미지 파일을 읽는 중 오류가 발생했습니다"));
@@ -622,7 +622,7 @@ export function ItemAddClient({
                 />
                 {displayImageUrl ? (
                   <>
-                    <Image
+                    <NextImage
                       src={displayImageUrl}
                       alt="물품 이미지 미리보기"
                       fill

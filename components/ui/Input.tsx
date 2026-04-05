@@ -30,6 +30,8 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
     },
     ref,
   ) => {
+    const isDateInput = type === "date";
+
     const handleDateInputClick = (event: MouseEvent<HTMLInputElement>) => {
       props.onClick?.(event);
 
@@ -63,7 +65,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
             ref={ref}
             onClick={handleDateInputClick}
             className={cn(
-              "w-full rounded-lg border border-border bg-white px-4 py-2.5 text-slate-900 transition-all duration-200",
+              "w-full min-w-0 max-w-full rounded-lg border border-border bg-white px-4 py-2.5 text-slate-900 transition-all duration-200",
               "placeholder:text-slate-500",
               "focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent focus:bg-white",
               "disabled:bg-secondary/20 disabled:cursor-not-allowed disabled:text-muted-foreground",
@@ -72,6 +74,9 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
                 : "hover:border-border hover:bg-white",
               leftIcon && "pl-10",
               rightIcon && "pr-10",
+              isDateInput &&
+                "appearance-none pr-4 text-[16px] tracking-tight [color-scheme:light] [&::-webkit-date-and-time-value]:min-w-0 [&::-webkit-date-and-time-value]:text-left [&::-webkit-datetime-edit]:min-w-0 [&::-webkit-datetime-edit-fields-wrapper]:min-w-0 [&::-webkit-calendar-picker-indicator]:opacity-100",
+              isDateInput && leftIcon && "pl-11 pr-3",
               className,
             )}
             aria-invalid={error ? "true" : "false"}

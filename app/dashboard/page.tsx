@@ -1,7 +1,10 @@
 import { Metadata } from 'next'
 import { redirect } from 'next/navigation'
+import { HydrationBoundary, QueryClient, dehydrate } from '@tanstack/react-query'
 import { DashboardClient } from './DashboardClient'
 import { Header } from '@/components/layout/Header'
+import { queryKeys } from '@/lib/queryKeys'
+import { fetchDashboardStatsServer, fetchLocationSummaryServer } from '@/lib/server/dashboard'
 import { createClient } from '@/lib/supabase/server'
 
 export const metadata: Metadata = {
@@ -23,10 +26,25 @@ export default async function DashboardPage() {
     redirect('/login?next=/dashboard')
   }
 
+  const queryClient = new QueryClient()
+
+  await Promise.all([
+    queryClient.prefetchQuery({
+      queryKey: queryKeys.dashboard.stats(),
+      queryFn: fetchDashboardStatsServer,
+    }),
+    queryClient.prefetchQuery({
+      queryKey: queryKeys.locations.summary(),
+      queryFn: fetchLocationSummaryServer,
+    }),
+  ])
+
   return (
     <>
       <Header />
-      <DashboardClient />
+      <HydrationBoundary state={dehydrate(queryClient)}>
+        <DashboardClient />
+      </HydrationBoundary>
     </>
   )
 }
