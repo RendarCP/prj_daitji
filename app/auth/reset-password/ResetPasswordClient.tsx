@@ -10,6 +10,7 @@ import {
   mapAuthErrorMessage,
   validatePassword,
 } from "@/lib/auth/utils";
+import { useToastError } from "@/lib/hooks/useToastError";
 import { useToast } from "@/lib/providers/ToastProvider";
 import { createClient } from "@/lib/supabase/client";
 
@@ -34,6 +35,10 @@ export function ResetPasswordClient({
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const passwordError = validatePassword(password);
+
+  useToastError(errorMessage, {
+    title: "비밀번호를 변경할 수 없습니다.",
+  });
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -102,12 +107,6 @@ export function ResetPasswordClient({
             <ArrowLeft className="h-4 w-4" />
             재설정 요청으로 돌아가기
           </Link>
-
-          {errorMessage ? (
-            <div className="rounded-xl border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
-              {errorMessage}
-            </div>
-          ) : null}
 
           {!hasSession ? (
             <div className="space-y-4 rounded-2xl border border-border bg-secondary/40 p-5">

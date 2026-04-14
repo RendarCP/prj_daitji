@@ -8,7 +8,6 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { CheckCircle, Search, SlidersHorizontal } from "lucide-react";
 import { FloatingActionButton } from "@/components/ui/FloatingActionButton";
 import { Button } from "@/components/ui/Button";
-import { Alert } from "@/components/ui/Alert";
 import { FullPageModal } from "@/components/ui/FullPageModal";
 import { ExpiryItemSkeleton, ListItemSkeleton } from "@/components/ui/Skeleton";
 import { ItemListRowCard } from "@/components/features/ItemListRowCard";
@@ -18,6 +17,7 @@ import { useItemDetail } from "@/lib/hooks/useItemDetail";
 import { ItemDetailPanelFromData } from "@/components/features/ItemDetailPanelFromData";
 import { cn } from "@/lib/utils/cn";
 import { useOverlayHistorySync } from "@/lib/hooks/useOverlayHistorySync";
+import { useToastError } from "@/lib/hooks/useToastError";
 import type { ExpiringItem, Item } from "@/lib/types";
 import { BottomSheet } from "@/components/ui/BottomSheet";
 import { ItemAddClient } from "@/app/items/add/ItemAddClient";
@@ -50,6 +50,25 @@ const ItemsListActivity: ActivityComponentType = () => {
   });
   const isGlobalEmpty =
     !isLoading && !error && items.length === 0 && !searchQuery.trim();
+  const expiringErrorMessage =
+    expiringError instanceof Error
+      ? expiringError.message
+      : expiringError
+        ? "만료 알림을 불러오지 못했습니다"
+        : null;
+  const itemsErrorMessage =
+    error instanceof Error
+      ? error.message
+      : error
+        ? "데이터를 불러오지 못했습니다"
+        : null;
+
+  useToastError(expiringErrorMessage, {
+    title: "만료 알림을 불러올 수 없습니다.",
+  });
+  useToastError(itemsErrorMessage, {
+    title: "물품 목록을 불러올 수 없습니다.",
+  });
 
   useEffect(() => {
     if (openedFromQueryRef.current) return;
@@ -86,13 +105,7 @@ const ItemsListActivity: ActivityComponentType = () => {
             </div>
           </div>
 
-          {expiringError ? (
-            <Alert variant="danger">
-              {expiringError instanceof Error
-                ? expiringError.message
-                : "만료 알림을 불러오지 못했습니다"}
-            </Alert>
-          ) : isExpiringLoading ? (
+          {expiringError ? null : isExpiringLoading ? (
             <div className="overflow-x-auto pb-2 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
               <div className="flex snap-x snap-mandatory gap-3 pl-1 pr-4">
                 {[...Array(4)].map((_, i) => (
@@ -225,13 +238,7 @@ const ItemsListActivity: ActivityComponentType = () => {
           </>
         )}
 
-        {error ? (
-          <Alert variant="danger">
-            {error instanceof Error
-              ? error.message
-              : "데이터를 불러오지 못했습니다"}
-          </Alert>
-        ) : isLoading ? (
+        {error ? null : isLoading ? (
           <div className="space-y-2">
             {[...Array(10)].map((_, i) => (
               <ListItemSkeleton key={i} />

@@ -10,10 +10,10 @@ import {
   Package2,
   Smartphone,
   SquareStack,
-  TriangleAlert,
   type LucideIcon,
 } from 'lucide-react'
 import { Badge } from '@/components/ui/Badge'
+import { useToastError } from '@/lib/hooks/useToastError'
 import { cn } from '@/lib/utils/cn'
 
 type NotificationSettings = {
@@ -518,6 +518,10 @@ export default function NotificationsSettingsClient() {
     [deviceTimezone, form.timezone]
   )
 
+  useToastError(errorMessage, {
+    title: requestError ? '알림 설정을 저장할 수 없습니다.' : '입력 내용을 확인해 주세요.',
+  })
+
   if (isLoading) {
     return (
       <div className="rounded-3xl border border-border/50 bg-secondary/10 p-6 text-sm text-muted-foreground">
@@ -536,15 +540,6 @@ export default function NotificationsSettingsClient() {
           변경 사항은 자동 저장됩니다
         </Badge>
       </div>
-
-      {errorMessage ? (
-        <div className="rounded-2xl border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
-          <div className="flex items-start gap-2">
-            <TriangleAlert className="mt-0.5 h-4 w-4 shrink-0" />
-            <span>{errorMessage}</span>
-          </div>
-        </div>
-      ) : null}
 
       <section className="space-y-3">
         <label className="pl-1 text-xs font-bold uppercase tracking-[0.24em] text-muted-foreground">

@@ -43,15 +43,6 @@ const EXPIRY_BUCKET_META = [
 
 const LOCATION_COLORS = ["#38bdf8", "#4ade80", "#f59e0b", "#f472b6", "#a78bfa"];
 
-function formatWeekLabel(value: string) {
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) {
-    return value;
-  }
-
-  return `${date.getMonth() + 1}/${date.getDate()}`;
-}
-
 function DashboardTooltip({
   active,
   payload,
@@ -390,9 +381,8 @@ export function DashboardOverviewSection({
     stats.recent_added_by_week.length > 0
       ? stats.recent_added_by_week.map((entry) => ({
           ...entry,
-          label: formatWeekLabel(entry.week_start),
         }))
-      : [{ week_start: "", count: 0, label: "-" }];
+      : [{ year: 0, month: 0, week_of_month: 0, count: 0, label: "-" }];
   const eightWeekTotal = stats.recent_added_by_week.reduce(
     (sum, entry) => sum + entry.count,
     0,
@@ -687,7 +677,7 @@ export function DashboardOverviewSection({
 
         <ChartShell
           title="최근 등록 추이"
-          summary={`최근 8주 동안 ${eightWeekTotal}개가 새로 등록되었습니다.`}
+          summary={`최근 8개 주차 구간 동안 ${eightWeekTotal}개가 새로 등록되었습니다.`}
         >
           <MobileWeekBars
             rows={recentAddedData.map((entry) => ({
@@ -721,7 +711,7 @@ export function DashboardOverviewSection({
                   />
                   <Tooltip
                     content={<DashboardTooltip />}
-                    labelFormatter={(value) => `${value} 시작 주`}
+                    labelFormatter={(value) => String(value)}
                   />
                   <Bar dataKey="count" fill="#8b5cf6" radius={[10, 10, 0, 0]} />
                 </BarChart>

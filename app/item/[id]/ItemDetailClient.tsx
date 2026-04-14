@@ -28,9 +28,9 @@ import { Input } from '@/components/ui/Input'
 import { Select } from '@/components/ui/Select'
 import { Badge } from '@/components/ui/Badge'
 import { Modal } from '@/components/ui/Modal'
-import { Alert } from '@/components/ui/Alert'
 import { LocationBreadcrumb } from '@/components/features/LocationBreadcrumb'
 import { ExpiryStatus } from '@/components/features/ExpiryStatus'
+import { useToastError } from '@/lib/hooks/useToastError'
 import { formatDate } from '@/lib/utils/format'
 import type { Database } from '@/lib/types/database.types'
 
@@ -105,6 +105,9 @@ export function ItemDetailClient({ item: initialItem, locationPath, allLocations
   const [isSaving, setIsSaving] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  useToastError(error, {
+    title: isEditing ? '물품을 수정할 수 없습니다.' : '물품을 처리할 수 없습니다.',
+  })
 
   // Form state
   const [formData, setFormData] = useState({
@@ -292,12 +295,6 @@ export function ItemDetailClient({ item: initialItem, locationPath, allLocations
             description={isEditing ? '물품 정보를 수정하세요' : '물품 상세 정보'}
             onBack={() => router.back()}
           />
-
-          {error && (
-            <Alert variant="danger" className="mb-6">
-              {error}
-            </Alert>
-          )}
 
           <div className="space-y-6">
             {/* Image Section */}

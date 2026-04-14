@@ -15,6 +15,7 @@ import {
   mapCallbackErrorMessage,
   sanitizeNextPath,
 } from "@/lib/auth/utils";
+import { useToastError } from "@/lib/hooks/useToastError";
 import { useToast } from "@/lib/providers/ToastProvider";
 import { createClient } from "@/lib/supabase/client";
 import {
@@ -55,6 +56,10 @@ export function LoginClient({
   const redirectNext = sanitizeNextPath(searchParams.get("next") || nextPath);
   const visibleErrorMessage = errorMessage ?? callbackErrorMessage;
   const showConfirmationState = Boolean(pendingConfirmationEmail);
+
+  useToastError(visibleErrorMessage, {
+    title: "로그인에 실패했습니다.",
+  });
 
   const resetMessages = () => {
     setErrorMessage(null);
@@ -165,9 +170,6 @@ export function LoginClient({
         </div>
 
         <div className="card animate-scale-in space-y-4 p-6">
-          {visibleErrorMessage ? (
-            <AuthMessage tone="error">{visibleErrorMessage}</AuthMessage>
-          ) : null}
           {successMessage ? (
             <AuthMessage tone="success">{successMessage}</AuthMessage>
           ) : null}

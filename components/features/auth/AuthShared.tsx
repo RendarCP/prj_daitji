@@ -78,8 +78,6 @@ interface SocialLoginButtonsProps {
 }
 
 export function SocialLoginButtons({
-  title,
-  description,
   socialLoadingProvider,
   onProviderClick,
 }: SocialLoginButtonsProps) {

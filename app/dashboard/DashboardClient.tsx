@@ -2,12 +2,12 @@
 
 import dynamic from "next/dynamic";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Alert } from "@/components/ui/Alert";
 import { QuickAddButton } from "@/components/features/QuickAddButton";
 import { LocationDetailPanel } from "@/components/ui/LocationDetailPanel";
 import { BottomSheet } from "@/components/ui/BottomSheet";
 import { FullPageModal } from "@/components/ui/FullPageModal";
 import { useOverlayHistorySync } from "@/lib/hooks/useOverlayHistorySync";
+import { useToastError } from "@/lib/hooks/useToastError";
 import { ItemAddClient } from "@/app/items/add/ItemAddClient";
 import { AddLocationClient } from "@/app/explorer/AddLocationClient";
 import { EmptyState } from "@/components/ui/EmptyState";
@@ -92,6 +92,25 @@ export function DashboardClient() {
   });
   const isOverlayOpen =
     !!selectedLocation || !!activeItemId || !!editSheetDialog.data;
+  const statsErrorMessage =
+    statsError instanceof Error
+      ? statsError.message
+      : statsError
+        ? "대시보드 요약을 불러오지 못했습니다"
+        : null;
+  const locationErrorMessage =
+    locationError instanceof Error
+      ? locationError.message
+      : locationError
+        ? "데이터를 불러오지 못했습니다"
+        : null;
+
+  useToastError(statsErrorMessage, {
+    title: "대시보드 요약을 불러올 수 없습니다.",
+  });
+  useToastError(locationErrorMessage, {
+    title: "위치 데이터를 불러올 수 없습니다.",
+  });
 
   const handleAddItem = () => {
     setIsItemAddModalOpen(true);
@@ -128,14 +147,6 @@ export function DashboardClient() {
       )}
     >
       <div className="container mx-auto max-w-7xl flex-1 px-4 py-6 pb-[calc(5rem+env(safe-area-inset-bottom))]">
-        {statsError ? (
-          <Alert variant="danger" className="mb-6">
-            {statsError instanceof Error
-              ? statsError.message
-              : "대시보드 요약을 불러오지 못했습니다"}
-          </Alert>
-        ) : null}
-
         {isStatsLoading || !stats ? (
           <div
             className="mb-8 animate-fade-in"
@@ -167,13 +178,7 @@ export function DashboardClient() {
         >
           <h2 className="text-xl font-bold text-foreground mb-4">빠른 장소</h2>
 
-          {locationError ? (
-            <Alert variant="danger">
-              {locationError instanceof Error
-                ? locationError.message
-                : "데이터를 불러오지 못했습니다"}
-            </Alert>
-          ) : isLocationLoading ? (
+          {locationError ? null : isLocationLoading ? (
             <div className="grid grid-cols-2 gap-3">
               {[...Array(4)].map((_, i) => (
                 <LocationCardSkeleton key={i} />

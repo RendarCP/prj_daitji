@@ -1,4 +1,3 @@
-import { format, startOfWeek, subWeeks } from "date-fns";
 import type {
   DashboardLocationHighlight,
   DashboardLocationStat,
@@ -8,6 +7,10 @@ import type {
 } from "@/lib/types";
 import { createClient } from "@/lib/supabase/server";
 import { computeItemExpiryDate, getDaysUntilExpiry } from "@/lib/utils/expiry";
+import {
+  buildRecentAddedByMonthWeek,
+  getRecentAddedWindowStart,
+} from "@/lib/utils/dashboardRecentAdded";
 
 type ItemType = "FOOD" | "COSMETIC" | "MEDICINE" | "GENERAL";
 
@@ -53,9 +56,7 @@ export async function fetchDashboardStatsServer(): Promise<DashboardOverviewResp
     throw new Error("UNAUTHORIZED");
   }
 
-  const recentWindowStart = startOfWeek(subWeeks(new Date(), 7), {
-    weekStartsOn: 1,
-  }).toISOString();
+  const recentWindowStart = getRecentAddedWindowStart().toISOString();
 
   const [
     totalItemsResult,
@@ -273,28 +274,7 @@ export async function fetchDashboardStatsServer(): Promise<DashboardOverviewResp
         }
       : null;
 
-  const currentWeekStart = startOfWeek(new Date(), { weekStartsOn: 1 });
-  const recentAddedMap = new Map<string, number>();
-
-  for (let offset = 7; offset >= 0; offset -= 1) {
-    const weekStart = startOfWeek(subWeeks(currentWeekStart, offset), {
-      weekStartsOn: 1,
-    });
-    recentAddedMap.set(format(weekStart, "yyyy-MM-dd"), 0);
-  }
-
-  for (const item of recentItems) {
-    if (!item.created_at) continue;
-
-    const weekStartKey = format(
-      startOfWeek(new Date(item.created_at), { weekStartsOn: 1 }),
-      "yyyy-MM-dd",
-    );
-
-    if (recentAddedMap.has(weekStartKey)) {
-      recentAddedMap.set(weekStartKey, (recentAddedMap.get(weekStartKey) ?? 0) + 1);
-    }
-  }
+  const recentAddedByWeek = buildRecentAddedByMonthWeek(recentItems);
 
   return {
     total_items: totalItemsResult.count || 0,
@@ -306,12 +286,7 @@ export async function fetchDashboardStatsServer(): Promise<DashboardOverviewResp
     by_type: byType,
     by_location: byLocation,
     expiry_buckets: expiryBuckets,
-    recent_added_by_week: Array.from(recentAddedMap.entries()).map(
-      ([week_start, count]) => ({
-        week_start,
-        count,
-      }),
-    ),
+    recent_added_by_week: recentAddedByWeek,
     highlights: {
       busiest_location: busiestLocation,
       highest_risk_location: highestRiskLocation,

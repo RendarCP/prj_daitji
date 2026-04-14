@@ -35,9 +35,9 @@ import {
 import { Cell, Pie, PieChart, ResponsiveContainer, Tooltip } from "recharts";
 import { FloatingActionButton } from "@/components/ui/FloatingActionButton";
 import { Badge } from "@/components/ui/Badge";
-import { Alert } from "@/components/ui/Alert";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { useOverlayHistorySync } from "@/lib/hooks/useOverlayHistorySync";
+import { useToastError } from "@/lib/hooks/useToastError";
 import { useLocations } from "@/lib/hooks/useLocations";
 import { useItemDetail } from "@/lib/hooks/useItemDetail";
 import { queryKeys } from "@/lib/queryKeys";
@@ -765,6 +765,10 @@ export default function ExplorerV2Client() {
   const isOverlayOpen =
     !!selectedLocation || !!activeItemId || !!editingLocationId;
 
+  useToastError(errorMessage, {
+    title: "위치 구조를 변경할 수 없습니다.",
+  });
+
   const persistMovedTree = useCallback(
     async (prevTree: TreeLocation[], nextTree: TreeLocation[]) => {
       const prevMap = new Map<string, LocationPosition>();
@@ -1006,8 +1010,6 @@ export default function ExplorerV2Client() {
           </section>
         )}
         <h1 className="text-2xl font-bold text-foreground">우리집 위치구조</h1>
-
-        {errorMessage && <Alert variant="danger">{errorMessage}</Alert>}
 
         <DndContext
           sensors={sensors}

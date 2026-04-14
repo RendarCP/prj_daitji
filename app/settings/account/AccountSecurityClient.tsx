@@ -9,7 +9,6 @@ import {
   Lock,
   RefreshCw,
   ShieldCheck,
-  TriangleAlert,
 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import {
@@ -29,6 +28,7 @@ import {
   mapAuthErrorMessage,
   validatePassword,
 } from "@/lib/auth/utils";
+import { useToastError } from "@/lib/hooks/useToastError";
 import { useToast } from "@/lib/providers/ToastProvider";
 import { createClient } from "@/lib/supabase/client";
 import type { AccountUser } from "@/app/settings/SettingsContext";
@@ -157,6 +157,10 @@ export function AccountSecurityClient({
   const passwordError = validatePassword(password);
   const isEmailConfirmed = Boolean(user?.email_confirmed_at);
 
+  useToastError(errorMessage, {
+    title: "계정 설정을 처리하지 못했습니다.",
+  });
+
   const handleResendConfirmation = async () => {
     if (!user?.email) {
       setErrorMessage("인증 메일을 다시 보내려면 이메일 정보가 필요합니다.");
@@ -240,15 +244,6 @@ export function AccountSecurityClient({
 
   return (
     <div className="space-y-8 pb-10">
-      {errorMessage ? (
-        <div className="rounded-2xl border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
-          <div className="flex items-start gap-2">
-            <TriangleAlert className="mt-0.5 h-4 w-4 shrink-0" />
-            <span>{errorMessage}</span>
-          </div>
-        </div>
-      ) : null}
-
       <section className="space-y-3">
         <label className="pl-1 text-xs font-bold uppercase tracking-[0.24em] text-muted-foreground">
           계정 상태

@@ -2,8 +2,9 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Bug, RefreshCw, TriangleAlert } from 'lucide-react'
+import { Bug, RefreshCw } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
+import { useToastError } from '@/lib/hooks/useToastError'
 
 type ApiResponse<T> = {
   success: boolean
@@ -39,6 +40,10 @@ export default function NotificationTestClient() {
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const [successMessage, setSuccessMessage] = useState<string | null>(null)
   const [testEvents, setTestEvents] = useState<TestNotificationEvent[]>([])
+
+  useToastError(errorMessage, {
+    title: '알림 테스트를 처리할 수 없습니다.',
+  })
 
   const loadTestEvents = async () => {
     setIsRefreshing(true)
@@ -140,15 +145,6 @@ export default function NotificationTestClient() {
         테스트 이벤트를 직접 큐에 넣고 최근 상태를 확인할 수 있습니다. 워커가 연결되어 있지 않으면 이벤트는
         `pending` 상태로 남습니다.
       </p>
-
-      {errorMessage && (
-        <div className="rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
-          <div className="flex items-start gap-2">
-            <TriangleAlert className="mt-0.5 h-4 w-4 shrink-0" />
-            <span>{errorMessage}</span>
-          </div>
-        </div>
-      )}
 
       {successMessage && (
         <p className="rounded-lg border border-success/30 bg-success/10 px-3 py-2 text-sm text-success">

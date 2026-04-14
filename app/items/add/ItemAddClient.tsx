@@ -26,6 +26,7 @@ import { Alert } from "@/components/ui/Alert";
 import { CascadingLocationSelect } from "@/components/features/CascadingLocationSelect";
 import { ItemTypeMetadataFields } from "@/components/features/ItemTypeMetadataFields";
 import { useLocations } from "@/lib/hooks/useLocations";
+import { useToastError } from "@/lib/hooks/useToastError";
 import { queryKeys } from "@/lib/queryKeys";
 import { cn } from "@/lib/utils/cn";
 
@@ -246,6 +247,10 @@ export function ItemAddClient({
   const quantity = watch("quantity") || 0;
   const barcodeValue = watch("barcode") || "";
   const displayImageUrl = selectedImagePreviewUrl ?? imageUrl;
+
+  useToastError(error, {
+    title: isEditMode ? "물품을 수정할 수 없습니다." : "물품을 추가할 수 없습니다.",
+  });
 
   useEffect(() => {
     return () => {
@@ -621,12 +626,6 @@ export function ItemAddClient({
           {isEditMode && isLoadingItem && (
             <Alert variant="info" className="mb-6">
               물품 정보를 불러오는 중...
-            </Alert>
-          )}
-
-          {error && (
-            <Alert variant="danger" className="mb-6">
-              {error}
             </Alert>
           )}
 

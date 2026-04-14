@@ -11,6 +11,7 @@ import {
   mapAuthErrorMessage,
   sanitizeNextPath,
 } from "@/lib/auth/utils";
+import { useToastError } from "@/lib/hooks/useToastError";
 import { useToast } from "@/lib/providers/ToastProvider";
 import { createClient } from "@/lib/supabase/client";
 
@@ -31,6 +32,10 @@ export function ForgotPasswordClient({
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const redirectNext = sanitizeNextPath(nextPath);
+
+  useToastError(errorMessage, {
+    title: "재설정 메일을 보낼 수 없습니다.",
+  });
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -80,12 +85,6 @@ export function ForgotPasswordClient({
             <ArrowLeft className="h-4 w-4" />
             로그인으로 돌아가기
           </Link>
-
-          {errorMessage ? (
-            <div className="rounded-xl border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
-              {errorMessage}
-            </div>
-          ) : null}
 
           {successMessage ? (
             <div className="rounded-xl border border-success/30 bg-success/10 px-3 py-3 text-sm text-success">

@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { MoreHorizontal, Trash2 } from "lucide-react";
 import { useDialog } from "@/lib/hooks/useDialog";
-import { Alert } from "@/components/ui/Alert";
+import { useToastError } from "@/lib/hooks/useToastError";
 import { Button } from "@/components/ui/Button";
 import { Modal } from "@/components/ui/Modal";
 
@@ -31,6 +31,10 @@ export function EntityDeleteActions({
   const [menuPosition, setMenuPosition] = useState({ top: 0, right: 0 });
   const triggerRef = useRef<HTMLButtonElement | null>(null);
   const menuRef = useRef<HTMLDivElement | null>(null);
+
+  useToastError(deleteError, {
+    title: `${entityLabel} 삭제를 완료하지 못했습니다.`,
+  });
 
   useEffect(() => {
     setIsMounted(true);
@@ -174,7 +178,6 @@ export function EntityDeleteActions({
             <span className="font-semibold text-foreground">{entityName}</span>{" "}
             {entityLabel}을(를) 삭제하면 복구할 수 없습니다.
           </p>
-          {deleteError && <Alert variant="danger">{deleteError}</Alert>}
         </div>
       </Modal>
     </>

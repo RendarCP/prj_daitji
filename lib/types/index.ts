@@ -75,7 +75,10 @@ export interface DashboardExpiryBuckets {
 }
 
 export interface DashboardRecentAddedPoint {
-  week_start: string;
+  year: number;
+  month: number;
+  week_of_month: number;
+  label: string;
   count: number;
 }
 

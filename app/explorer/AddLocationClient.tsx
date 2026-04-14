@@ -13,6 +13,7 @@ import { CascadingLocationSelect } from "@/components/features/CascadingLocation
 import { LocationThumbnail } from "@/components/features/LocationThumbnail";
 import type { Location } from "@/lib/types";
 import { useLocations } from "@/lib/hooks/useLocations";
+import { useToastError } from "@/lib/hooks/useToastError";
 import {
   findLocationPath,
   getSelectedParentId,
@@ -154,6 +155,9 @@ export function AddLocationClient({
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
+  useToastError(error, {
+    title: isEditMode ? "위치를 수정할 수 없습니다." : "위치를 추가할 수 없습니다.",
+  });
 
   const availableLocations = useMemo(() => {
     if (!isEditMode || !locationId) {
@@ -370,12 +374,6 @@ export function AddLocationClient({
             isModal && "p-6",
           )}
         >
-          {error && (
-            <Alert variant="danger" className="mb-6">
-              {error}
-            </Alert>
-          )}
-
           {isEditMode && isLoadingLocation && (
             <Alert variant="info" className="mb-6">
               위치 정보를 불러오는 중...

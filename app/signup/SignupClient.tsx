@@ -3,25 +3,20 @@
 import Link from "next/link";
 import { FormEvent, startTransition, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowRight, Lock, Mail, RefreshCw } from "lucide-react";
+import { Lock, Mail, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import {
   buildAbsoluteUrl,
   DEFAULT_NEXT_PATH,
-  getOAuthQueryParams,
   getOAuthRedirectPath,
   mapAuthErrorMessage,
   validatePassword,
 } from "@/lib/auth/utils";
+import { useToastError } from "@/lib/hooks/useToastError";
 import { useToast } from "@/lib/providers/ToastProvider";
 import { createClient } from "@/lib/supabase/client";
-import {
-  AuthMessage,
-  DaitjiLogo,
-  SocialLoginButtons,
-  type SocialProvider,
-} from "@/components/features/auth/AuthShared";
+import { AuthMessage, DaitjiLogo } from "@/components/features/auth/AuthShared";
 
 interface SignupClientProps {
   nextPath?: string;
@@ -47,11 +42,13 @@ export function SignupClient({
   >(null);
   const [isEmailLoading, setIsEmailLoading] = useState(false);
   const [isResendingConfirmation, setIsResendingConfirmation] = useState(false);
-  const [socialLoadingProvider, setSocialLoadingProvider] =
-    useState<SocialProvider | null>(null);
 
   const passwordError = validatePassword(password);
   const showConfirmationState = Boolean(pendingConfirmationEmail);
+
+  useToastError(errorMessage, {
+    title: "회원가입을 진행할 수 없습니다.",
+  });
 
   const resetMessages = () => {
     setErrorMessage(null);
@@ -126,24 +123,6 @@ export function SignupClient({
     });
   };
 
-  const handleOAuthLogin = async (provider: SocialProvider) => {
-    resetMessages();
-    setSocialLoadingProvider(provider);
-
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider,
-      options: {
-        redirectTo: buildAbsoluteUrl(getOAuthRedirectPath(nextPath)),
-        queryParams: getOAuthQueryParams(provider),
-      },
-    });
-
-    if (error) {
-      setErrorMessage(mapAuthErrorMessage(error, "oauth"));
-      setSocialLoadingProvider(null);
-    }
-  };
-
   const handleResendConfirmation = async () => {
     const targetEmail = pendingConfirmationEmail || email;
 
@@ -188,9 +167,6 @@ export function SignupClient({
         </div>
 
         <div className="card animate-scale-in space-y-6">
-          {errorMessage ? (
-            <AuthMessage tone="error">{errorMessage}</AuthMessage>
-          ) : null}
           {successMessage ? (
             <AuthMessage tone="success">{successMessage}</AuthMessage>
           ) : null}

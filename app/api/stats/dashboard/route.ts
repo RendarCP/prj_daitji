@@ -1,5 +1,4 @@
 import { NextRequest } from "next/server";
-import { format, startOfWeek, subWeeks } from "date-fns";
 import {
   DashboardLocationHighlight,
   DashboardLocationStat,
@@ -14,6 +13,10 @@ import {
 } from "@/lib/api/utils";
 import { getAuthenticatedClient } from "@/lib/api/auth";
 import { computeItemExpiryDate, getDaysUntilExpiry } from "@/lib/utils/expiry";
+import {
+  buildRecentAddedByMonthWeek,
+  getRecentAddedWindowStart,
+} from "@/lib/utils/dashboardRecentAdded";
 
 /**
  * GET /api/stats/dashboard
@@ -27,9 +30,7 @@ export async function GET(_request: NextRequest) {
       return errorResponse("UNAUTHORIZED", undefined, 401);
     }
 
-    const recentWindowStart = startOfWeek(subWeeks(new Date(), 7), {
-      weekStartsOn: 1,
-    }).toISOString();
+    const recentWindowStart = getRecentAddedWindowStart().toISOString();
 
     const [
       totalItemsResult,
@@ -290,39 +291,7 @@ export async function GET(_request: NextRequest) {
           }
         : null;
 
-    const currentWeekStart = startOfWeek(new Date(), { weekStartsOn: 1 });
-    const recentAddedMap = new Map<string, number>();
-    for (let offset = 7; offset >= 0; offset -= 1) {
-      const weekStart = startOfWeek(subWeeks(currentWeekStart, offset), {
-        weekStartsOn: 1,
-      });
-      recentAddedMap.set(format(weekStart, "yyyy-MM-dd"), 0);
-    }
-
-    for (const item of recentItems) {
-      if (!item.created_at) {
-        continue;
-      }
-
-      const weekStartKey = format(
-        startOfWeek(new Date(item.created_at), { weekStartsOn: 1 }),
-        "yyyy-MM-dd",
-      );
-
-      if (recentAddedMap.has(weekStartKey)) {
-        recentAddedMap.set(
-          weekStartKey,
-          (recentAddedMap.get(weekStartKey) ?? 0) + 1,
-        );
-      }
-    }
-
-    const recentAddedByWeek = Array.from(recentAddedMap.entries()).map(
-      ([week_start, count]) => ({
-        week_start,
-        count,
-      }),
-    );
+    const recentAddedByWeek = buildRecentAddedByMonthWeek(recentItems);
 
     const expiringSoonCount =
       expiryBuckets.due_in_3_days + expiryBuckets.due_in_7_days;

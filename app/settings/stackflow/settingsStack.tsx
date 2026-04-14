@@ -19,6 +19,7 @@ import { BottomNav } from "@/components/layout/BottomNav";
 import { Header } from "@/components/layout/Header";
 import { useSettingsAccountUser } from "@/app/settings/SettingsContext";
 import { createClient } from "@/lib/supabase/client";
+import { useToastError } from "@/lib/hooks/useToastError";
 import { AccountSecurityClient } from "@/app/settings/account/AccountSecurityClient";
 import NotificationsSettingsClient from "@/app/settings/notifications/NotificationsSettingsClient";
 
@@ -138,6 +139,10 @@ const SettingsListActivity: ActivityComponentType = () => {
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [logoutError, setLogoutError] = useState<string | null>(null);
 
+  useToastError(logoutError, {
+    title: "로그아웃할 수 없습니다.",
+  });
+
   const handleItemClick = (item: SettingItemConfig) => {
     setLogoutError(null);
     switch (item.action.type) {
@@ -237,11 +242,6 @@ const SettingsListActivity: ActivityComponentType = () => {
             <p className="mb-6 text-muted-foreground">
               다시 로그인하려면 계정 정보가 필요합니다.
             </p>
-            {logoutError && (
-              <p className="mb-4 rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
-                {logoutError}
-              </p>
-            )}
             <div className="flex gap-3">
               <button
                 onClick={() => setShowLogoutConfirm(false)}
