@@ -32,12 +32,11 @@ export function BottomSheet({
   totalSteps,
   maxHeight = "max-h-[80vh]",
 }: BottomSheetProps) {
-  const [shouldRender, setShouldRender] = useState(isOpen);
   const [isClosing, setIsClosing] = useState(false);
-  const unmountTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const closeCallbackTimerRef = useRef<ReturnType<typeof setTimeout> | null>(
     null,
   );
+  const shouldRender = isOpen || isClosing;
   useBodyScrollLock(shouldRender);
 
   const requestClose = useCallback(() => {
@@ -64,43 +63,7 @@ export function BottomSheet({
   );
 
   useEffect(() => {
-    if (isOpen) {
-      setShouldRender(true);
-      setIsClosing(false);
-      if (unmountTimerRef.current) {
-        clearTimeout(unmountTimerRef.current);
-        unmountTimerRef.current = null;
-      }
-      if (closeCallbackTimerRef.current) {
-        clearTimeout(closeCallbackTimerRef.current);
-        closeCallbackTimerRef.current = null;
-      }
-      return;
-    }
-
-    if (!shouldRender) return;
-
-    setIsClosing(true);
-    unmountTimerRef.current = setTimeout(() => {
-      setShouldRender(false);
-      setIsClosing(false);
-    }, SHEET_ANIMATION_MS);
-
     return () => {
-      if (unmountTimerRef.current) {
-        clearTimeout(unmountTimerRef.current);
-      }
-      if (closeCallbackTimerRef.current) {
-        clearTimeout(closeCallbackTimerRef.current);
-      }
-    };
-  }, [isOpen, shouldRender]);
-
-  useEffect(() => {
-    return () => {
-      if (unmountTimerRef.current) {
-        clearTimeout(unmountTimerRef.current);
-      }
       if (closeCallbackTimerRef.current) {
         clearTimeout(closeCallbackTimerRef.current);
       }
@@ -130,7 +93,7 @@ export function BottomSheet({
       <div
         className={cn(
           "absolute inset-0 bg-black/60 backdrop-blur-sm transition-opacity duration-300",
-          isClosing ? "opacity-0" : "opacity-100",
+          isOpen && !isClosing ? "opacity-100" : "opacity-0",
         )}
         onClick={closeOnOverlayClick ? requestClose : undefined}
         aria-hidden="true"
@@ -141,7 +104,7 @@ export function BottomSheet({
         className={cn(
           "relative bg-card w-full rounded-t-3xl",
           "flex flex-col overflow-hidden",
-          isClosing ? "animate-slide-down-sheet" : "animate-slide-up-sheet",
+          isOpen && !isClosing ? "animate-slide-up-sheet" : "animate-slide-down-sheet",
           "shadow-2xl",
           maxHeight,
         )}

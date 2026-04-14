@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Bug, RefreshCw } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
@@ -45,7 +45,7 @@ export default function NotificationTestClient() {
     title: '알림 테스트를 처리할 수 없습니다.',
   })
 
-  const loadTestEvents = async () => {
+  const loadTestEvents = useCallback(async () => {
     setIsRefreshing(true)
     setErrorMessage(null)
 
@@ -73,7 +73,7 @@ export default function NotificationTestClient() {
     }
 
     setTestEvents(result.data)
-  }
+  }, [router])
 
   useEffect(() => {
     if (hasLoadedRef.current) {
@@ -89,7 +89,7 @@ export default function NotificationTestClient() {
     }
 
     initialize()
-  }, [])
+  }, [loadTestEvents])
 
   const handleCreateTestEvent = async (type: TestNotificationEvent['event_type']) => {
     setErrorMessage(null)

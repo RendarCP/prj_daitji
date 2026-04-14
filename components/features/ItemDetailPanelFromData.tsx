@@ -15,32 +15,13 @@ import { ItemDetailContent } from "@/components/features/ItemDetailContent";
 import { ItemDetailPanel } from "@/components/ui/ItemDetailPanel";
 import { useOverlayHistorySync } from "@/lib/hooks/useOverlayHistorySync";
 import { useDeleteItem } from "@/lib/hooks/useDeleteItem";
+import type {
+  DbItemForPanel,
+  ItemLocationInfo,
+  LocationPathItem,
+} from "@/lib/types";
 
 export const PANEL_EXIT_MS = 300;
-
-export type LocationPathItem = {
-  id: string;
-  name: string;
-  icon?: string | null;
-};
-export type ItemLocationInfo = {
-  id: string;
-  name: string | null;
-  icon?: string | null;
-  parent_id?: string | null;
-};
-
-export type DbItemForPanel = {
-  id: string;
-  name: string;
-  type: string;
-  image_url?: string | null;
-  location_id: string;
-  quantity: number | null;
-  tags: string[] | null;
-  created_at: string | null;
-  metadata?: Record<string, unknown> | null;
-};
 
 function getExpiryFromMetadata(
   _type: string,

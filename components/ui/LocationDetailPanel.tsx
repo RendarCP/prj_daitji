@@ -14,6 +14,8 @@ import { Spinner } from './Spinner'
 import { useDeleteLocation } from '@/lib/hooks/useDeleteLocation'
 import { useLocationDetailPanelData } from '@/lib/hooks/useLocationDetailPanelData'
 import type { Item, Location } from '@/lib/types'
+import { getLocationItemCount } from '@/lib/utils/location-count'
+import { LocationGridCard } from '@/components/features/LocationGridCard'
 
 const PANEL_EXIT_MS = 300
 
@@ -43,14 +45,9 @@ export function LocationDetailPanel({
   shouldCloseOnBack = true,
   enableOverlayHistorySync = true,
 }: LocationDetailPanelProps) {
-  const [isPanelOpen, setIsPanelOpen] = useState(isOpen)
+  const [isClosing, setIsClosing] = useState(false)
   const closeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-
-  useEffect(() => {
-    if (isOpen) {
-      setIsPanelOpen(true)
-    }
-  }, [isOpen, location?.id])
+  const panelIsOpen = isOpen && !isClosing
 
   useEffect(() => {
     return () => {
@@ -61,10 +58,10 @@ export function LocationDetailPanel({
   }, [])
 
   const { subLocations, items, isLoading, isError, error, refetch } =
-    useLocationDetailPanelData(location?.id ?? null, isPanelOpen && !!location?.id)
+    useLocationDetailPanelData(location?.id ?? null, panelIsOpen && !!location?.id)
 
   const handleCloseRequest = useCallback(() => {
-    setIsPanelOpen(false)
+    setIsClosing(true)
 
     if (closeTimerRef.current) {
       clearTimeout(closeTimerRef.current)
@@ -76,7 +73,7 @@ export function LocationDetailPanel({
   }, [onClose])
 
   const { requestClose } = useOverlayHistorySync({
-    isOpen: isPanelOpen && !!location?.id,
+    isOpen: panelIsOpen && !!location?.id,
     enabled: enableOverlayHistorySync && !!location?.id,
     overlayKey: 'location-detail',
     overlayId: location?.id ?? 'unknown',
@@ -105,7 +102,7 @@ export function LocationDetailPanel({
 
   return (
     <SidePanel
-      isOpen={isPanelOpen}
+      isOpen={panelIsOpen}
       onClose={requestClose}
       onBack={shouldCloseOnBack ? requestClose : onBack}
       title={location.name}
@@ -142,7 +139,7 @@ export function LocationDetailPanel({
             {location.name}
           </h2>
           <Badge variant="secondary" size="lg">
-            {location.item_count ?? location.itemCount ?? items.length}개 물품
+            {getLocationItemCount(location) || items.length}개 물품
           </Badge>
         </div>
 
@@ -210,27 +207,13 @@ export function LocationDetailPanel({
                 </h3>
                 <div className="grid grid-cols-2 gap-3">
                   {subLocations.map((subLoc) => (
-                    <button
+                    <LocationGridCard
                       key={subLoc.id}
-                      onClick={() => onSubLocationClick?.(subLoc)}
+                      location={subLoc}
+                      onClick={(nextLocation) => onSubLocationClick?.(nextLocation)}
+                      countLabel={(count) => `${count}개`}
                       className="card hover-lift p-4 transition-all duration-200"
-                    >
-                      <div className="flex flex-col items-center text-center">
-                        <LocationThumbnail
-                          name={subLoc.name}
-                          icon={subLoc.icon || '📦'}
-                          className="mb-2 h-16 w-full max-w-[120px] rounded-xl"
-                          emojiClassName="h-7 w-7 text-sm"
-                          labelClassName="text-[10px]"
-                        />
-                        <h4 className="font-semibold text-foreground text-sm mb-1">
-                          {subLoc.name}
-                        </h4>
-                        <p className="text-xs text-muted-foreground">
-                          {subLoc.item_count ?? subLoc.itemCount ?? 0}개
-                        </p>
-                      </div>
-                    </button>
+                    />
                   ))}
                 </div>
               </div>

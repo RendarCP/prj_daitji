@@ -1,6 +1,6 @@
 "use client";
 
-import { ReactNode, useEffect, useCallback, useState } from "react";
+import { ReactNode, useEffect, useCallback } from "react";
 import { X, ArrowLeft, Heart, Edit } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 
@@ -40,23 +40,6 @@ export function SidePanel({
   closeOnEscape = true,
   disableBodyScroll = false,
 }: SidePanelProps) {
-  const [isVisible, setIsVisible] = useState(false); // Controls rendering
-  const [isAnimating, setIsAnimating] = useState(false); // Controls animation class
-
-  // Handle visibility and animation based on isOpen prop
-  useEffect(() => {
-    if (isOpen) {
-      setIsVisible(true);
-      // Small delay to ensure render happens before animation starts
-      requestAnimationFrame(() => setIsAnimating(true));
-    } else {
-      setIsAnimating(false);
-      // Wait for animation to finish before hiding
-      const timer = setTimeout(() => setIsVisible(false), 300);
-      return () => clearTimeout(timer);
-    }
-  }, [isOpen]);
-
   const handleEscape = useCallback(
     (e: KeyboardEvent) => {
       if (closeOnEscape && e.key === "Escape") {
@@ -75,8 +58,6 @@ export function SidePanel({
     };
   }, [isOpen, handleEscape]);
 
-  if (!isVisible && !isOpen) return null;
-
   return (
     <div
       className="fixed inset-0 z-50 flex items-stretch justify-end overscroll-none pointer-events-none"
@@ -88,7 +69,7 @@ export function SidePanel({
       <div
         className={cn(
           "absolute inset-0 bg-black/60 backdrop-blur-sm transition-opacity duration-300 pointer-events-auto touch-none",
-          isAnimating ? "opacity-100" : "opacity-0",
+          isOpen ? "opacity-100" : "opacity-0",
         )}
         onClick={closeOnOverlayClick ? onClose : undefined}
         aria-hidden="true"
@@ -100,7 +81,7 @@ export function SidePanel({
           "relative bg-card w-full md:w-[400px] md:max-w-[90vw]",
           "flex flex-col h-full overflow-hidden overscroll-contain pointer-events-auto touch-pan-y",
           "shadow-2xl transition-transform duration-300 ease-in-out transform",
-          isAnimating ? "translate-x-0" : "translate-x-full",
+          isOpen ? "translate-x-0" : "translate-x-full",
         )}
       >
         {/* Header */}

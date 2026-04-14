@@ -10,43 +10,11 @@ import {
 } from '@/lib/api/utils'
 import { Location } from '@/lib/types'
 import { getAuthenticatedClient } from '@/lib/api/auth'
-
-/**
- * Build tree structure from flat location list
- */
-function buildLocationTree(locations: Location[]): Location[] {
-  const locationMap = new Map<string, any>()
-  const roots: any[] = []
-
-  // First pass: create map of all locations
-  locations.forEach((location) => {
-    locationMap.set(location.id, { ...location, children: [] })
-  })
-
-  // Second pass: build tree structure
-  locations.forEach((location) => {
-    const node = locationMap.get(location.id)
-    if (location.parent_id && locationMap.has(location.parent_id)) {
-      const parent = locationMap.get(location.parent_id)
-      parent.children.push(node)
-    } else {
-      roots.push(node)
-    }
-  })
-
-  // Sort by sort_order
-  const sortChildren = (nodes: any[]) => {
-    nodes.sort((a, b) => a.sort_order - b.sort_order)
-    nodes.forEach((node) => {
-      if (node.children.length > 0) {
-        sortChildren(node.children)
-      }
-    })
-  }
-
-  sortChildren(roots)
-  return roots
-}
+import {
+  buildLocationTree,
+  getActiveItemCountByLocation,
+  mapLocationRowsWithCounts,
+} from '@/lib/server/location-data'
 
 /**
  * GET /api/locations
@@ -88,41 +56,16 @@ export async function GET(request: NextRequest) {
       : []
 
     const locationIds = locationRows.map((row) => String(row.id))
-    const activeItemCountByLocation = new Map<string, number>()
+    const activeItemCountByLocation = await getActiveItemCountByLocation(
+      db,
+      user.id,
+      locationIds
+    )
 
-    if (locationIds.length > 0) {
-      const { data: activeItems, error: countError } = await db
-        .from('items')
-        .select('location_id')
-        .eq('user_id', user.id)
-        .eq('status', 'ACTIVE')
-        .in('location_id', locationIds)
-
-      if (countError) {
-        console.error('Count error:', countError)
-      } else if (Array.isArray(activeItems)) {
-        for (const item of activeItems) {
-          const locationId = item.location_id as string
-          activeItemCountByLocation.set(
-            locationId,
-            (activeItemCountByLocation.get(locationId) ?? 0) + 1
-          )
-        }
-      }
-    }
-
-    const data: Location[] = locationRows.map((row) => ({
-      id: String(row.id),
-      name: String(row.name ?? ''),
-      level: Number(row.level ?? 1),
-      parent_id: (row.parent_id as string | null | undefined) ?? null,
-      icon: (row.icon as string | null | undefined) ?? null,
-      color: (row.color as string | null | undefined) ?? null,
-      description: (row.description as string | null | undefined) ?? null,
-      item_count: activeItemCountByLocation.get(String(row.id)) ?? 0,
-      itemCount: activeItemCountByLocation.get(String(row.id)) ?? 0,
-      sort_order: Number(row.sort_order ?? 0),
-    }))
+    const data: Location[] = mapLocationRowsWithCounts(
+      locationRows,
+      activeItemCountByLocation
+    )
 
     // Return as tree or flat list based on query param
     const result = params.tree ? buildLocationTree(data || []) : data || []

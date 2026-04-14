@@ -115,3 +115,9 @@ export interface ApiResponse<T = unknown> {
   error?: ApiError;
   meta?: Record<string, unknown>;
 }
+
+export type {
+  DbItemForPanel,
+  ItemLocationInfo,
+  LocationPathItem,
+} from "@/lib/types/item-detail";

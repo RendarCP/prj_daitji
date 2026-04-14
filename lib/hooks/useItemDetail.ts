@@ -1,10 +1,13 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import type { DbItemForPanel } from "@/components/features/ItemDetailPanelFromData";
-import type { LocationPathItem } from "@/components/features/ItemDetailPanelFromData";
-import type { ItemLocationInfo } from "@/components/features/ItemDetailPanelFromData";
+import { apiGet } from "@/lib/api/client";
 import { queryKeys } from "@/lib/queryKeys";
+import type {
+  DbItemForPanel,
+  ItemLocationInfo,
+  LocationPathItem,
+} from "@/lib/types";
 
 interface ItemDetailResponse {
   item: DbItemForPanel;
@@ -13,14 +16,12 @@ interface ItemDetailResponse {
 }
 
 async function fetchItemDetail(id: string): Promise<ItemDetailResponse> {
-  const res = await fetch(`/api/items/${id}/detail`);
-  const json = await res.json();
+  const data = await apiGet<ItemDetailResponse>(
+    `/api/items/${id}/detail`,
+    undefined,
+    "물품 상세 정보를 불러오지 못했습니다",
+  );
 
-  if (!json.success) {
-    throw new Error(json.error?.message ?? "물품 상세 정보를 불러오지 못했습니다");
-  }
-
-  const data = json.data as ItemDetailResponse;
   return {
     ...data,
     locationPath: data.locationPath ?? [],

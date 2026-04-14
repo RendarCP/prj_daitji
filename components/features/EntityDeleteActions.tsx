@@ -5,6 +5,7 @@ import { createPortal } from "react-dom";
 import { MoreHorizontal, Trash2 } from "lucide-react";
 import { useDialog } from "@/lib/hooks/useDialog";
 import { useToastError } from "@/lib/hooks/useToastError";
+import { useMounted } from "@/lib/hooks/useMounted";
 import { Button } from "@/components/ui/Button";
 import { Modal } from "@/components/ui/Modal";
 
@@ -27,7 +28,7 @@ export function EntityDeleteActions({
 }: EntityDeleteActionsProps) {
   const menuDialog = useDialog();
   const confirmDialog = useDialog();
-  const [isMounted, setIsMounted] = useState(false);
+  const isMounted = useMounted();
   const [menuPosition, setMenuPosition] = useState({ top: 0, right: 0 });
   const triggerRef = useRef<HTMLButtonElement | null>(null);
   const menuRef = useRef<HTMLDivElement | null>(null);
@@ -35,10 +36,6 @@ export function EntityDeleteActions({
   useToastError(deleteError, {
     title: `${entityLabel} 삭제를 완료하지 못했습니다.`,
   });
-
-  useEffect(() => {
-    setIsMounted(true);
-  }, []);
 
   useEffect(() => {
     if (!menuDialog.isOpen) {

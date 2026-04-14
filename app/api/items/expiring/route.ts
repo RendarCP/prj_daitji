@@ -8,7 +8,7 @@ import {
   CORS_HEADERS,
 } from '@/lib/api/utils'
 import { getAuthenticatedClient } from '@/lib/api/auth'
-import { computeItemExpiryDate, getDaysUntilExpiry } from '@/lib/utils/expiry'
+import { mapItemRowToExpiringItem } from '@/lib/server/item-data'
 
 /**
  * GET /api/items/expiring
@@ -42,25 +42,11 @@ export async function GET(request: NextRequest) {
 
     const result = Array.isArray(data)
       ? data
-          .map((row) => {
-            const expiryDate = computeItemExpiryDate(row.type, row.metadata)
-            const daysUntil = getDaysUntilExpiry(expiryDate)
-
-            return {
-              item_id: row.id,
-              item_name: row.name,
-              item_type: row.type,
-              image_url: row.image_url ?? null,
-              expiry_date: expiryDate,
-              days_until_expiry: daysUntil,
-              location_name: row.location?.name ?? null,
-              location_path: null,
-            }
-          })
+          .map((row) => mapItemRowToExpiringItem(row as any))
           .filter(
             (item) =>
-              item.expiry_date !== null &&
               item.days_until_expiry !== null &&
+              Number.isFinite(item.days_until_expiry) &&
               item.days_until_expiry >= 0 &&
               item.days_until_expiry <= params.days
           )

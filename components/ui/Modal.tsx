@@ -1,10 +1,11 @@
 'use client'
 
-import { ReactNode, useEffect, useCallback, useState } from 'react'
+import { ReactNode, useEffect, useCallback } from 'react'
 import { createPortal } from 'react-dom'
 import { X } from 'lucide-react'
 import { cn } from '@/lib/utils/cn'
 import { useBodyScrollLock } from '@/lib/hooks/useBodyScrollLock'
+import { useMounted } from '@/lib/hooks/useMounted'
 import { Button } from './Button'
 
 export interface ModalProps {
@@ -32,12 +33,8 @@ export function Modal({
   showCloseButton = true,
   footer,
 }: ModalProps) {
-  const [isMounted, setIsMounted] = useState(false)
+  const isMounted = useMounted()
   useBodyScrollLock(isOpen)
-
-  useEffect(() => {
-    setIsMounted(true)
-  }, [])
 
   const handleEscape = useCallback(
     (e: KeyboardEvent) => {

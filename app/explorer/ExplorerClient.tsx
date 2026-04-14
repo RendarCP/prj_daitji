@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useEffect, useMemo, useRef } from "react";
+import { useState, useCallback, useEffect, useMemo } from "react";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { Home, ChevronRight, Search, SlidersHorizontal } from "lucide-react";
 import { QuickAddButton } from "@/components/features/QuickAddButton";
@@ -11,7 +11,7 @@ import {
   ListItemSkeleton,
 } from "@/components/ui/Skeleton";
 import { useLocations, useLocationPath } from "@/lib/hooks/useLocations";
-import { useDialog } from "@/lib/hooks/useDialog";
+import { useAnimatedDialog } from "@/lib/hooks/useAnimatedDialog";
 import { useItems } from "@/lib/hooks/useItems";
 import { useItemDetail } from "@/lib/hooks/useItemDetail";
 import { useOverlayHistorySync } from "@/lib/hooks/useOverlayHistorySync";
@@ -21,10 +21,10 @@ import { ItemDetailPanelFromData } from "@/components/features/ItemDetailPanelFr
 import { BottomSheet } from "@/components/ui/BottomSheet";
 import { ItemAddClient } from "@/app/items/add/ItemAddClient";
 import { EmptyState } from "@/components/ui/EmptyState";
-import { LocationThumbnail } from "@/components/features/LocationThumbnail";
+import { filterItemsBySearch } from "@/lib/utils/item-search";
+import { LocationGridCard } from "@/components/features/LocationGridCard";
 
 export default function ExplorerClient() {
-  const SHEET_EXIT_MS = 300;
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -37,10 +37,7 @@ export default function ExplorerClient() {
   const [searchQuery, setSearchQuery] = useState("");
   const [showFilters, setShowFilters] = useState(false);
   const [activeItemId, setActiveItemId] = useState<string | null>(null);
-  const editSheetDialog = useDialog<string>();
-  const editSheetCloseTimerRef = useRef<ReturnType<typeof setTimeout> | null>(
-    null,
-  );
+  const editSheetDialog = useAnimatedDialog<string>();
 
   // React Query hooks
   const { data: locations = [], isLoading: isLoadingLocations } = useLocations({
@@ -94,18 +91,7 @@ export default function ExplorerClient() {
 
   // Filter items based on search query
   const filteredItems = useMemo(() => {
-    if (!searchQuery.trim()) {
-      return items;
-    }
-
-    const lowerQuery = searchQuery.toLowerCase();
-    return items.filter(
-      (item) =>
-        item.item_name.toLowerCase().includes(lowerQuery) ||
-        item.type.toLowerCase().includes(lowerQuery) ||
-        (item.tags &&
-          item.tags.some((tag) => tag.toLowerCase().includes(lowerQuery))),
-    );
+    return filterItemsBySearch(items, searchQuery);
   }, [items, searchQuery]);
 
   // Initialize from URL params
@@ -116,23 +102,8 @@ export default function ExplorerClient() {
     }
   }, [locationIdParam]);
 
-  useEffect(() => {
-    return () => {
-      if (editSheetCloseTimerRef.current) {
-        clearTimeout(editSheetCloseTimerRef.current);
-      }
-    };
-  }, []);
-
   const openEditSheet = (itemId: string) => {
     editSheetDialog.open(itemId);
-  };
-
-  const closeEditSheetWithAnimation = () => {
-    editSheetDialog.close();
-    editSheetCloseTimerRef.current = setTimeout(() => {
-      editSheetDialog.reset();
-    }, SHEET_EXIT_MS);
   };
 
   // Build breadcrumb items including root
@@ -195,26 +166,12 @@ export default function ExplorerClient() {
                   {displayLocations.length > 0 && (
                     <div className="grid grid-cols-2 gap-3">
                       {displayLocations.map((location) => (
-                        <button
+                        <LocationGridCard
                           key={location.id}
-                          onClick={() => handleLocationSelect(location)}
+                          location={location}
+                          onClick={handleLocationSelect}
                           className="card hover-lift p-4 transition-all duration-200 bg-card border border-border"
-                        >
-                          <div className="flex flex-col items-center text-center">
-                            <LocationThumbnail
-                              name={location.name}
-                              icon={location.icon || "📦"}
-                              className="mb-3 h-24 w-full max-w-[160px]"
-                              emojiClassName="h-8 w-8 text-base"
-                            />
-                            <h3 className="font-semibold text-foreground mb-1 text-sm">
-                              {location.name}
-                            </h3>
-                            <p className="text-xs text-muted-foreground">
-                              물품 {location.itemCount || 0}개
-                            </p>
-                          </div>
-                        </button>
+                        />
                       ))}
                     </div>
                   )}
@@ -397,7 +354,7 @@ export default function ExplorerClient() {
       {editSheetDialog.data && (
         <BottomSheet
           isOpen={editSheetDialog.isOpen}
-          onClose={closeEditSheetWithAnimation}
+          onClose={editSheetDialog.closeWithAnimation}
           title="물품 수정"
           maxHeight="max-h-[95vh]"
           closeOnOverlayClick={false}
@@ -407,7 +364,7 @@ export default function ExplorerClient() {
               mode="modal"
               isEditMode
               itemId={editSheetDialog.data}
-              onSuccess={() => closeEditSheetWithAnimation()}
+              onSuccess={() => editSheetDialog.closeWithAnimation()}
             />
           </div>
         </BottomSheet>

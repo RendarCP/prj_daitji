@@ -18,9 +18,10 @@ import { ItemDetailPanelFromData } from "@/components/features/ItemDetailPanelFr
 import { cn } from "@/lib/utils/cn";
 import { useOverlayHistorySync } from "@/lib/hooks/useOverlayHistorySync";
 import { useToastError } from "@/lib/hooks/useToastError";
-import type { ExpiringItem, Item } from "@/lib/types";
+import type { ExpiringItem } from "@/lib/types";
 import { BottomSheet } from "@/components/ui/BottomSheet";
 import { ItemAddClient } from "@/app/items/add/ItemAddClient";
+import { filterItemsBySearch } from "@/lib/utils/item-search";
 
 const SHEET_EXIT_MS = 300;
 
@@ -38,16 +39,7 @@ const ItemsListActivity: ActivityComponentType = () => {
     error: expiringError,
   } = useExpiringItems();
 
-  const filteredItems = items.filter((item: Item) => {
-    if (!searchQuery.trim()) return true;
-    const lowerQuery = searchQuery.toLowerCase();
-    return (
-      item.item_name.toLowerCase().includes(lowerQuery) ||
-      item.type.toLowerCase().includes(lowerQuery) ||
-      (item.tags &&
-        item.tags.some((tag: string) => tag.toLowerCase().includes(lowerQuery)))
-    );
-  });
+  const filteredItems = filterItemsBySearch(items, searchQuery);
   const isGlobalEmpty =
     !isLoading && !error && items.length === 0 && !searchQuery.trim();
   const expiringErrorMessage =

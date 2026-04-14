@@ -2,6 +2,12 @@ import { NextRequest } from "next/server";
 import { errorResponse, successResponse, handleError } from "@/lib/api/utils";
 import type { Database } from "@/lib/types/database.types";
 import { getAuthenticatedClient } from "@/lib/api/auth";
+import {
+  mapItemLocationInfo,
+  mapItemRowToDetailItem,
+} from "@/lib/server/item-data";
+import { ITEM_DETAIL_SELECT } from "@/lib/server/item-query";
+import { isUuid } from "@/lib/utils/validation";
 
 export const preferredRegion = "icn1";
 
@@ -15,9 +21,6 @@ type ItemWithLocationRow = ItemRow & {
   } | null;
 };
 
-const UUID_REGEX =
-  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-
 /**
  * GET /api/items/[id]/detail
  * 단일 물품 + 위치 정보 반환
@@ -29,7 +32,7 @@ export async function GET(
   try {
     const { id } = await params;
 
-    if (!UUID_REGEX.test(id)) {
+    if (!isUuid(id)) {
       return errorResponse("INVALID_ID", undefined, 400);
     }
 
@@ -41,20 +44,7 @@ export async function GET(
 
     const { data, error: itemError } = await supabase
       .from("items")
-      .select(
-        `
-          id,
-          name,
-          type,
-          image_url,
-          location_id,
-          quantity,
-          tags,
-          created_at,
-          metadata,
-          location:locations(id, name, icon, parent_id)
-        `,
-      )
+      .select(ITEM_DETAIL_SELECT)
       .eq("id", id)
       .eq("user_id", user.id)
       .single<ItemWithLocationRow>();
@@ -69,18 +59,8 @@ export async function GET(
     }
 
     return successResponse({
-      item: {
-        id: item.id,
-        name: item.name,
-        type: item.type,
-        image_url: item.image_url,
-        location_id: item.location_id,
-        quantity: item.quantity,
-        tags: item.tags,
-        created_at: item.created_at,
-        metadata: item.metadata as Record<string, unknown> | null,
-      },
-      location: item.location,
+      item: mapItemRowToDetailItem(item as any),
+      location: mapItemLocationInfo(item.location),
       locationPath: [],
     });
   } catch (error) {

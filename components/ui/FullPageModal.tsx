@@ -36,35 +36,15 @@ export function FullPageModal({
   closeOnEscape = true,
   disableBodyScroll = false,
 }: FullPageModalProps) {
-  const [isVisible, setIsVisible] = useState(false); // Controls rendering
   const [isClosing, setIsClosing] = useState(false); // 닫기 애니메이션 진행 중 (이때는 onClose 지연)
   const hasCloseIntentRef = useRef(false);
   const onCloseRef = useRef(onClose);
   const lastCloseSignalRef = useRef(closeSignal);
+  const shouldRender = isOpen || isClosing;
 
   useEffect(() => {
     onCloseRef.current = onClose;
   }, [onClose]);
-
-  // 열림: 마운트 시 바로 키프레임 애니메이션을 재생한다.
-  useEffect(() => {
-    if (isOpen && !isClosing && !hasCloseIntentRef.current) {
-      setIsVisible(true);
-      setIsClosing(false);
-    }
-  }, [isOpen, isClosing]);
-
-  // 부모에서 isOpen이 false로 바뀐 경우(예: 브라우저 뒤로가기)에도 슬라이드 다운 후 숨김
-  useEffect(() => {
-    if (!isOpen) {
-      hasCloseIntentRef.current = false;
-    }
-
-    if (!isOpen && isVisible) {
-      const t = setTimeout(() => setIsVisible(false), CLOSE_DURATION_MS);
-      return () => clearTimeout(t);
-    }
-  }, [isOpen, isVisible]);
 
   // 닫기 클릭/이스케이프: 먼저 슬라이드 다운 재생 후 onClose 호출
   const startClose = useCallback(() => {
@@ -79,7 +59,11 @@ export function FullPageModal({
     }
 
     lastCloseSignalRef.current = closeSignal;
-    startClose();
+    const timer = setTimeout(() => {
+      startClose();
+    }, 0);
+
+    return () => clearTimeout(timer);
   }, [closeSignal, startClose]);
 
   // 닫기 애니메이션 종료 후 실제 onClose 호출
@@ -87,8 +71,8 @@ export function FullPageModal({
     if (!isClosing) return;
     const t = setTimeout(() => {
       onCloseRef.current();
-      setIsVisible(false);
       setIsClosing(false);
+      hasCloseIntentRef.current = false;
     }, CLOSE_DURATION_MS);
     return () => clearTimeout(t);
   }, [isClosing]);
@@ -109,7 +93,7 @@ export function FullPageModal({
     };
   }, [isOpen, handleEscape]);
 
-  if (!isVisible && !isOpen) return null;
+  if (!shouldRender) return null;
 
   return (
     <div
@@ -122,7 +106,7 @@ export function FullPageModal({
       <div
         className={cn(
           "absolute inset-0 bg-black/60 backdrop-blur-sm transition-opacity duration-300 pointer-events-auto touch-none",
-          isClosing ? "opacity-0" : "opacity-100",
+          isOpen && !isClosing ? "opacity-100" : "opacity-0",
         )}
         onClick={startClose}
         aria-hidden="true"
@@ -135,7 +119,7 @@ export function FullPageModal({
           "flex flex-col overflow-hidden",
           "overscroll-contain touch-pan-y",
           "shadow-2xl",
-          isClosing ? "animate-slide-down-sheet" : "animate-slide-up-sheet",
+          isOpen && !isClosing ? "animate-slide-up-sheet" : "animate-slide-down-sheet",
         )}
       >
         {/* Header - Matching SidePanel style */}

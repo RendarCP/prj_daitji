@@ -16,37 +16,10 @@ import {
   CORS_HEADERS,
 } from "@/lib/api/utils";
 import { getAuthenticatedClient } from "@/lib/api/auth";
-import { computeItemExpiryDate, getDaysUntilExpiry } from "@/lib/utils/expiry";
+import { mapItemRowToListResponse } from "@/lib/server/item-data";
+import { ITEM_LIST_SELECT, ITEM_WITH_LOCATION_SELECT } from "@/lib/server/item-query";
 
 export const preferredRegion = "icn1";
-
-function mapItemRowToResponse(row: Record<string, any>) {
-  const computedExpiryDate = computeItemExpiryDate(
-    row.type as "FOOD" | "COSMETIC" | "MEDICINE" | "GENERAL",
-    row.metadata,
-  );
-  const daysUntilExpiry = getDaysUntilExpiry(computedExpiryDate);
-
-  return {
-    id: row.id,
-    item_name: row.name,
-    type: row.type,
-    status: row.status,
-    quantity: row.quantity,
-    barcode: row.barcode,
-    image_url: row.image_url,
-    tags: row.tags,
-    metadata: row.metadata,
-    computed_expiry_date: computedExpiryDate,
-    days_until_expiry: daysUntilExpiry,
-    location_id: row.location_id,
-    location_name: row.location?.name ?? null,
-    location_level: row.location?.level ?? null,
-    location_path: null,
-    created_at: row.created_at,
-    updated_at: row.updated_at,
-  };
-}
 
 async function getUserLocationSubtreeIds(
   supabase: any,
@@ -139,24 +112,7 @@ export async function GET(request: NextRequest) {
 
     let query = supabase
       .from("items")
-      .select(
-        `
-        id,
-        name,
-        type,
-        status,
-        quantity,
-        barcode,
-        image_url,
-        tags,
-        metadata,
-        location_id,
-        created_at,
-        updated_at,
-        location:locations(id, name, level)
-      `,
-        { count: "exact" },
-      )
+      .select(ITEM_LIST_SELECT, { count: "exact" })
       .eq("user_id", user.id);
 
     // Apply filters
@@ -181,14 +137,14 @@ export async function GET(request: NextRequest) {
     }
 
     let mappedData = Array.isArray(data)
-      ? data.map((row) => mapItemRowToResponse(row as Record<string, any>))
+      ? data.map((row) => mapItemRowToListResponse(row as any))
       : [];
 
     let totalCount = count || 0;
 
     if (params.expiring_within_days !== undefined) {
       mappedData = mappedData.filter((item) => {
-        const days = item.days_until_expiry;
+        const days = item.days_until_expiry ?? null;
         return days !== null && days >= 0 && days <= params.expiring_within_days!;
       });
 
@@ -251,35 +207,7 @@ export async function POST(request: NextRequest) {
         metadata: validatedData.metadata,
         user_id: user.id,
       } as any)
-      .select(
-        `
-        id,
-        name,
-        type,
-        location_id,
-        quantity,
-        barcode,
-        image_url,
-        tags,
-        metadata,
-        status,
-        created_at,
-        updated_at,
-        user_id,
-        location:locations(
-          id,
-          name,
-          icon,
-          parent_id,
-          level,
-          sort_order,
-          color,
-          created_at,
-          updated_at,
-          user_id
-        )
-      `,
-      )
+      .select(ITEM_WITH_LOCATION_SELECT)
       .single();
 
     if (error) {

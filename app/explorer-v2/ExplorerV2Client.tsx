@@ -5,7 +5,6 @@ import {
   useCallback,
   useEffect,
   useMemo,
-  useRef,
   useState,
 } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
@@ -40,6 +39,7 @@ import { useOverlayHistorySync } from "@/lib/hooks/useOverlayHistorySync";
 import { useToastError } from "@/lib/hooks/useToastError";
 import { useLocations } from "@/lib/hooks/useLocations";
 import { useItemDetail } from "@/lib/hooks/useItemDetail";
+import { useAnimatedDialog } from "@/lib/hooks/useAnimatedDialog";
 import { queryKeys } from "@/lib/queryKeys";
 import { cn } from "@/lib/utils/cn";
 import type { Location } from "@/lib/types";
@@ -48,6 +48,7 @@ import { LocationDetailPanel } from "@/components/ui/LocationDetailPanel";
 import { BottomSheet } from "@/components/ui/BottomSheet";
 import { AddLocationClient } from "@/app/explorer/AddLocationClient";
 import { LocationThumbnail } from "@/components/features/LocationThumbnail";
+import { getLocationItemCount } from "@/lib/utils/location-count";
 
 type TreeLocation = Omit<Location, "children"> & { children: TreeLocation[] };
 
@@ -139,8 +140,7 @@ function areTreesEqual(a: TreeLocation[], b: TreeLocation[]): boolean {
       left.name !== right.name ||
       left.level !== right.level ||
       (left.parent_id ?? null) !== (right.parent_id ?? null) ||
-      (left.itemCount ?? left.item_count ?? 0) !==
-        (right.itemCount ?? right.item_count ?? 0) ||
+      getLocationItemCount(left) !== getLocationItemCount(right) ||
       (left.icon ?? null) !== (right.icon ?? null)
     ) {
       return false;
@@ -534,7 +534,7 @@ function TreeNode({
                 <p className="text-base font-semibold truncate">{node.name}</p>
                 <p className="text-xs text-muted-foreground">
                   레벨 {node.level} · 물품{" "}
-                  {node.itemCount || node.item_count || 0}개
+                  {getLocationItemCount(node)}개
                 </p>
               </div>
             </button>
@@ -607,7 +607,6 @@ function DragPreview({ node }: DragPreviewProps) {
 }
 
 export default function ExplorerV2Client() {
-  const SHEET_EXIT_MS = 300;
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -653,13 +652,7 @@ export default function ExplorerV2Client() {
     null,
   );
   const [locationStack, setLocationStack] = useState<Location[]>([]);
-  const [editingLocationId, setEditingLocationId] = useState<string | null>(
-    null,
-  );
-  const [isEditSheetOpen, setIsEditSheetOpen] = useState(false);
-  const editSheetCloseTimerRef = useRef<ReturnType<typeof setTimeout> | null>(
-    null,
-  );
+  const editSheetDialog = useAnimatedDialog<string>();
 
   const { setNodeRef: setRootDropRef, isOver: isOverRoot } = useDroppable({
     id: makeDropId(ROOT_ID, "inside"),
@@ -696,14 +689,6 @@ export default function ExplorerV2Client() {
       return changed || !areSetsEqual(prev, next) ? next : prev;
     });
   }, [treeResponse]);
-
-  useEffect(() => {
-    return () => {
-      if (editSheetCloseTimerRef.current) {
-        clearTimeout(editSheetCloseTimerRef.current);
-      }
-    };
-  }, []);
 
   useEffect(() => {
     const handleNavigationRetap = (event: Event) => {
@@ -763,7 +748,7 @@ export default function ExplorerV2Client() {
   );
   const busiestStructuredLocation = rootLocationDistribution[0];
   const isOverlayOpen =
-    !!selectedLocation || !!activeItemId || !!editingLocationId;
+    !!selectedLocation || !!activeItemId || !!editSheetDialog.data;
 
   useToastError(errorMessage, {
     title: "위치 구조를 변경할 수 없습니다.",
@@ -815,15 +800,7 @@ export default function ExplorerV2Client() {
   };
 
   const openEditSheet = (location: Location) => {
-    setEditingLocationId(location.id);
-    setIsEditSheetOpen(true);
-  };
-
-  const closeEditSheetWithAnimation = () => {
-    setIsEditSheetOpen(false);
-    editSheetCloseTimerRef.current = setTimeout(() => {
-      setEditingLocationId(null);
-    }, SHEET_EXIT_MS);
+    editSheetDialog.open(location.id);
   };
 
   const handleToggle = (id: string) => {
@@ -1148,10 +1125,10 @@ export default function ExplorerV2Client() {
         />
       )}
 
-      {editingLocationId && (
+      {editSheetDialog.data && (
         <BottomSheet
-          isOpen={isEditSheetOpen}
-          onClose={closeEditSheetWithAnimation}
+          isOpen={editSheetDialog.isOpen}
+          onClose={editSheetDialog.closeWithAnimation}
           title="위치 수정"
           maxHeight="max-h-[95vh]"
           closeOnOverlayClick={false}
@@ -1161,7 +1138,7 @@ export default function ExplorerV2Client() {
               locations={flatLocations}
               mode="modal"
               isEditMode
-              locationId={editingLocationId}
+              locationId={editSheetDialog.data}
               onSuccess={async (_targetId, location) => {
                 await queryClient.invalidateQueries({
                   queryKey: queryKeys.locations.all,
@@ -1171,7 +1148,7 @@ export default function ExplorerV2Client() {
                   setSelectedLocation(location);
                 }
 
-                closeEditSheetWithAnimation();
+                editSheetDialog.closeWithAnimation();
               }}
             />
           </div>

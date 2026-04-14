@@ -1,7 +1,7 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useState } from "react";
 import { QuickAddButton } from "@/components/features/QuickAddButton";
 import { LocationDetailPanel } from "@/components/ui/LocationDetailPanel";
 import { BottomSheet } from "@/components/ui/BottomSheet";
@@ -14,15 +14,12 @@ import { EmptyState } from "@/components/ui/EmptyState";
 import { useItemDetail } from "@/lib/hooks/useItemDetail";
 import { ItemDetailPanelFromData } from "@/components/features/ItemDetailPanelFromData";
 import { LocationCardSkeleton } from "@/components/ui/Skeleton";
-import {
-  useDashboardStats,
-  useLocationSummary,
-} from "@/lib/hooks/useDashboard";
+import { useDashboardStats } from "@/lib/hooks/useDashboard";
 import { useLocations } from "@/lib/hooks/useLocations";
-import { useDialog } from "@/lib/hooks/useDialog";
+import { useAnimatedDialog } from "@/lib/hooks/useAnimatedDialog";
 import { cn } from "@/lib/utils/cn";
 import type { Location } from "@/lib/types";
-import { LocationThumbnail } from "@/components/features/LocationThumbnail";
+import { LocationGridCard } from "@/components/features/LocationGridCard";
 
 const DashboardOverviewSection = dynamic(
   () =>
@@ -53,7 +50,6 @@ const DashboardOverviewSection = dynamic(
 );
 
 export function DashboardClient() {
-  const SHEET_EXIT_MS = 300;
   const [selectedLocation, setSelectedLocation] = useState<Location | null>(
     null,
   );
@@ -62,10 +58,7 @@ export function DashboardClient() {
   const [activeItemId, setActiveItemId] = useState<string | null>(null);
   const [isItemAddModalOpen, setIsItemAddModalOpen] = useState(false);
   const [isLocationAddModalOpen, setIsLocationAddModalOpen] = useState(false);
-  const editSheetDialog = useDialog<string>();
-  const editSheetCloseTimerRef = useRef<ReturnType<typeof setTimeout> | null>(
-    null,
-  );
+  const editSheetDialog = useAnimatedDialog<string>();
 
   // React Query hooks
   const {
@@ -74,11 +67,10 @@ export function DashboardClient() {
     error: statsError,
   } = useDashboardStats();
   const {
-    data: locationSummary = [],
+    data: locations = [],
     isLoading: isLocationLoading,
     error: locationError,
-  } = useLocationSummary();
-  const { data: locations = [] } = useLocations();
+  } = useLocations({ tree: true });
   const { data: activeItemDetail, isLoading: isActiveItemLoading } =
     useItemDetail(activeItemId);
   const closeActiveItemPanel = useCallback(() => {
@@ -123,21 +115,6 @@ export function DashboardClient() {
   const openEditSheet = (itemId: string) => {
     editSheetDialog.open(itemId);
   };
-
-  const closeEditSheetWithAnimation = () => {
-    editSheetDialog.close();
-    editSheetCloseTimerRef.current = setTimeout(() => {
-      editSheetDialog.reset();
-    }, SHEET_EXIT_MS);
-  };
-
-  useEffect(() => {
-    return () => {
-      if (editSheetCloseTimerRef.current) {
-        clearTimeout(editSheetCloseTimerRef.current);
-      }
-    };
-  }, []);
 
   return (
     <div
@@ -184,7 +161,7 @@ export function DashboardClient() {
                 <LocationCardSkeleton key={i} />
               ))}
             </div>
-          ) : locationSummary.length === 0 ? (
+          ) : locations.length === 0 ? (
             <div className="card">
               <EmptyState
                 size="sm"
@@ -199,27 +176,14 @@ export function DashboardClient() {
             </div>
           ) : (
             <div className="grid grid-cols-2 gap-3">
-              {locationSummary.slice(0, 4).map((location: Location) => (
-                <button
+              {locations.slice(0, 4).map((location: Location) => (
+                <LocationGridCard
                   key={location.id}
-                  onClick={() => setSelectedLocation(location)}
+                  location={location}
+                  onClick={setSelectedLocation}
+                  countLabel={(count) => `${count}개 물품`}
                   className="card hover-lift p-6 transition-all duration-200"
-                >
-                  <div className="flex flex-col items-center text-center">
-                    <LocationThumbnail
-                      name={location.name}
-                      icon={location.icon || "📦"}
-                      className="mb-3 h-24 w-full max-w-[168px]"
-                      emojiClassName="h-8 w-8 text-base"
-                    />
-                    <h3 className="font-bold text-foreground mb-1">
-                      {location.name}
-                    </h3>
-                    <p className="text-sm text-muted-foreground">
-                      {location.item_count || location.itemCount || 0}개 물품
-                    </p>
-                  </div>
-                </button>
+                />
               ))}
             </div>
           )}
@@ -277,7 +241,7 @@ export function DashboardClient() {
       {editSheetDialog.data && (
         <BottomSheet
           isOpen={editSheetDialog.isOpen}
-          onClose={closeEditSheetWithAnimation}
+          onClose={editSheetDialog.closeWithAnimation}
           title="물품 수정"
           maxHeight="max-h-[95vh]"
           closeOnOverlayClick={false}
@@ -287,7 +251,7 @@ export function DashboardClient() {
               mode="modal"
               isEditMode
               itemId={editSheetDialog.data}
-              onSuccess={() => closeEditSheetWithAnimation()}
+              onSuccess={() => editSheetDialog.closeWithAnimation()}
             />
           </div>
         </BottomSheet>

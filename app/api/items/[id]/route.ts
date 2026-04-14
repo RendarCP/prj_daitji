@@ -7,6 +7,8 @@ import {
   CORS_HEADERS,
 } from "@/lib/api/utils";
 import { getAuthenticatedClient } from "@/lib/api/auth";
+import { ITEM_WITH_LOCATION_SELECT } from "@/lib/server/item-query";
+import { isUuid } from "@/lib/utils/validation";
 
 export const preferredRegion = "icn1";
 
@@ -24,9 +26,7 @@ export async function GET(
     const { id } = await params;
 
     // Validate UUID format
-    const uuidRegex =
-      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-    if (!uuidRegex.test(id)) {
+    if (!isUuid(id)) {
       return errorResponse("INVALID_ID", undefined, 400);
     }
 
@@ -38,35 +38,7 @@ export async function GET(
 
     const { data, error } = await supabase
       .from("items")
-      .select(
-        `
-        id,
-        name,
-        type,
-        location_id,
-        quantity,
-        barcode,
-        image_url,
-        tags,
-        metadata,
-        status,
-        created_at,
-        updated_at,
-        user_id,
-        location:locations(
-          id,
-          name,
-          icon,
-          parent_id,
-          level,
-          sort_order,
-          color,
-          created_at,
-          updated_at,
-          user_id
-        )
-      `,
-      )
+      .select(ITEM_WITH_LOCATION_SELECT)
       .eq("id", id)
       .eq("user_id", user.id)
       .single();
@@ -97,9 +69,7 @@ export async function PATCH(
     const { id } = await params;
 
     // Validate UUID format
-    const uuidRegex =
-      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-    if (!uuidRegex.test(id)) {
+    if (!isUuid(id)) {
       return errorResponse("INVALID_ID", undefined, 400);
     }
 
@@ -145,35 +115,7 @@ export async function PATCH(
       })
       .eq("id", id)
       .eq("user_id", user.id)
-      .select(
-        `
-        id,
-        name,
-        type,
-        location_id,
-        quantity,
-        barcode,
-        image_url,
-        tags,
-        metadata,
-        status,
-        created_at,
-        updated_at,
-        user_id,
-        location:locations(
-          id,
-          name,
-          icon,
-          parent_id,
-          level,
-          sort_order,
-          color,
-          created_at,
-          updated_at,
-          user_id
-        )
-      `,
-      )
+      .select(ITEM_WITH_LOCATION_SELECT)
       .single();
 
     if (error) {
@@ -204,9 +146,7 @@ export async function DELETE(
     const { id } = await params;
 
     // Validate UUID format
-    const uuidRegex =
-      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-    if (!uuidRegex.test(id)) {
+    if (!isUuid(id)) {
       return errorResponse("INVALID_ID", undefined, 400);
     }
 

@@ -1,18 +1,16 @@
 'use client'
 
 import { useQuery } from '@tanstack/react-query'
+import { apiGet } from '@/lib/api/client'
 import { queryKeys } from '@/lib/queryKeys'
-import type { DashboardOverviewResponse, Item, Location } from '@/lib/types'
+import type { DashboardOverviewResponse, Item } from '@/lib/types'
 
 async function fetchDashboardStats(): Promise<DashboardOverviewResponse> {
-  const response = await fetch('/api/stats/dashboard')
-  const result = await response.json()
-
-  if (!result.success) {
-    throw new Error(result.error?.message || '대시보드 통계를 불러오지 못했습니다')
-  }
-
-  return result.data
+  return apiGet<DashboardOverviewResponse>(
+    '/api/stats/dashboard',
+    undefined,
+    '대시보드 통계를 불러오지 못했습니다'
+  )
 }
 
 export function useDashboardStats() {
@@ -23,37 +21,16 @@ export function useDashboardStats() {
 }
 
 async function fetchRecentItems(): Promise<Item[]> {
-  const response = await fetch('/api/items?sort=created_at&limit=5')
-  const result = await response.json()
-
-  if (!result.success) {
-    throw new Error(result.error?.message || '최근 물품을 불러오지 못했습니다')
-  }
-
-  return result.data || []
+  return apiGet<Item[]>(
+    '/api/items',
+    { sort: 'created_at', limit: 5 },
+    '최근 물품을 불러오지 못했습니다'
+  ).then((data) => data ?? [])
 }
 
 export function useRecentItems() {
   return useQuery({
     queryKey: queryKeys.items.recent(),
     queryFn: fetchRecentItems,
-  })
-}
-
-async function fetchLocationSummary(): Promise<Location[]> {
-  const response = await fetch('/api/locations?tree=true')
-  const result = await response.json()
-
-  if (!result.success) {
-    throw new Error(result.error?.message || '위치 요약 정보를 불러오지 못했습니다')
-  }
-
-  return result.data || []
-}
-
-export function useLocationSummary() {
-  return useQuery({
-    queryKey: queryKeys.locations.summary(),
-    queryFn: fetchLocationSummary,
   })
 }

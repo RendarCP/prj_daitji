@@ -2,10 +2,12 @@
 
 import {
   ItemDetailPanelFromData,
-  type DbItemForPanel,
-  type ItemLocationInfo,
-  type LocationPathItem,
 } from "@/components/features/ItemDetailPanelFromData";
+import type {
+  DbItemForPanel,
+  ItemLocationInfo,
+  LocationPathItem,
+} from "@/lib/types";
 
 interface ItemDetailPageClientProps {
   item: DbItemForPanel;

@@ -1,7 +1,7 @@
 "use client";
 
 import NextImage from "next/image";
-import { ChangeEvent, useEffect, useRef, useState } from "react";
+import { ChangeEvent, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useQueryClient } from "@tanstack/react-query";
 import { Controller, useForm } from "react-hook-form";
@@ -243,7 +243,8 @@ export function ItemAddClient({
   const imageUrl = watch("image_url") || "";
   const itemType = watch("type");
   const tags = watch("tags") || [];
-  const metadata = watch("metadata") || {};
+  const watchedMetadata = watch("metadata");
+  const metadata = useMemo(() => watchedMetadata || {}, [watchedMetadata]);
   const quantity = watch("quantity") || 0;
   const barcodeValue = watch("barcode") || "";
   const displayImageUrl = selectedImagePreviewUrl ?? imageUrl;
