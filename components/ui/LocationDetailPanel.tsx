@@ -50,6 +50,23 @@ export function LocationDetailPanel({
   const panelIsOpen = isOpen && !isClosing
 
   useEffect(() => {
+    if (!isOpen) {
+      return
+    }
+
+    if (closeTimerRef.current) {
+      clearTimeout(closeTimerRef.current)
+      closeTimerRef.current = null
+    }
+
+    const openTimer = setTimeout(() => {
+      setIsClosing(false)
+    }, 0)
+
+    return () => clearTimeout(openTimer)
+  }, [isOpen, location?.id])
+
+  useEffect(() => {
     return () => {
       if (closeTimerRef.current) {
         clearTimeout(closeTimerRef.current)

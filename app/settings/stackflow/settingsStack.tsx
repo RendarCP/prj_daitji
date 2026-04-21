@@ -4,7 +4,7 @@ import type { ReactNode } from "react";
 import type { ActivityComponentType } from "@stackflow/react";
 import { stackflow, useActivity } from "@stackflow/react";
 import { basicRendererPlugin } from "@stackflow/plugin-renderer-basic";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useQueryClient } from "@tanstack/react-query";
 import {
@@ -20,6 +20,7 @@ import { Header } from "@/components/layout/Header";
 import { useSettingsAccountUser } from "@/app/settings/SettingsContext";
 import { createClient } from "@/lib/supabase/client";
 import { useToastError } from "@/lib/hooks/useToastError";
+import { useOverlayHistorySync } from "@/lib/hooks/useOverlayHistorySync";
 import { AccountSecurityClient } from "@/app/settings/account/AccountSecurityClient";
 import NotificationsSettingsClient from "@/app/settings/notifications/NotificationsSettingsClient";
 
@@ -334,12 +335,21 @@ function SettingsOverlayShell({
 const NotificationSettingsActivity: ActivityComponentType = () => {
   const { pop } = useFlow();
   const activity = useActivity();
+  const closeActivity = useCallback(() => {
+    pop();
+  }, [pop]);
+  const { requestClose } = useOverlayHistorySync({
+    isOpen: true,
+    overlayKey: "settings-notifications",
+    overlayId: "notifications",
+    onRequestClose: closeActivity,
+  });
 
   return (
     <SettingsOverlayShell
       title="알림 설정"
       transitionState={activity.transitionState}
-      onBack={() => pop()}
+      onBack={requestClose}
     >
       <NotificationsSettingsClient />
     </SettingsOverlayShell>
@@ -350,12 +360,21 @@ const AccountSecurityActivity: ActivityComponentType = () => {
   const { pop } = useFlow();
   const activity = useActivity();
   const initialUser = useSettingsAccountUser();
+  const closeActivity = useCallback(() => {
+    pop();
+  }, [pop]);
+  const { requestClose } = useOverlayHistorySync({
+    isOpen: true,
+    overlayKey: "settings-account-security",
+    overlayId: "account-security",
+    onRequestClose: closeActivity,
+  });
 
   return (
     <SettingsOverlayShell
       title="계정 보안"
       transitionState={activity.transitionState}
-      onBack={() => pop()}
+      onBack={requestClose}
     >
       <AccountSecurityClient initialUser={initialUser} />
     </SettingsOverlayShell>

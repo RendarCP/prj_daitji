@@ -2,7 +2,11 @@
 
 import { useCallback, useEffect, useRef } from "react";
 
-type OverlayKey = "item-detail" | "location-detail";
+type OverlayKey =
+  | "item-detail"
+  | "location-detail"
+  | "settings-account-security"
+  | "settings-notifications";
 
 interface UseOverlayHistorySyncOptions {
   isOpen: boolean;
