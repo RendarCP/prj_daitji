@@ -246,14 +246,12 @@ export function DashboardClient() {
           maxHeight="max-h-[95vh]"
           closeOnOverlayClick={false}
         >
-          <div className="-mx-6 -my-4">
-            <ItemAddClient
-              mode="modal"
-              isEditMode
-              itemId={editSheetDialog.data}
-              onSuccess={() => editSheetDialog.closeWithAnimation()}
-            />
-          </div>
+          <ItemAddClient
+            mode="modal"
+            isEditMode
+            itemId={editSheetDialog.data}
+            onSuccess={() => editSheetDialog.closeWithAnimation()}
+          />
         </BottomSheet>
       )}
 

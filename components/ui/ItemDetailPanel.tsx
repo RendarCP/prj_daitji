@@ -26,6 +26,8 @@ interface ItemDetailPanelProps {
     metadata?: any;
   } | null;
   onEdit?: () => void;
+  onUse?: () => void;
+  isUsing?: boolean;
   onFavorite?: () => void;
   headerActions?: ReactNode;
   showCloseButton?: boolean;
@@ -36,6 +38,8 @@ export function ItemDetailPanel({
   onClose,
   item,
   onEdit,
+  onUse,
+  isUsing = false,
   onFavorite,
   headerActions,
   showCloseButton = true,
@@ -57,7 +61,12 @@ export function ItemDetailPanel({
       showCloseButton={showCloseButton}
       disableBodyScroll={true}
     >
-      <ItemDetailContent item={item} onEdit={onEdit} />
+      <ItemDetailContent
+        item={item}
+        onEdit={onEdit}
+        onUse={onUse}
+        isUsing={isUsing}
+      />
     </SidePanel>
   );
 }

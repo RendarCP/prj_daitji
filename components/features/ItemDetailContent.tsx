@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { Edit, MapPin } from "lucide-react";
+import { Edit, PackageMinus, PackageOpen, MapPin } from "lucide-react";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { cn } from "@/lib/utils/cn";
@@ -26,6 +26,8 @@ interface ItemDetailContentProps {
     metadata?: any;
   } | null;
   onEdit?: () => void;
+  onUse?: () => void;
+  isUsing?: boolean;
   /** If provided, renders the extra content (like Bottom Bar) used in SidePanel.
    * For the Page version, we might want to put Bottom Bar in a specific slot or just inline.
    * This component will render the SCROLLABLE CONTENT primarily.
@@ -149,7 +151,12 @@ const formatMetadataValue = (key: string, value: unknown) => {
   return null;
 };
 
-export function ItemDetailContent({ item, onEdit }: ItemDetailContentProps) {
+export function ItemDetailContent({
+  item,
+  onEdit,
+  onUse,
+  isUsing = false,
+}: ItemDetailContentProps) {
   if (!item) return null;
 
   const itemName = item.item_name || item.name || "이름 없음";
@@ -399,14 +406,37 @@ export function ItemDetailContent({ item, onEdit }: ItemDetailContentProps) {
 
       {/* Bottom Action Bar */}
       <div className="z-10 absolute bottom-0 left-0 right-0 p-4 border-t border-border/70 bg-card/95 backdrop-blur-md">
-        <Button
-          onClick={onEdit}
-          className="w-full text-lg h-14 font-bold rounded-xl shadow-lg hover:shadow-primary/20 transition-all hover:-translate-y-0.5"
-          size="lg"
-        >
-          <Edit className="w-5 h-5 mr-2" />
-          수정하기
-        </Button>
+        <div className="grid grid-cols-2 gap-3">
+          <Button
+            onClick={onUse}
+            isLoading={isUsing}
+            disabled={!onUse || quantity === null || quantity === undefined || quantity <= 0}
+            variant="secondary"
+            className="text-lg h-14 font-bold rounded-xl"
+            size="lg"
+          >
+            <PackageMinus className="w-5 h-5 mr-2" />
+            사용하기
+          </Button>
+          <Button
+            onClick={onEdit}
+            disabled={!onEdit}
+            className="text-lg h-14 font-bold rounded-xl shadow-lg hover:shadow-primary/20 transition-all hover:-translate-y-0.5"
+            size="lg"
+          >
+            <Edit className="w-5 h-5 mr-2" />
+            수정하기
+          </Button>
+        </div>
+        {quantity !== null && quantity !== undefined && quantity <= 0 && (
+          <div className="mt-3 rounded-2xl border border-dashed border-border/70 bg-secondary/10 px-4 py-3 text-sm text-muted-foreground">
+            <div className="flex items-center gap-2 font-medium text-foreground">
+              <PackageOpen className="h-4 w-4" />
+              재고가 모두 소진된 물품입니다
+            </div>
+            <p className="mt-1">수량이 0개가 되면 물품 목록에서는 자동으로 숨겨집니다.</p>
+          </div>
+        )}
       </div>
     </div>
   );

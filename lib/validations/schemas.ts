@@ -29,6 +29,7 @@ export const ItemMetadataSchema = z.object({
 export const ItemFormDataSchema = z.object({
   name: z.string().min(1, '이름은 필수입니다').max(200),
   type: ItemTypeSchema,
+  status: ItemStatusSchema.default('ACTIVE'),
   location_id: z.string().uuid('위치 ID 형식이 올바르지 않습니다'),
   quantity: z.number().int().min(0).default(1),
   barcode: z.string().max(100).optional(),

@@ -250,7 +250,9 @@ export function ItemAddClient({
   const displayImageUrl = selectedImagePreviewUrl ?? imageUrl;
 
   useToastError(error, {
-    title: isEditMode ? "물품을 수정할 수 없습니다." : "물품을 추가할 수 없습니다.",
+    title: isEditMode
+      ? "물품을 수정할 수 없습니다."
+      : "물품을 추가할 수 없습니다.",
   });
 
   useEffect(() => {
@@ -507,7 +509,9 @@ export function ItemAddClient({
       }
 
       if (file.size > MAX_UPLOAD_SIZE_BYTES) {
-        throw new Error("이미지 파일이 10MB를 초과합니다. 더 작은 파일을 선택해주세요.");
+        throw new Error(
+          "이미지 파일이 10MB를 초과합니다. 더 작은 파일을 선택해주세요.",
+        );
       }
 
       if (selectedImagePreviewUrl) {
@@ -932,7 +936,7 @@ export function ItemAddClient({
 
             <div
               className={cn(
-                "py-3 px-4 border-t border-border bg-card/95 backdrop-blur-md",
+                "py-3 px-4 border-t border-border bg-card",
                 isModal
                   ? "z-10 absolute bottom-0 left-0 right-0"
                   : "fixed left-0 right-0 z-40 bottom-0",

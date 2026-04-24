@@ -115,6 +115,11 @@ export async function GET(request: NextRequest) {
       .select(ITEM_LIST_SELECT, { count: "exact" })
       .eq("user_id", user.id);
 
+    // Active items are the default list experience unless a status filter is requested.
+    if (!resolvedParams.status) {
+      query = query.eq("status", "ACTIVE");
+    }
+
     // Apply filters
     query = applyFilters(query, resolvedParams);
 
@@ -199,6 +204,7 @@ export async function POST(request: NextRequest) {
       .insert({
         name: validatedData.name,
         type: validatedData.type,
+        status: validatedData.status,
         location_id: validatedData.location_id,
         quantity: validatedData.quantity,
         barcode: validatedData.barcode || null,

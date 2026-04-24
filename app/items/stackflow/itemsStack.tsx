@@ -396,14 +396,12 @@ const ItemEditActivity: ActivityComponentType<{ id: string }> = ({
       maxHeight="max-h-[95vh]"
       closeOnOverlayClick={false}
     >
-      <div className="-mx-6 -my-4">
-        <ItemAddClient
-          mode="modal"
-          isEditMode
-          itemId={params.id}
-          onSuccess={() => closeWithAnimation()}
-        />
-      </div>
+      <ItemAddClient
+        mode="modal"
+        isEditMode
+        itemId={params.id}
+        onSuccess={() => closeWithAnimation()}
+      />
     </BottomSheet>
   );
 };

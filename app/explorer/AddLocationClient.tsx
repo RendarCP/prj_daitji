@@ -111,13 +111,16 @@ export function AddLocationClient({
   const [error, setError] = useState<string | null>(null);
 
   const normalizedLocations = useMemo(() => {
-    const sourceLocations = latestLocations.length > 0 ? latestLocations : locations;
+    const sourceLocations =
+      latestLocations.length > 0 ? latestLocations : locations;
     return flattenLocations(sourceLocations);
   }, [latestLocations, locations]);
 
   // Initialize selection path
   const [selectionPath, setSelectionPath] = useState<string[]>(() =>
-    parentIdParam ? findLocationPath(flattenLocations(locations), parentIdParam) : [],
+    parentIdParam
+      ? findLocationPath(flattenLocations(locations), parentIdParam)
+      : [],
   );
 
   useEffect(() => {
@@ -132,7 +135,9 @@ export function AddLocationClient({
 
     setSelectionPath((currentPath) => {
       if (currentPath.length === nextPath.length) {
-        const isSamePath = currentPath.every((id, index) => id === nextPath[index]);
+        const isSamePath = currentPath.every(
+          (id, index) => id === nextPath[index],
+        );
         if (isSamePath) {
           return currentPath;
         }
@@ -156,7 +161,9 @@ export function AddLocationClient({
 
   const [errors, setErrors] = useState<Record<string, string>>({});
   useToastError(error, {
-    title: isEditMode ? "위치를 수정할 수 없습니다." : "위치를 추가할 수 없습니다.",
+    title: isEditMode
+      ? "위치를 수정할 수 없습니다."
+      : "위치를 추가할 수 없습니다.",
   });
 
   const availableLocations = useMemo(() => {
@@ -181,7 +188,9 @@ export function AddLocationClient({
       });
     }
 
-    return normalizedLocations.filter((location) => !excludedIds.has(location.id));
+    return normalizedLocations.filter(
+      (location) => !excludedIds.has(location.id),
+    );
   }, [isEditMode, locationId, normalizedLocations]);
 
   useEffect(() => {
@@ -276,11 +285,9 @@ export function AddLocationClient({
       // Calculate level
       let level = 1;
       if (currentParentId) {
-        const parentLocation = locations.find(
-          (loc) => loc.id === currentParentId,
-        ) || normalizedLocations.find(
-          (loc) => loc.id === currentParentId,
-        );
+        const parentLocation =
+          locations.find((loc) => loc.id === currentParentId) ||
+          normalizedLocations.find((loc) => loc.id === currentParentId);
         if (parentLocation) {
           level = parentLocation.level + 1;
         }
@@ -548,7 +555,7 @@ export function AddLocationClient({
             {/* Action Buttons - 모달/페이지 동일 스타일 (하단 바, 페이지에서는 BottomNav 위에 고정) */}
             <div
               className={cn(
-                "py-3 px-4 border-t border-border bg-card/95 backdrop-blur-md",
+                "py-3 px-4 border-t border-border bg-card",
                 isModal
                   ? "z-10 absolute bottom-0 left-0 right-0"
                   : "fixed left-0 right-0 z-40 bottom-0",

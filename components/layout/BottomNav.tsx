@@ -51,7 +51,7 @@ export function BottomNav() {
 
   return (
     <nav
-      className="fixed bottom-0 left-0 right-0 z-30 border-t border-border bg-card/80 backdrop-blur-md shadow-soft pointer-events-auto"
+      className="fixed bottom-0 left-0 right-0 z-30 border-t border-border bg-card shadow-soft pointer-events-auto"
       role="navigation"
       aria-label="하단 네비게이션"
     >

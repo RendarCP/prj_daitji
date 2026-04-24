@@ -134,15 +134,14 @@ export default function ExplorerClient() {
           <div className="min-h-[calc(100vh-220px)] flex items-center justify-center">
             <EmptyState
               size="sm"
-                title="등록된 위치가 없습니다"
-                description="첫 위치를 추가해서 공간을 구성해보세요"
-                action={{
-                  label: "위치 추가",
-                  onClick: () =>
-                    router.push("/explorer/add", { scroll: false }),
-                }}
-                className="py-0"
-              />
+              title="등록된 위치가 없습니다"
+              description="첫 위치를 추가해서 공간을 구성해보세요"
+              action={{
+                label: "위치 추가",
+                onClick: () => router.push("/explorer/add", { scroll: false }),
+              }}
+              className="py-0"
+            />
           </div>
         ) : (
           <>
@@ -359,14 +358,12 @@ export default function ExplorerClient() {
           maxHeight="max-h-[95vh]"
           closeOnOverlayClick={false}
         >
-          <div className="-mx-6 -my-4">
-            <ItemAddClient
-              mode="modal"
-              isEditMode
-              itemId={editSheetDialog.data}
-              onSuccess={() => editSheetDialog.closeWithAnimation()}
-            />
-          </div>
+          <ItemAddClient
+            mode="modal"
+            isEditMode
+            itemId={editSheetDialog.data}
+            onSuccess={() => editSheetDialog.closeWithAnimation()}
+          />
         </BottomSheet>
       )}
     </div>

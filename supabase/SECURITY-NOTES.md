@@ -6,6 +6,10 @@ Supabase 프로젝트의 현재 보안 상태와 향후 계획입니다.
 
 ### 개발/테스트 전용 설정
 
+`2026-04-21` 기준으로 `supabase/migrations/007_enable_rls_and_secure_views.sql` 마이그레이션을 통해
+`public.locations`, `public.items` RLS 및 주요 view 보안 속성을 프로덕션 기준으로 정리하도록 반영했습니다.
+아직 원격 프로젝트에 이 마이그레이션을 적용하지 않았다면 Supabase Advisor에는 기존 경고가 계속 보일 수 있습니다.
+
 현재 프로젝트는 **1차 MVP 단계**로, 다음과 같은 보안 제한사항이 있습니다:
 
 #### 1. RLS (Row Level Security) 비활성화

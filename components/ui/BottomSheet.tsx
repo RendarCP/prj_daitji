@@ -1,6 +1,13 @@
 "use client";
 
-import { ReactNode, useEffect, useCallback, useRef, useState } from "react";
+import {
+  type PointerEvent as ReactPointerEvent,
+  ReactNode,
+  useEffect,
+  useCallback,
+  useRef,
+  useState,
+} from "react";
 import { X } from "lucide-react";
 import { useBodyScrollLock } from "@/lib/hooks/useBodyScrollLock";
 import { cn } from "@/lib/utils/cn";
@@ -19,6 +26,9 @@ export interface BottomSheetProps {
 }
 
 const SHEET_ANIMATION_MS = 300;
+const SWIPE_CLOSE_THRESHOLD = 96;
+const SWIPE_CLOSE_VELOCITY = 0.45;
+const DEFAULT_CLOSE_OFFSET = 1000;
 
 export function BottomSheet({
   isOpen,
@@ -33,25 +43,41 @@ export function BottomSheet({
   maxHeight = "max-h-[80vh]",
 }: BottomSheetProps) {
   const [isClosing, setIsClosing] = useState(false);
+  const [dragOffset, setDragOffset] = useState(DEFAULT_CLOSE_OFFSET);
+  const [isDragging, setIsDragging] = useState(false);
   const closeCallbackTimerRef = useRef<ReturnType<typeof setTimeout> | null>(
     null,
   );
+  const dragStartYRef = useRef(0);
+  const dragLastYRef = useRef(0);
+  const dragStartTimeRef = useRef(0);
   const shouldRender = isOpen || isClosing;
   useBodyScrollLock(shouldRender);
+
+  const getCloseOffset = useCallback(
+    () =>
+      typeof window === "undefined"
+        ? DEFAULT_CLOSE_OFFSET
+        : Math.max(window.innerHeight, DEFAULT_CLOSE_OFFSET),
+    [],
+  );
 
   const requestClose = useCallback(() => {
     if (isClosing) return;
 
     setIsClosing(true);
+    setIsDragging(false);
+    setDragOffset(getCloseOffset());
 
     if (closeCallbackTimerRef.current) {
       clearTimeout(closeCallbackTimerRef.current);
     }
 
     closeCallbackTimerRef.current = setTimeout(() => {
+      setIsClosing(false);
       onClose();
     }, SHEET_ANIMATION_MS);
-  }, [isClosing, onClose]);
+  }, [getCloseOffset, isClosing, onClose]);
 
   const handleEscape = useCallback(
     (e: KeyboardEvent) => {
@@ -61,6 +87,18 @@ export function BottomSheet({
     },
     [closeOnEscape, requestClose],
   );
+
+  useEffect(() => {
+    if (isOpen) {
+      const animationFrameId = requestAnimationFrame(() => {
+        setIsClosing(false);
+        setIsDragging(false);
+        setDragOffset(0);
+      });
+
+      return () => cancelAnimationFrame(animationFrameId);
+    }
+  }, [getCloseOffset, isOpen]);
 
   useEffect(() => {
     return () => {
@@ -80,7 +118,74 @@ export function BottomSheet({
     };
   }, [shouldRender, handleEscape]);
 
+  const finishDrag = useCallback(() => {
+    const distance = dragLastYRef.current - dragStartYRef.current;
+    const elapsed = Math.max(Date.now() - dragStartTimeRef.current, 1);
+    const velocity = distance / elapsed;
+    const shouldClose =
+      distance > SWIPE_CLOSE_THRESHOLD || velocity > SWIPE_CLOSE_VELOCITY;
+
+    setIsDragging(false);
+
+    if (shouldClose) {
+      setDragOffset(distance > 0 ? distance : 0);
+      requestClose();
+      return;
+    }
+
+    setDragOffset(0);
+  }, [requestClose]);
+
+  useEffect(() => {
+    if (!isDragging) {
+      return;
+    }
+
+    const handlePointerMove = (event: PointerEvent) => {
+      const nextOffset = Math.max(0, event.clientY - dragStartYRef.current);
+      dragLastYRef.current = event.clientY;
+      setDragOffset(nextOffset);
+    };
+
+    const handlePointerUp = () => {
+      finishDrag();
+    };
+
+    const handlePointerCancel = () => {
+      setIsDragging(false);
+      setDragOffset(0);
+    };
+
+    window.addEventListener("pointermove", handlePointerMove);
+    window.addEventListener("pointerup", handlePointerUp);
+    window.addEventListener("pointercancel", handlePointerCancel);
+
+    return () => {
+      window.removeEventListener("pointermove", handlePointerMove);
+      window.removeEventListener("pointerup", handlePointerUp);
+      window.removeEventListener("pointercancel", handlePointerCancel);
+    };
+  }, [finishDrag, isDragging]);
+
+  const handleDragStart = useCallback(
+    (event: ReactPointerEvent<HTMLDivElement>) => {
+      if (!showDragHandle || isClosing) {
+        return;
+      }
+
+      dragStartYRef.current = event.clientY;
+      dragLastYRef.current = event.clientY;
+      dragStartTimeRef.current = Date.now();
+      setIsDragging(true);
+      setDragOffset(0);
+    },
+    [isClosing, showDragHandle],
+  );
+
   if (!shouldRender) return null;
+
+  const effectiveOffset = dragOffset;
+  const overlayOpacity = Math.max(0, 1 - Math.min(effectiveOffset / 240, 1));
 
   return (
     <div
@@ -93,8 +198,10 @@ export function BottomSheet({
       <div
         className={cn(
           "absolute inset-0 bg-black/60 backdrop-blur-sm transition-opacity duration-300",
-          isOpen && !isClosing ? "opacity-100" : "opacity-0",
         )}
+        style={{
+          opacity: isOpen || isClosing ? overlayOpacity : 0,
+        }}
         onClick={closeOnOverlayClick ? requestClose : undefined}
         aria-hidden="true"
       />
@@ -104,14 +211,23 @@ export function BottomSheet({
         className={cn(
           "relative bg-card w-full rounded-t-3xl",
           "flex flex-col overflow-hidden",
-          isOpen && !isClosing ? "animate-slide-up-sheet" : "animate-slide-down-sheet",
           "shadow-2xl",
+          isDragging ? "will-change-transform" : undefined,
           maxHeight,
         )}
+        style={{
+          transform: `translateY(${effectiveOffset}px)`,
+          transition: isDragging
+            ? "none"
+            : `transform ${SHEET_ANIMATION_MS}ms cubic-bezier(0.22, 1, 0.36, 1)`,
+        }}
       >
         {/* Drag Handle */}
         {showDragHandle && (
-          <div className="flex justify-center pt-3 pb-2">
+          <div
+            className="flex justify-center pt-3 pb-2 touch-none cursor-grab active:cursor-grabbing"
+            onPointerDown={handleDragStart}
+          >
             <div className="w-12 h-1.5 bg-muted rounded-full" />
           </div>
         )}
