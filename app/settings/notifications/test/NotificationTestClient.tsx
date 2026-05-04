@@ -31,6 +31,56 @@ type TestNotificationEvent = {
   created_at: string
 }
 
+type TestDeliveryResult = {
+  sent: number
+  failed: number
+  skipped: number
+  statusCode?: number
+  error?: string
+}
+
+type CreateTestNotificationResult = {
+  event: TestNotificationEvent
+  delivery: TestDeliveryResult
+}
+
+type PushReceipt = {
+  received: boolean
+  title?: string
+  body?: string
+  deliveredAt?: string
+}
+
+function waitForPushReceipt(timeoutMs = 12000): Promise<PushReceipt> {
+  if (!('serviceWorker' in navigator)) {
+    return Promise.resolve({ received: false })
+  }
+
+  return new Promise((resolve) => {
+    const timeout = setTimeout(() => {
+      navigator.serviceWorker.removeEventListener('message', handleMessage)
+      resolve({ received: false })
+    }, timeoutMs)
+
+    function handleMessage(event: MessageEvent) {
+      if (event.data?.type !== 'PUSH_RECEIVED') {
+        return
+      }
+
+      clearTimeout(timeout)
+      navigator.serviceWorker.removeEventListener('message', handleMessage)
+      resolve({
+        received: true,
+        title: typeof event.data.title === 'string' ? event.data.title : undefined,
+        body: typeof event.data.body === 'string' ? event.data.body : undefined,
+        deliveredAt: typeof event.data.deliveredAt === 'string' ? event.data.deliveredAt : undefined,
+      })
+    }
+
+    navigator.serviceWorker.addEventListener('message', handleMessage)
+  })
+}
+
 export default function NotificationTestClient() {
   const router = useRouter()
   const hasLoadedRef = useRef(false)
@@ -39,6 +89,7 @@ export default function NotificationTestClient() {
   const [isRefreshing, setIsRefreshing] = useState(false)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const [successMessage, setSuccessMessage] = useState<string | null>(null)
+  const [pushReceipt, setPushReceipt] = useState<PushReceipt | null>(null)
   const [testEvents, setTestEvents] = useState<TestNotificationEvent[]>([])
 
   useToastError(errorMessage, {
@@ -94,7 +145,9 @@ export default function NotificationTestClient() {
   const handleCreateTestEvent = async (type: TestNotificationEvent['event_type']) => {
     setErrorMessage(null)
     setSuccessMessage(null)
+    setPushReceipt(null)
     setIsCreating(true)
+    const receiptPromise = waitForPushReceipt()
 
     const response = await fetch('/api/settings/notifications/test', {
       method: 'POST',
@@ -110,7 +163,7 @@ export default function NotificationTestClient() {
       return
     }
 
-    const result = (await response.json()) as ApiResponse<TestNotificationEvent>
+    const result = (await response.json()) as ApiResponse<CreateTestNotificationResult>
     setIsCreating(false)
 
     if (!response.ok || !result.success || !result.data) {
@@ -122,8 +175,16 @@ export default function NotificationTestClient() {
       return
     }
 
-    setSuccessMessage('테스트 알림 이벤트를 큐에 등록했습니다.')
+    if (result.data.delivery.sent > 0) {
+      setSuccessMessage(`테스트 알림을 즉시 발송했습니다. Web Push 응답: ${result.data.delivery.statusCode ?? '확인됨'}`)
+    } else if (result.data.delivery.skipped > 0) {
+      setErrorMessage(result.data.delivery.error || '활성화된 Web Push 구독이 없어 발송을 건너뛰었습니다.')
+    } else {
+      setErrorMessage(result.data.delivery.error || '테스트 알림 발송에 실패했습니다.')
+    }
+
     await loadTestEvents()
+    setPushReceipt(await receiptPromise)
   }
 
   if (isLoading) {
@@ -142,8 +203,7 @@ export default function NotificationTestClient() {
       </div>
 
       <p className="text-sm text-muted-foreground">
-        테스트 이벤트를 직접 큐에 넣고 최근 상태를 확인할 수 있습니다. 워커가 연결되어 있지 않으면 이벤트는
-        `pending` 상태로 남습니다.
+        테스트 이벤트를 만들고 현재 등록된 브라우저로 Web Push를 즉시 발송합니다.
       </p>
 
       {successMessage && (
@@ -152,24 +212,46 @@ export default function NotificationTestClient() {
         </p>
       )}
 
+      {pushReceipt && (
+        <div
+          className={
+            pushReceipt.received
+              ? 'rounded-lg border border-success/30 bg-success/10 px-3 py-2 text-sm text-success'
+              : 'rounded-lg border border-warning/30 bg-warning/10 px-3 py-2 text-sm text-warning'
+          }
+        >
+          {pushReceipt.received ? (
+            <div className="space-y-1">
+              <p className="font-medium">브라우저 서비스워커 수신 확인</p>
+              <p>{pushReceipt.title}</p>
+              {pushReceipt.deliveredAt ? (
+                <p className="text-xs opacity-80">수신: {new Date(pushReceipt.deliveredAt).toLocaleString()}</p>
+              ) : null}
+            </div>
+          ) : (
+            <p>서버 발송 후 12초 안에 브라우저 수신 확인 메시지를 받지 못했습니다.</p>
+          )}
+        </div>
+      )}
+
       <div className="flex flex-col gap-3 sm:flex-row">
         <Button
           variant="outline"
           onClick={() => handleCreateTestEvent('EXPIRY_SOON')}
           isLoading={isCreating}
-          loadingText="생성 중..."
+          loadingText="발송 중..."
           fullWidth
         >
-          만료 테스트 생성
+          만료 푸시 테스트
         </Button>
         <Button
           variant="outline"
           onClick={() => handleCreateTestEvent('LOW_STOCK')}
           isLoading={isCreating}
-          loadingText="생성 중..."
+          loadingText="발송 중..."
           fullWidth
         >
-          재고 테스트 생성
+          재고 푸시 테스트
         </Button>
         <Button
           variant="ghost"

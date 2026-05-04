@@ -1,4 +1,4 @@
-const CACHE_NAME = 'daitji-v3'
+const CACHE_NAME = 'daitji-v9'
 const APP_SHELL_ASSETS = [
   '/',
   '/manifest.webmanifest',
@@ -48,6 +48,42 @@ self.addEventListener('activate', (event) => {
   self.clients.claim()
 })
 
+function notifyClients(message) {
+  return self.clients
+    .matchAll({
+      type: 'window',
+      includeUncontrolled: true,
+    })
+    .then((clientList) => {
+      clientList.forEach((client) => {
+        client.postMessage(message)
+      })
+    })
+}
+
+function showNotificationAndReport({ title, body, options, deliveredAt }) {
+  return self.registration
+    .showNotification(title, options)
+    .then(() => {
+      return notifyClients({
+        type: 'PUSH_RECEIVED',
+        title,
+        body,
+        deliveredAt,
+      })
+    })
+    .catch((error) => {
+      console.error('[daitji-sw] showNotification failed', error)
+      return notifyClients({
+        type: 'PUSH_ERROR',
+        title,
+        body,
+        deliveredAt,
+        error: error instanceof Error ? error.message : String(error),
+      })
+    })
+}
+
 self.addEventListener('message', (event) => {
   if (event.data?.type === 'SKIP_WAITING') {
     self.skipWaiting()
@@ -60,6 +96,89 @@ self.addEventListener('message', (event) => {
       ),
     )
   }
+})
+
+self.addEventListener('push', (event) => {
+  let payload = {
+    title: 'DAITJI',
+    body: '새 알림이 도착했습니다.',
+    icon: '/icon.svg',
+    badge: '/icon-maskable.svg',
+    tag: undefined,
+    data: {
+      url: '/',
+    },
+  }
+
+  if (event.data) {
+    try {
+      payload = {
+        ...payload,
+        ...event.data.json(),
+      }
+    } catch {
+      try {
+        payload.body = event.data.text()
+      } catch (error) {
+        payload.body = '새 알림이 도착했습니다.'
+        console.error('[daitji-sw] failed to read push payload', error)
+      }
+    }
+  }
+
+  const deliveredAt = new Date().toISOString()
+  const title = payload.title || 'DAITJI'
+  const body = payload.body
+  const tag = payload.tag || `daitji-push-${Date.now()}`
+
+  event.waitUntil(
+    showNotificationAndReport({
+      title,
+      body,
+      deliveredAt,
+      options: {
+        body,
+        icon: payload.icon || '/icon.svg',
+        badge: payload.badge || '/icon-maskable.svg',
+        tag,
+        data: {
+          ...(payload.data || { url: '/' }),
+          deliveredAt,
+        },
+        requireInteraction: true,
+        renotify: true,
+        silent: false,
+        timestamp: Date.now(),
+      },
+    }),
+  )
+})
+
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close()
+
+  const targetUrl = new URL(event.notification.data?.url || '/', self.location.origin).href
+
+  event.waitUntil(
+    self.clients
+      .matchAll({
+        type: 'window',
+        includeUncontrolled: true,
+      })
+      .then((clientList) => {
+        for (const client of clientList) {
+          if (client.url === targetUrl && 'focus' in client) {
+            return client.focus()
+          }
+        }
+
+        if (self.clients.openWindow) {
+          return self.clients.openWindow(targetUrl)
+        }
+
+        return undefined
+      }),
+  )
 })
 
 self.addEventListener('fetch', (event) => {

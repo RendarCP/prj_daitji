@@ -3,10 +3,30 @@ import { z } from 'zod'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { successResponse, errorResponse, handleError, CORS_HEADERS } from '@/lib/api/utils'
+import { buildNotificationPayload, configureWebPush, webpush } from '@/lib/notifications/web-push'
 
 const CreateTestNotificationSchema = z.object({
   type: z.enum(['EXPIRY_SOON', 'LOW_STOCK']).default('EXPIRY_SOON'),
 })
+
+type TestNotificationEvent = {
+  id: string
+  user_id: string
+  event_type: 'EXPIRY_SOON' | 'LOW_STOCK'
+  entity_type: string
+  entity_id: string
+  title: string
+  body: string
+  payload: Record<string, unknown>
+  status: string
+  scheduled_at: string
+  created_at: string
+}
+
+type PushToken = {
+  id: string
+  provider_subscription: webpush.PushSubscription | null
+}
 
 async function getAuthenticatedUser() {
   const supabase = await createClient()
@@ -62,6 +82,105 @@ function buildTestNotification(type: 'EXPIRY_SOON' | 'LOW_STOCK', userId: string
     },
     scheduled_at: createdAt,
     dedupe_key: `MANUAL_TEST:EXPIRY_SOON:${userId}:${entityId}`,
+  }
+}
+
+async function sendTestNotificationNow(admin: ReturnType<typeof createAdminClient>, event: TestNotificationEvent) {
+  const { data: tokens, error: tokenError } = await (admin as any)
+    .from('notification_push_tokens')
+    .select('id, provider_subscription')
+    .eq('user_id', event.user_id)
+    .eq('provider', 'webpush')
+    .eq('is_active', true)
+    .order('last_seen_at', { ascending: false })
+
+  if (tokenError) {
+    await (admin as any).rpc('mark_notification_event_failed', {
+      p_event_id: event.id,
+      p_error_message: tokenError.message,
+    })
+    return { sent: 0, failed: 1, skipped: 0, error: tokenError.message }
+  }
+
+  const activeTokens = (tokens ?? []) as PushToken[]
+
+  if (activeTokens.length === 0) {
+    await (admin as any).rpc('mark_notification_event_failed', {
+      p_event_id: event.id,
+      p_error_message: 'No active Web Push subscription',
+    })
+    return { sent: 0, failed: 0, skipped: 1, error: 'No active Web Push subscription' }
+  }
+
+  try {
+    configureWebPush()
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Web Push 설정이 필요합니다.'
+    await (admin as any).rpc('mark_notification_event_failed', {
+      p_event_id: event.id,
+      p_error_message: message,
+    })
+    return { sent: 0, failed: 1, skipped: 0, error: message }
+  }
+
+  const latestToken = activeTokens[0]
+  const subscription = latestToken.provider_subscription
+
+  if (!subscription?.endpoint) {
+    await (admin as any).rpc('mark_notification_event_failed', {
+      p_event_id: event.id,
+      p_error_message: 'Stored subscription is missing endpoint',
+    })
+    return { sent: 0, failed: 1, skipped: 0, error: 'Stored subscription is missing endpoint' }
+  }
+
+  try {
+    const response = await webpush.sendNotification(
+      subscription,
+      JSON.stringify(buildNotificationPayload(event))
+    )
+
+    await (admin as any).from('notification_deliveries').insert({
+      event_id: event.id,
+      token_id: latestToken.id,
+      provider: 'webpush',
+      status: 'success',
+      response_body: {
+        statusCode: response.statusCode,
+        headers: response.headers,
+      },
+    })
+    await (admin as any).rpc('mark_notification_event_sent', { p_event_id: event.id })
+
+    return { sent: 1, failed: 0, skipped: 0, statusCode: response.statusCode }
+  } catch (error) {
+    const pushError = error as Error & { statusCode?: number; body?: string }
+    const message = pushError.message || 'Web Push delivery failed'
+
+    if (pushError.statusCode === 404 || pushError.statusCode === 410) {
+      await (admin as any)
+        .from('notification_push_tokens')
+        .update({ is_active: false })
+        .eq('id', latestToken.id)
+    }
+
+    await (admin as any).from('notification_deliveries').insert({
+      event_id: event.id,
+      token_id: latestToken.id,
+      provider: 'webpush',
+      status: 'failed',
+      error_message: message,
+      response_body: {
+        statusCode: pushError.statusCode ?? null,
+        body: pushError.body ?? null,
+      },
+    })
+    await (admin as any).rpc('mark_notification_event_failed', {
+      p_event_id: event.id,
+      p_error_message: message,
+    })
+
+    return { sent: 0, failed: 1, skipped: 0, error: message }
   }
 }
 
@@ -125,14 +244,21 @@ export async function POST(request: NextRequest) {
     const { data, error } = await (admin as any)
       .from('notification_events')
       .insert(payload)
-      .select('id, event_type, status, title, body, scheduled_at, created_at')
+      .select('id, user_id, event_type, entity_type, entity_id, title, body, payload, status, scheduled_at, created_at')
       .single()
 
     if (error) {
       return errorResponse('DATABASE_ERROR', { message: error.message }, 500)
     }
 
-    return successResponse(data, undefined, 201)
+    const delivery = await sendTestNotificationNow(admin, data as TestNotificationEvent)
+    const { data: updatedEvent } = await (admin as any)
+      .from('notification_events')
+      .select('id, event_type, channel, status, title, body, attempt_count, last_error, scheduled_at, sent_at, created_at')
+      .eq('id', data.id)
+      .single()
+
+    return successResponse({ event: updatedEvent ?? data, delivery }, undefined, 201)
   } catch (error) {
     return handleError(error)
   }

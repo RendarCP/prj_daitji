@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import {
   Bell,
+  BellRing,
   ChevronDown,
   Clock3,
   Globe2,
@@ -63,6 +64,7 @@ type ApiResponse<T> = {
 }
 
 type SaveState = 'idle' | 'pending' | 'saving' | 'saved' | 'error'
+type BrowserPushState = 'checking' | 'unsupported' | 'default' | 'granted' | 'denied' | 'subscribed'
 
 const DEFAULT_FORM: NotificationSettingsForm = {
   enabled: true,
@@ -332,6 +334,77 @@ function getSaveBadge(saveState: SaveState) {
   }
 }
 
+function urlBase64ToUint8Array(base64String: string) {
+  const padding = '='.repeat((4 - (base64String.length % 4)) % 4)
+  const base64 = `${base64String}${padding}`.replace(/-/g, '+').replace(/_/g, '/')
+  const rawData = window.atob(base64)
+  const outputArray = new Uint8Array(rawData.length)
+
+  for (let i = 0; i < rawData.length; i += 1) {
+    outputArray[i] = rawData.charCodeAt(i)
+  }
+
+  return outputArray
+}
+
+function getBrowserPushStateLabel(state: BrowserPushState) {
+  switch (state) {
+    case 'checking':
+      return '상태 확인 중'
+    case 'unsupported':
+      return '지원 안 됨'
+    case 'denied':
+      return '브라우저에서 차단됨'
+    case 'subscribed':
+      return '이 기기 등록됨'
+    case 'granted':
+      return '권한 허용됨'
+    case 'default':
+    default:
+      return '권한 요청 필요'
+  }
+}
+
+async function getServiceWorkerRegistration() {
+  const registration = await navigator.serviceWorker.register('/sw.js', {
+    scope: '/',
+    updateViaCache: 'none',
+  })
+
+  try {
+    await registration.update()
+  } catch {
+    // The existing worker can still be used when update checks are unavailable.
+  }
+
+  if (registration.waiting) {
+    registration.waiting.postMessage({ type: 'SKIP_WAITING' })
+    await waitForServiceWorkerControllerChange()
+  }
+
+  return navigator.serviceWorker.ready
+}
+
+function waitForServiceWorkerControllerChange(timeoutMs = 3000) {
+  return new Promise<void>((resolve) => {
+    let isResolved = false
+
+    const finish = () => {
+      if (isResolved) {
+        return
+      }
+
+      isResolved = true
+      window.clearTimeout(timer)
+      navigator.serviceWorker.removeEventListener('controllerchange', finish)
+      resolve()
+    }
+
+    const timer = window.setTimeout(finish, timeoutMs)
+    navigator.serviceWorker.addEventListener('controllerchange', finish)
+  })
+}
+
 export default function NotificationsSettingsClient() {
   const router = useRouter()
   const hasLoadedRef = useRef(false)
@@ -344,6 +417,10 @@ export default function NotificationsSettingsClient() {
   const [saveState, setSaveState] = useState<SaveState>('idle')
   const [requestError, setRequestError] = useState<string | null>(null)
   const [deviceTimezone] = useState<string | null>(() => getDetectedTimeZone())
+  const [browserPushState, setBrowserPushState] = useState<BrowserPushState>('checking')
+  const [isPushActionPending, setIsPushActionPending] = useState(false)
+  const [lastPushReceivedAt, setLastPushReceivedAt] = useState<string | null>(null)
+  const [, setBrowserEndpointPrefix] = useState<string | null>(null)
 
   useEffect(() => {
     return () => {
@@ -395,6 +472,77 @@ export default function NotificationsSettingsClient() {
 
     loadSettings()
   }, [router])
+
+  useEffect(() => {
+    const checkBrowserPush = async () => {
+      if (!('Notification' in window) || !('serviceWorker' in navigator) || !('PushManager' in window)) {
+        setBrowserPushState('unsupported')
+        return
+      }
+
+      if (Notification.permission === 'denied') {
+        setBrowserPushState('denied')
+        return
+      }
+
+      try {
+        const registration = await navigator.serviceWorker.getRegistration('/')
+        const subscription = await registration?.pushManager.getSubscription()
+
+        if (subscription) {
+          setBrowserEndpointPrefix(subscription.endpoint.slice(0, 120))
+          setBrowserPushState('subscribed')
+          return
+        }
+      } catch {
+        setBrowserPushState(Notification.permission === 'granted' ? 'granted' : 'default')
+        return
+      }
+
+      setBrowserPushState(Notification.permission === 'granted' ? 'granted' : 'default')
+    }
+
+    checkBrowserPush()
+  }, [])
+
+  const refreshBrowserPushStatus = async () => {
+    if ('serviceWorker' in navigator) {
+      const registration = await navigator.serviceWorker.getRegistration('/')
+      const subscription = await registration?.pushManager.getSubscription()
+      setBrowserEndpointPrefix(subscription?.endpoint.slice(0, 120) ?? null)
+      setBrowserPushState(
+        subscription
+          ? 'subscribed'
+          : Notification.permission === 'granted'
+            ? 'granted'
+            : 'default'
+      )
+    }
+  }
+
+  useEffect(() => {
+    if (!('serviceWorker' in navigator)) {
+      return
+    }
+
+    const handleServiceWorkerMessage = (event: MessageEvent) => {
+      if (event.data?.type !== 'PUSH_RECEIVED') {
+        return
+      }
+
+      setLastPushReceivedAt(
+        typeof event.data.deliveredAt === 'string'
+          ? new Date(event.data.deliveredAt).toLocaleString()
+          : new Date().toLocaleString()
+      )
+    }
+
+    navigator.serviceWorker.addEventListener('message', handleServiceWorkerMessage)
+
+    return () => {
+      navigator.serviceWorker.removeEventListener('message', handleServiceWorkerMessage)
+    }
+  }, [])
 
   const scheduleSave = (nextForm: NotificationSettingsForm) => {
     if (saveTimerRef.current) {
@@ -506,6 +654,148 @@ export default function NotificationsSettingsClient() {
     }))
   }
 
+  const handleRegisterBrowserPush = async () => {
+    if (!('Notification' in window) || !('serviceWorker' in navigator) || !('PushManager' in window)) {
+      setBrowserPushState('unsupported')
+      setRequestError('이 브라우저는 Web Push 알림을 지원하지 않습니다.')
+      return
+    }
+
+    setIsPushActionPending(true)
+    setRequestError(null)
+
+    try {
+      const permission =
+        Notification.permission === 'default'
+          ? await Notification.requestPermission()
+          : Notification.permission
+
+      if (permission === 'denied') {
+        setBrowserPushState('denied')
+        setRequestError('브라우저에서 알림 권한이 차단되어 있습니다.')
+        return
+      }
+
+      if (permission !== 'granted') {
+        setBrowserPushState('default')
+        return
+      }
+
+      const keyResponse = await fetch('/api/settings/notifications/web-push-key', {
+        method: 'GET',
+        cache: 'no-store',
+      })
+      const keyResult = (await keyResponse.json()) as ApiResponse<{ publicKey: string }>
+
+      if (!keyResponse.ok || !keyResult.success || !keyResult.data?.publicKey) {
+        const message =
+          keyResult.error?.details?.message || keyResult.error?.message || 'Web Push 공개 키를 불러오지 못했습니다.'
+        setRequestError(message)
+        return
+      }
+
+      const registration = await getServiceWorkerRegistration()
+      const existingSubscription = await registration.pushManager.getSubscription()
+      const subscription =
+        existingSubscription ??
+        (await registration.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey: urlBase64ToUint8Array(keyResult.data.publicKey),
+        }))
+
+      const response = await fetch('/api/settings/notifications/push-subscription', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          subscription: subscription.toJSON(),
+          device_label: navigator.userAgent.slice(0, 120),
+        }),
+      })
+      const result = (await response.json()) as ApiResponse<{ tokenId: string }>
+
+      if (response.status === 401) {
+        router.replace('/login?next=/settings/notifications')
+        return
+      }
+
+      if (!response.ok || !result.success) {
+        const message = result.error?.details?.message || result.error?.message || '이 기기 푸시 등록에 실패했습니다.'
+        setRequestError(message)
+        return
+      }
+
+      if (!formRef.current.pushEnabled) {
+        updateForm((current) => ({
+          ...current,
+          enabled: true,
+          pushEnabled: true,
+        }))
+      }
+
+      setBrowserPushState('subscribed')
+      setBrowserEndpointPrefix(subscription.endpoint.slice(0, 120))
+      await refreshBrowserPushStatus()
+    } catch (error) {
+      setRequestError(error instanceof Error ? error.message : '이 기기 푸시 등록에 실패했습니다.')
+    } finally {
+      setIsPushActionPending(false)
+    }
+  }
+
+  const handleUnregisterBrowserPush = async () => {
+    if (!('serviceWorker' in navigator)) {
+      setBrowserPushState('unsupported')
+      return
+    }
+
+    setIsPushActionPending(true)
+    setRequestError(null)
+
+    try {
+      const registration = await navigator.serviceWorker.getRegistration('/')
+      const subscription = await registration?.pushManager.getSubscription()
+
+      if (!subscription) {
+        setBrowserPushState(Notification.permission === 'granted' ? 'granted' : 'default')
+        setBrowserEndpointPrefix(null)
+        return
+      }
+
+      const endpoint = subscription.endpoint
+      await subscription.unsubscribe()
+
+      const response = await fetch('/api/settings/notifications/push-subscription', {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ endpoint }),
+      })
+      const result = (await response.json()) as ApiResponse<{ deactivated: boolean }>
+
+      if (response.status === 401) {
+        router.replace('/login?next=/settings/notifications')
+        return
+      }
+
+      if (!response.ok || !result.success) {
+        const message = result.error?.details?.message || result.error?.message || '이 기기 푸시 해제에 실패했습니다.'
+        setRequestError(message)
+        return
+      }
+
+      setBrowserPushState(Notification.permission === 'granted' ? 'granted' : 'default')
+      setBrowserEndpointPrefix(null)
+      await refreshBrowserPushStatus()
+    } catch (error) {
+      setRequestError(error instanceof Error ? error.message : '이 기기 푸시 해제에 실패했습니다.')
+    } finally {
+      setIsPushActionPending(false)
+    }
+  }
+
   const { validationError } = useMemo(() => buildPayload(form), [form])
   const errorMessage = requestError ?? validationError
   const saveBadge = getSaveBadge(saveState)
@@ -567,6 +857,67 @@ export default function NotificationsSettingsClient() {
             onChange={handleInAppEnabledChange}
             icon={SquareStack}
           />
+        </div>
+      </section>
+
+      <section className="space-y-3">
+        <label className="pl-1 text-xs font-bold uppercase tracking-[0.24em] text-muted-foreground">
+          Browser Push
+        </label>
+        <div className="rounded-2xl border border-border/50 bg-secondary/10 p-5 transition-colors hover:border-border/70">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+            <div className="min-w-0">
+              <div className="mb-2 flex items-center gap-3">
+                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-border/50 bg-background/60">
+                  <BellRing className="h-5 w-5 text-foreground" />
+                </div>
+                <div className="min-w-0">
+                  <h3 className="text-lg font-semibold text-foreground">이 기기 푸시</h3>
+                  <p className="text-sm text-muted-foreground">
+                    브라우저 권한을 허용하면 앱을 열지 않아도 만료/재고 알림을 받을 수 있습니다.
+                  </p>
+                </div>
+              </div>
+              <Badge
+                variant={browserPushState === 'subscribed' ? 'success' : browserPushState === 'denied' ? 'danger' : 'secondary'}
+                size="md"
+              >
+                {getBrowserPushStateLabel(browserPushState)}
+              </Badge>
+              {lastPushReceivedAt ? (
+                <p className="mt-3 text-xs text-muted-foreground">
+                  마지막 푸시 수신: <strong>{lastPushReceivedAt}</strong>
+                </p>
+              ) : null}
+            </div>
+
+            <div className="flex shrink-0 gap-2">
+              {browserPushState === 'subscribed' ? (
+                <button
+                  type="button"
+                  onClick={handleUnregisterBrowserPush}
+                  disabled={isPushActionPending}
+                  className="rounded-xl border border-border bg-background/70 px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-background disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  {isPushActionPending ? '해제 중' : '해제'}
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={handleRegisterBrowserPush}
+                  disabled={
+                    isPushActionPending ||
+                    browserPushState === 'unsupported' ||
+                    browserPushState === 'denied' ||
+                    browserPushState === 'checking'
+                  }
+                  className="rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground transition-transform active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  {isPushActionPending ? '등록 중' : '등록'}
+                </button>
+              )}
+            </div>
+          </div>
         </div>
       </section>
 
