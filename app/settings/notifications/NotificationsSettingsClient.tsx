@@ -347,6 +347,21 @@ function urlBase64ToUint8Array(base64String: string) {
   return outputArray
 }
 
+function arrayBufferToBase64Url(buffer: ArrayBuffer | null) {
+  if (!buffer) {
+    return null
+  }
+
+  const bytes = new Uint8Array(buffer)
+  let binary = ''
+
+  bytes.forEach((byte) => {
+    binary += String.fromCharCode(byte)
+  })
+
+  return window.btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/g, '')
+}
+
 function getBrowserPushStateLabel(state: BrowserPushState) {
   switch (state) {
     case 'checking':
@@ -695,13 +710,23 @@ export default function NotificationsSettingsClient() {
       }
 
       const registration = await getServiceWorkerRegistration()
+      const applicationServerKey = urlBase64ToUint8Array(keyResult.data.publicKey)
       const existingSubscription = await registration.pushManager.getSubscription()
+      const existingApplicationServerKey = arrayBufferToBase64Url(
+        existingSubscription?.options?.applicationServerKey ?? null
+      )
+
+      if (existingSubscription && existingApplicationServerKey !== keyResult.data.publicKey) {
+        await existingSubscription.unsubscribe()
+      }
+
       const subscription =
-        existingSubscription ??
-        (await registration.pushManager.subscribe({
-          userVisibleOnly: true,
-          applicationServerKey: urlBase64ToUint8Array(keyResult.data.publicKey),
-        }))
+        existingSubscription && existingApplicationServerKey === keyResult.data.publicKey
+          ? existingSubscription
+          : await registration.pushManager.subscribe({
+              userVisibleOnly: true,
+              applicationServerKey,
+            })
 
       const response = await fetch('/api/settings/notifications/push-subscription', {
         method: 'POST',
