@@ -304,6 +304,7 @@ export async function POST(request: NextRequest) {
           status: 'failed',
           statusCode: pushError.statusCode ?? null,
           error: message,
+          body: pushError.body ?? null,
         })
       }
     }
@@ -311,9 +312,12 @@ export async function POST(request: NextRequest) {
     if (sent > 0) {
       await (admin as any).rpc('mark_notification_event_sent', { p_event_id: event.id })
     } else {
+      const firstFailure = deliveries.find((delivery) => delivery.status === 'failed')
       await (admin as any).rpc('mark_notification_event_failed', {
         p_event_id: event.id,
-        p_error_message: deliveries[0]?.error ?? 'Web Push delivery failed',
+        p_error_message:
+          [firstFailure?.error, firstFailure?.body].filter(Boolean).join(': ') ||
+          'Web Push delivery failed',
       })
     }
 

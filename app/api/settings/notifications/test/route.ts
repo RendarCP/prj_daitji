@@ -177,10 +177,17 @@ async function sendTestNotificationNow(admin: ReturnType<typeof createAdminClien
     })
     await (admin as any).rpc('mark_notification_event_failed', {
       p_event_id: event.id,
-      p_error_message: message,
+      p_error_message: [message, pushError.body].filter(Boolean).join(': '),
     })
 
-    return { sent: 0, failed: 1, skipped: 0, error: message }
+    return {
+      sent: 0,
+      failed: 1,
+      skipped: 0,
+      statusCode: pushError.statusCode ?? null,
+      error: message,
+      body: pushError.body ?? null,
+    }
   }
 }
 
