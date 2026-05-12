@@ -12,8 +12,19 @@ type NotificationEventForPush = {
 
 let isConfigured = false
 
+function assertMatchingPublicKeys() {
+  const serverPublicKey = process.env.WEB_PUSH_PUBLIC_KEY
+  const clientPublicKey = process.env.NEXT_PUBLIC_WEB_PUSH_PUBLIC_KEY
+
+  if (serverPublicKey && clientPublicKey && serverPublicKey !== clientPublicKey) {
+    throw new Error('WEB_PUSH_PUBLIC_KEY and NEXT_PUBLIC_WEB_PUSH_PUBLIC_KEY must match')
+  }
+}
+
 export function getWebPushPublicKey() {
-  return process.env.NEXT_PUBLIC_WEB_PUSH_PUBLIC_KEY || process.env.WEB_PUSH_PUBLIC_KEY || ''
+  assertMatchingPublicKeys()
+
+  return process.env.WEB_PUSH_PUBLIC_KEY || process.env.NEXT_PUBLIC_WEB_PUSH_PUBLIC_KEY || ''
 }
 
 export function configureWebPush() {
