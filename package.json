@@ -17,7 +17,12 @@
     "db:start": "supabase start",
     "db:stop": "supabase stop",
     "db:status": "supabase status",
-    "notifications:vapid": "web-push generate-vapid-keys"
+    "notifications:vapid": "web-push generate-vapid-keys",
+    "workflow:new": "./scripts/new-feature.sh",
+    "workflow:plan": "./scripts/plan-feature.sh",
+    "workflow:commit": "./scripts/commit-feature.sh",
+    "workflow:verify": "./scripts/verify-feature.sh",
+    "test:workflow": "bash scripts/test-workflow-scripts.sh"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1003.0",

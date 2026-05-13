@@ -1,12 +1,20 @@
 # Repository Guidelines
 
-## Project Structure & Module Organization
-- `app/`: Next.js App Router pages, layouts, route handlers, and loading/error boundaries.
-- `app/api/*/route.ts`: REST endpoints for items, locations, and dashboard stats.
-- `components/`: UI and feature components (`ui/`, `features/`, `layout/`).
-- `lib/`: shared logic (`supabase/`, `hooks/`, `validations/`, `types/`, `utils/`, `api/`).
-- `supabase/migrations/`: schema and seed SQL files; `scripts/generate-types.sh` updates DB types.
-- `docs/`: implementation and API references (see `docs/API-TESTING-GUIDE.md` for endpoint checks).
+이 파일은 저장소 전체 공통 규칙만 둔다. 세부 규칙은 가까운 폴더의 `AGENTS.md`를 우선 적용한다.
+
+## Scoped Instructions
+- `app/AGENTS.md`: Next.js App Router, route handlers, page/layout/error/loading boundaries.
+- `components/AGENTS.md`: reusable UI and feature components.
+- `lib/AGENTS.md`: shared hooks, Supabase access, utilities, validations, types, and API helpers.
+- `supabase/AGENTS.md`: migrations, RLS, seed data, generated database types.
+- `docs/AGENTS.md`: plans, process documents, specialist agent documents.
+- `scripts/AGENTS.md`: workflow automation and shell script rules.
+
+## Mandatory Feature Workflow
+- Start every new feature session with `npm run workflow:new -- <feature-slug>`.
+- The workflow script must create or switch to `feature/<feature-slug>` and create `docs/plans/<feature-slug>.md`.
+- Do not implement before the plan document has a concrete scope, ambiguity log, TDD checklist, QA plan, and agent-team assignment.
+- Commit only through `npm run workflow:commit -- "<type>: <summary>"`; the script blocks commits from `main` and `master`.
 
 ## Build, Test, and Development Commands
 - `npm run dev`: start local Next.js dev server (`http://localhost:3000`).
@@ -14,6 +22,7 @@
 - `npm run start`: run built app.
 - `npm run lint`: run ESLint (`next/core-web-vitals`).
 - `npm run type-check`: strict TypeScript check (`tsc --noEmit`).
+- `npm run workflow:verify`: run workflow script tests plus lint, type-check, and build.
 - `npm run db:start` / `npm run db:stop`: start/stop local Supabase.
 - `npm run db:migration:up`: apply migrations.
 - `npm run db:types`: regenerate database TypeScript types.
@@ -27,16 +36,14 @@
 - Route handlers: `route.ts` with explicit `GET/POST/PATCH/DELETE` exports.
 
 ## Testing Guidelines
-- There is no dedicated unit test runner configured yet.
-- Minimum pre-PR checks: `npm run lint`, `npm run type-check`, `npm run build`.
-- For API changes, run manual endpoint verification from `docs/API-TESTING-GUIDE.md` (curl sequence).
-- Add tests with any new test framework; colocate as `*.test.ts(x)` near target modules.
+- TDD is required for new feature work: one behavior test or automation check, then the smallest implementation, then repeat.
+- When a feature cannot be directly asserted, document the reason in the plan and add the nearest useful automation or mock-backed check.
+- Minimum pre-PR checks: `npm run workflow:verify`.
+- For user-facing UI changes, also run a Playwright MCP browser pass using `docs/process/playwright-mcp-qa.md`.
+- For API changes, run manual endpoint verification from `docs/API-TESTING-GUIDE.md` when available.
 
 ## Commit & Pull Request Guidelines
-- Follow Conventional Commits, as used in history: `feat: ...`, `fix: ...`, `docs: ...`, `refactor: ...`.
-- Keep commits scoped and descriptive (one logical change per commit).
-- PRs should include:
-  - concise summary and rationale,
-  - linked issue/task,
-  - screenshots or short recordings for UI changes,
-  - notes on migrations/env updates (`.env.local`, `supabase/migrations/*`).
+- Follow Conventional Commits: `feat: ...`, `fix: ...`, `docs: ...`, `refactor: ...`, `test: ...`.
+- Keep commits scoped and descriptive.
+- Never commit directly on `main` or `master`.
+- PRs should include summary/rationale, linked issue/task, screenshots or recordings for UI changes, and migration/env notes.
