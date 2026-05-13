@@ -218,7 +218,7 @@ npm run dev
 
 ```bash
 # Supabase Dashboard에서 확인
-# https://supabase.com/dashboard/project/raqcqnoipwgbmdqcskhj
+# https://supabase.com/dashboard/project/YOUR_PROJECT_REF
 # Settings > Database > Advisors
 ```
 
@@ -227,7 +227,7 @@ npm run dev
 ```bash
 # 보안 권고사항 조회
 curl -X GET \
-  'https://api.supabase.com/v1/projects/raqcqnoipwgbmdqcskhj/advisors?type=security' \
+  'https://api.supabase.com/v1/projects/YOUR_PROJECT_REF/advisors?type=security' \
   -H 'Authorization: Bearer YOUR_ACCESS_TOKEN'
 ```
 
