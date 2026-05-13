@@ -100,6 +100,8 @@ async function processEvent(admin: ReturnType<typeof createAdminClient>, event: 
     .eq('user_id', event.user_id)
     .eq('provider', 'webpush')
     .eq('is_active', true)
+    .order('last_seen_at', { ascending: false })
+    .limit(1)
 
   if (tokenError) {
     await markEventFailed(admin, event.id, tokenError.message)

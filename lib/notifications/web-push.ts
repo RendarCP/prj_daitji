@@ -21,6 +21,24 @@ function assertMatchingPublicKeys() {
   }
 }
 
+function getWebPushSubject() {
+  const subject = process.env.WEB_PUSH_SUBJECT || process.env.NEXT_PUBLIC_APP_URL || ''
+
+  if (!subject) {
+    throw new Error('WEB_PUSH_SUBJECT or NEXT_PUBLIC_APP_URL must be configured')
+  }
+
+  if (subject === 'mailto:admin@daitji.local') {
+    throw new Error('WEB_PUSH_SUBJECT must use a real mailto: address or an HTTPS URL')
+  }
+
+  if (!subject.startsWith('mailto:') && !subject.startsWith('https://')) {
+    throw new Error('WEB_PUSH_SUBJECT must start with mailto: or https://')
+  }
+
+  return subject
+}
+
 export function getWebPushPublicKey() {
   assertMatchingPublicKeys()
 
@@ -34,8 +52,7 @@ export function configureWebPush() {
 
   const publicKey = getWebPushPublicKey()
   const privateKey = process.env.WEB_PUSH_PRIVATE_KEY
-  const subject =
-    process.env.WEB_PUSH_SUBJECT || process.env.NEXT_PUBLIC_APP_URL || 'mailto:admin@daitji.local'
+  const subject = getWebPushSubject()
 
   if (!publicKey || !privateKey) {
     throw new Error('WEB_PUSH_PUBLIC_KEY and WEB_PUSH_PRIVATE_KEY must be configured')

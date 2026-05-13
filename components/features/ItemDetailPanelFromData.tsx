@@ -335,6 +335,7 @@ export function ItemDetailPanelFromData({
         <Input
           label="사용 수량"
           type="number"
+          inputMode="numeric"
           min="1"
           max={String(Math.max(currentQuantity, 1))}
           value={useQuantityInput}

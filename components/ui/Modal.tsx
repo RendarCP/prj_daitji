@@ -1,6 +1,12 @@
 'use client'
 
-import { ReactNode, useEffect, useCallback } from 'react'
+import {
+  useCallback,
+  useEffect,
+  useState,
+  type CSSProperties,
+  type ReactNode,
+} from 'react'
 import { createPortal } from 'react-dom'
 import { X } from 'lucide-react'
 import { cn } from '@/lib/utils/cn'
@@ -34,6 +40,10 @@ export function Modal({
   footer,
 }: ModalProps) {
   const isMounted = useMounted()
+  const [visibleViewport, setVisibleViewport] = useState({
+    height: '100dvh',
+    top: '0px',
+  })
   useBodyScrollLock(isOpen)
 
   const handleEscape = useCallback(
@@ -55,6 +65,41 @@ export function Modal({
     }
   }, [isOpen, handleEscape])
 
+  useEffect(() => {
+    if (!isOpen) return
+
+    const updateVisibleViewport = () => {
+      const viewport = window.visualViewport
+
+      if (!viewport) {
+        setVisibleViewport({ height: '100dvh', top: '0px' })
+        return
+      }
+
+      setVisibleViewport({
+        height: `${viewport.height}px`,
+        top: `${viewport.offsetTop}px`,
+      })
+    }
+
+    updateVisibleViewport()
+    window.visualViewport?.addEventListener('resize', updateVisibleViewport)
+    window.visualViewport?.addEventListener('scroll', updateVisibleViewport)
+    window.addEventListener('orientationchange', updateVisibleViewport)
+
+    return () => {
+      window.visualViewport?.removeEventListener(
+        'resize',
+        updateVisibleViewport,
+      )
+      window.visualViewport?.removeEventListener(
+        'scroll',
+        updateVisibleViewport,
+      )
+      window.removeEventListener('orientationchange', updateVisibleViewport)
+    }
+  }, [isOpen])
+
   if (!isMounted || !isOpen) return null
 
   const sizes = {
@@ -65,9 +110,16 @@ export function Modal({
     full: 'max-w-full m-4',
   }
 
+  const viewportStyle = {
+    '--modal-viewport-height': visibleViewport.height,
+    height: visibleViewport.height,
+    top: visibleViewport.top,
+  } as CSSProperties
+
   return createPortal(
     <div 
-      className="fixed inset-0 z-[80] flex items-center justify-center p-4 animate-fade-in"
+      className="fixed inset-x-0 z-[80] flex items-center justify-center overflow-y-auto p-4 animate-fade-in"
+      style={viewportStyle}
       role="dialog"
       aria-modal="true"
       aria-labelledby={title ? 'modal-title' : undefined}
@@ -84,7 +136,7 @@ export function Modal({
       <div 
         className={cn(
           'relative w-full rounded-[28px] bg-card text-card-foreground shadow-2xl animate-slide-up',
-          'flex flex-col max-h-[90vh]',
+          'flex flex-col max-h-[calc(var(--modal-viewport-height)-2rem)]',
           sizes[size]
         )}
       >

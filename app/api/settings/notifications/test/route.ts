@@ -93,6 +93,7 @@ async function sendTestNotificationNow(admin: ReturnType<typeof createAdminClien
     .eq('provider', 'webpush')
     .eq('is_active', true)
     .order('last_seen_at', { ascending: false })
+    .limit(1)
 
   if (tokenError) {
     await (admin as any).rpc('mark_notification_event_failed', {

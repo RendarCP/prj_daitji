@@ -58,28 +58,40 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const response = await webpush.sendNotification(
-      parsed.subscription as webpush.PushSubscription,
-      JSON.stringify(
-        buildNotificationPayload({
-          id: crypto.randomUUID(),
-          entity_id: crypto.randomUUID(),
-          entity_type: 'item',
-          event_type: 'EXPIRY_SOON',
-          title: 'DAITJI 푸시 수신 테스트',
-          body: '이 알림이 보이면 Web Push 수신이 정상입니다.',
-          payload: {
-            source: 'direct_subscription_test',
-          },
-        })
+    try {
+      const response = await webpush.sendNotification(
+        parsed.subscription as webpush.PushSubscription,
+        JSON.stringify(
+          buildNotificationPayload({
+            id: crypto.randomUUID(),
+            entity_id: crypto.randomUUID(),
+            entity_type: 'item',
+            event_type: 'EXPIRY_SOON',
+            title: 'DAITJI 푸시 수신 테스트',
+            body: '이 알림이 보이면 Web Push 수신이 정상입니다.',
+            payload: {
+              source: 'direct_subscription_test',
+            },
+          })
+        )
       )
-    )
 
-    return successResponse({
-      statusCode: response.statusCode,
-      endpointPrefix: parsed.subscription.endpoint.slice(0, 80),
-      tokenId,
-    })
+      return successResponse({
+        statusCode: response.statusCode,
+        endpointPrefix: parsed.subscription.endpoint.slice(0, 80),
+        tokenId,
+      })
+    } catch (error) {
+      const pushError = error as Error & { statusCode?: number; body?: string }
+
+      return successResponse({
+        statusCode: pushError.statusCode ?? null,
+        endpointPrefix: parsed.subscription.endpoint.slice(0, 80),
+        tokenId,
+        error: pushError.message || 'Web Push delivery failed',
+        body: pushError.body ?? null,
+      })
+    }
   } catch (error) {
     return handleError(error)
   }
