@@ -9,7 +9,7 @@ usage() {
   cat <<'USAGE'
 Usage: ./scripts/new-feature.sh <feature-slug> [--title "Feature title"]
 
-Creates or switches to feature/<feature-slug> and creates docs/plans/<feature-slug>.md.
+Creates or switches to feature/YYYYMMDD_<feature-slug> and creates docs/plans/<feature-slug>.md.
 Run this at the start of every new feature session.
 USAGE
 }
@@ -43,7 +43,7 @@ done
 
 SLUG="$(workflow_require_slug "$FEATURE_RAW")"
 REPO_ROOT="$(workflow_repo_root)"
-TARGET_BRANCH="feature/$SLUG"
+TARGET_BRANCH="feature/$(date +%Y%m%d)_$SLUG"
 CURRENT_BRANCH="$(workflow_current_branch)"
 
 cd "$REPO_ROOT"
@@ -60,7 +60,7 @@ elif [ "$CURRENT_BRANCH" = "main" ] || [ "$CURRENT_BRANCH" = "master" ]; then
   workflow_info "Creating branch $TARGET_BRANCH"
   git switch -c "$TARGET_BRANCH"
 else
-  workflow_fail "Start new feature work from main/master or switch to $TARGET_BRANCH explicitly. Current branch: $CURRENT_BRANCH"
+  workflow_fail "Start new feature work from main/master or switch to the dated target branch explicitly. Target: $TARGET_BRANCH. Current branch: $CURRENT_BRANCH"
 fi
 
 PLAN_ARGS=("$SLUG")

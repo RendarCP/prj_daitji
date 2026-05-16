@@ -12,9 +12,11 @@
 
 ## Mandatory Feature Workflow
 - Start every new feature session with `npm run workflow:new -- <feature-slug>`.
-- The workflow script must create or switch to `feature/<feature-slug>` and create `docs/plans/<feature-slug>.md`.
+- The workflow script must create or switch to `feature/{YYYYMMDD}_{feature-slug}` and create `docs/plans/<feature-slug>.md`.
 - Do not implement before the plan document has a concrete scope, ambiguity log, TDD checklist, QA plan, and agent-team assignment.
-- Commit only through `npm run workflow:commit -- "<type>: <summary>"`; the script blocks commits from `main` and `master`.
+- Planner Agent must not move from planning to implementation unless the active branch matches `feature/{YYYYMMDD}_{feature-slug}`.
+- Test Agent must define or add the first behavior test or automation check before Frontend Agent implementation.
+- Commit only through `npm run workflow:commit -- "<type>: <summary>"`; the script blocks commits outside `feature/{YYYYMMDD}_{feature-slug}`.
 
 ## Build, Test, and Development Commands
 - `npm run dev`: start local Next.js dev server (`http://localhost:3000`).

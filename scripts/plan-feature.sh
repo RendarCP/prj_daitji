@@ -79,14 +79,17 @@ Use this section before implementation. Keep asking until every blocker is resol
 | What is hard to test directly? | TBD | Open |
 
 ## Agent Team
-- 플랜전문가: clarify scope, non-goals, risks, and first slice.
-- 테스트전문가: define behavior checks and TDD order.
-- 프론트전문가: own UI/interaction design when UI is affected.
-- 코드리뷰전문가: review regression risk and test gaps.
-- QA전문가: run verification and record QA notes.
+- Main Agent: receive the request, call Planner Agent, collect Sub Agent results, and report only the final summary.
+- Planner Agent: convert the request or PRD into an Agent Execution Plan and allow implementation only on \`feature/{YYYYMMDD}_$SLUG\` style branches.
+- Test Agent: define or add the first failing behavior test or automation check before implementation.
+- Backend Agent: own API, database, auth, validation, and server-side business logic when affected.
+- Frontend Agent: own UI, client interaction, API wiring, loading/error/empty states, and accessibility after the first test exists.
+- Infra Agent: own environment, deployment, queue/cron/worker, logging, and monitoring impacts when affected.
+- QA Agent: verify user scenarios and record release readiness.
+- Reviewer Agent: review requirement gaps, agent conflicts, security, performance, and maintainability risks.
 
 ## TDD Plan
-Use vertical slices: one behavior check, smallest implementation, repeat.
+Before implementation, add or define one behavior test or automation check. Then use vertical slices: failing check, smallest implementation, repeat.
 
 | Order | Behavior | Test or automation | Notes |
 | --- | --- | --- | --- |

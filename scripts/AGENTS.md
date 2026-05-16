@@ -8,7 +8,7 @@ Applies to shell scripts under `scripts/`.
 - Fail fast with `set -euo pipefail`.
 - Put shared workflow helpers in `scripts/workflow-lib.sh`.
 - Scripts that mutate git state must print the branch and action before doing it.
-- Never allow automated commits from `main` or `master`.
+- Never allow automated commits outside `feature/{YYYYMMDD}_{feature-slug}`.
 
 ## Verification
 - Run `npm run test:workflow` after changing workflow scripts.

@@ -10,7 +10,7 @@ usage() {
 Usage: ./scripts/commit-feature.sh "<type>: <summary>"
 
 Stages all current changes and creates a Conventional Commit.
-Refuses to commit from main or master.
+Refuses to commit outside feature/{YYYYMMDD}_{feature-slug}.
 USAGE
 }
 
@@ -28,6 +28,7 @@ REPO_ROOT="$(workflow_repo_root)"
 cd "$REPO_ROOT"
 
 workflow_assert_not_main_branch
+workflow_assert_dated_feature_branch
 workflow_assert_conventional_commit "$MESSAGE"
 
 if git diff --quiet && git diff --cached --quiet; then

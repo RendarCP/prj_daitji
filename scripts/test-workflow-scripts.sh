@@ -4,6 +4,7 @@ set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 TMP_DIR="$(mktemp -d)"
+TODAY="$(date +%Y%m%d)"
 
 cleanup() {
   rm -rf "$TMP_DIR"
@@ -45,10 +46,12 @@ git add README.md
 git commit -m "docs: seed test repository" --quiet
 
 ./scripts/new-feature.sh "Favorite Locations" --title "Favorite locations" >/tmp/workflow-new.out
-assert_branch "feature/favorite-locations"
+assert_branch "feature/${TODAY}_favorite-locations"
 assert_file "$TMP_DIR/repo/docs/plans/favorite-locations.md"
 grep -q "Ambiguity Loop" "$TMP_DIR/repo/docs/plans/favorite-locations.md" || fail "Plan missing ambiguity loop"
 grep -q "TDD Plan" "$TMP_DIR/repo/docs/plans/favorite-locations.md" || fail "Plan missing TDD section"
+grep -q "Test Agent" "$TMP_DIR/repo/docs/plans/favorite-locations.md" || fail "Plan missing Test Agent"
+grep -q "Before implementation" "$TMP_DIR/repo/docs/plans/favorite-locations.md" || fail "Plan missing test-first implementation gate"
 
 if ./scripts/plan-feature.sh "Favorite Locations" >/tmp/workflow-plan.out 2>/tmp/workflow-plan.err; then
   fail "Expected duplicate plan creation to fail"
@@ -64,6 +67,13 @@ if ./scripts/commit-feature.sh "bad message" >/tmp/workflow-bad-commit.out 2>/tm
 fi
 
 ./scripts/commit-feature.sh "docs: update test readme" >/tmp/workflow-good-commit.out
+
+git switch -c feature/wrong-branch --quiet
+echo "wrong branch change" >> README.md
+if ./scripts/commit-feature.sh "docs: should require dated feature branch" >/tmp/workflow-wrong-branch-commit.out 2>/tmp/workflow-wrong-branch-commit.err; then
+  fail "Expected commit outside dated feature branch to fail"
+fi
+git restore README.md
 
 git switch main --quiet
 echo "main change" >> README.md

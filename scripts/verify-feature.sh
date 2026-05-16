@@ -31,6 +31,9 @@ done
 REPO_ROOT="$(workflow_repo_root)"
 cd "$REPO_ROOT"
 
+workflow_assert_not_main_branch
+workflow_assert_dated_feature_branch
+
 workflow_info "Running workflow automation tests"
 npm run test:workflow
 

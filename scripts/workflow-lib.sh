@@ -57,6 +57,14 @@ workflow_assert_not_main_branch() {
   fi
 }
 
+workflow_assert_dated_feature_branch() {
+  local branch
+  branch="$(workflow_current_branch)"
+  if ! printf "%s" "$branch" | grep -Eq '^feature/[0-9]{8}_[a-z0-9._-]+$'; then
+    workflow_fail "Refusing to continue on $branch. Expected branch format: feature/{YYYYMMDD}_{feature-slug}"
+  fi
+}
+
 workflow_assert_conventional_commit() {
   local message="$1"
   if ! printf "%s" "$message" | grep -Eq '^(feat|fix|docs|style|refactor|test|chore|perf|build|ci|revert)(\([A-Za-z0-9._-]+\))?: .+'; then
