@@ -60,8 +60,7 @@ export function BottomNav() {
           const Icon = item.icon;
           const isActive =
             pathname === item.href ||
-            pathname.startsWith(`${item.href}/`) ||
-            (item.href === "/explorer" && pathname.startsWith("/explorer-v2"));
+            pathname.startsWith(`${item.href}/`);
 
           return (
             <Link
